@@ -19,3 +19,4 @@ request against the ADR, not around it.
 | [0011](0011-licensing.md) | MPL-2.0 core, Apache-2.0 plugin API | Accepted |
 | [0012](0012-hot-reload.md) | Plugin data hot-reloads at safe swap points; capabilities never do | Accepted |
 | [0013](0013-versioning.md) | calver-short for plugins, semver for the contract | Accepted |
+| [0014](0014-bridge.md) | L3 bridges connect to a user-installed mod; the Core never injects | Accepted |
