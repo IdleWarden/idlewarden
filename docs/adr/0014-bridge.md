@@ -124,3 +124,13 @@ registry never carries the file.
   session: an `Observation` is either wholly perceived or wholly bridged.
 * Plugin authors who want a bridge must ship and support a mod. That cost is
   deliberate. It is what keeps the declarative plugin the default.
+* **No mod binary ships inside the application.** Bundling every supported mod
+  would bloat the download for the majority of users who never enable one, and
+  would tie a mod's release cadence to the app's. A mod is fetched on demand
+  from the URL its registry entry names, checked against the entry's `sha256`,
+  and installed into the game's loader directory after an explicit click. This
+  holds for first-party mods too: they are separate release assets, not
+  installer payload.
+* That fetch-and-install path is a downloader, and antivirus heuristics watch
+  for those. It must stay user-initiated and visible, never a background task,
+  and the checksum must be verified before anything is written to disk.
