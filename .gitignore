@@ -6,3 +6,5 @@
 /apps/desktop/src-tauri/target
 *.log
 .DS_Store
+/mods/**/bin
+/mods/**/obj

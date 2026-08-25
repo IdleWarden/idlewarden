@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>IdleWarden.Reference</AssemblyName>
+    <RootNamespace>IdleWarden.Reference</RootNamespace>
+    <Description>Reference BepInEx mod: the smallest thing that speaks the bridge protocol.</Description>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BepInEx.Core" Version="5.4.21" />
+    <PackageReference Include="UnityEngine.Modules" Version="2019.4.0" IncludeAssets="compile" />
+    <ProjectReference Include="../IdleWarden.Bridge/IdleWarden.Bridge.csproj" />
+  </ItemGroup>
+
+</Project>

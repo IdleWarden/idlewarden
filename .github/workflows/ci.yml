@@ -73,9 +73,12 @@ jobs:
       - name: Every source file declares its SPDX identifier
         run: |
           fail=0
-          for f in $(find crates apps -name '*.rs'); do
+          sources=$(find crates apps mods \( -name '*.rs' -o -name '*.cs' \) -not -path '*/node_modules/*')
+          for f in $sources; do
             expected="MPL-2.0"
-            case "$f" in crates/plugin-api/*) expected="Apache-2.0";; esac
+            case "$f" in
+              crates/plugin-api/*|mods/src/IdleWarden.Bridge/*) expected="Apache-2.0";;
+            esac
             if ! head -1 "$f" | grep -q "SPDX-License-Identifier: $expected"; then
               echo "::error file=$f::missing or wrong SPDX header (expected $expected)"
               fail=1

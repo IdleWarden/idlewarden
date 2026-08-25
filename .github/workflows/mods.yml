@@ -1,0 +1,27 @@
+name: mods
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mods
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Test the protocol
+        run: dotnet test tests/IdleWarden.Bridge.Tests --configuration Release
+
+      - name: Build the reference mod
+        run: dotnet build src/IdleWarden.Reference --configuration Release
