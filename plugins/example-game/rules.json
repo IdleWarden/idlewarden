@@ -1,0 +1,64 @@
+{
+  "$comment": "How signals are extracted, and what to do about them. All coordinates are window-relative, 0.0..=1.0 — never screen pixels (ADR-0003).",
+
+  "anchors": [
+    {
+      "name": "top_bar_logo",
+      "search_area": { "x": 0.0, "y": 0.0, "w": 0.3, "h": 0.12 },
+      "template": "assets/logo.png",
+      "min_score": 0.85
+    }
+  ],
+
+  "signals": [
+    {
+      "id": "ui.screen_id",
+      "extractor": {
+        "method": "template_match",
+        "roi": { "x": 0.0, "y": 0.0, "w": 1.0, "h": 0.15 },
+        "template": "assets/header_main.png",
+        "min_score": 0.8
+      }
+    },
+    {
+      "id": "resource.gold",
+      "extractor": {
+        "method": "ocr",
+        "roi": { "x": 0.42, "y": 0.02, "w": 0.16, "h": 0.05 }
+      }
+    },
+    {
+      "id": "upgrade.affordable",
+      "extractor": {
+        "method": "color_probe",
+        "roi": { "x": 0.80, "y": 0.60, "w": 0.02, "h": 0.02 },
+        "rgb": [64, 200, 96],
+        "tolerance": 24
+      }
+    }
+  ],
+
+  "intents": [
+    {
+      "name": "collect_reward",
+      "when": "ui.screen_id == 'main'",
+      "commands": [
+        { "op": "click", "at": { "x": 0.5, "y": 0.72 }, "button": "left" },
+        { "op": "wait", "ms": 300 }
+      ],
+      "$comment": "An intent without a post-condition is a bug (ADR-0003).",
+      "post_condition": "resource.gold > before('resource.gold')",
+      "timeout_ms": 3000
+    },
+    {
+      "name": "buy_upgrade",
+      "when": "upgrade.affordable == true",
+      "commands": [
+        { "op": "click", "at": { "x": 0.81, "y": 0.61 }, "button": "left" },
+        { "op": "wait", "ms": 250 }
+      ],
+      "post_condition": "upgrade.affordable == false",
+      "timeout_ms": 3000
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+[package]
+name = "idlewarden-plugin-api"
+description = "The stable, versioned contract between IdleWarden and its plugins."
+license = "Apache-2.0"          # NOTE: deliberately NOT MPL-2.0. See ADR-0010.
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+semver.workspace = true
+thiserror.workspace = true

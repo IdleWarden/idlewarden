@@ -1,0 +1,12 @@
+This project is licensed under the Mozilla Public License, Version 2.0.
+
+  ⚠️  THIS FILE IS A PLACEHOLDER AND MUST BE REPLACED BEFORE THE FIRST PUBLIC
+      COMMIT. A licence must be reproduced verbatim to be effective; a
+      paraphrase is not a licence. Run:
+
+        curl -sL https://www.mozilla.org/media/MPL/2.0/index.txt -o LICENSE
+
+      (crates/plugin-api/LICENSE is Apache-2.0 and has its own placeholder.)
+
+Canonical text: https://www.mozilla.org/en-US/MPL/2.0/
+SPDX-License-Identifier: MPL-2.0

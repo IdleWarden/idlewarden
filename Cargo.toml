@@ -1,0 +1,43 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/plugin-api",
+    "crates/capture",
+    "crates/vision",
+    "crates/input",
+    "crates/plugin-host",
+    "crates/agent",
+    "crates/core",
+    "apps/cli",
+]
+# apps/desktop is intentionally NOT a member yet: it is scaffolded with
+# `pnpm create tauri-app` in Phase 2. See apps/desktop/README.md.
+
+[workspace.package]
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.82"
+license = "MPL-2.0"
+repository = "https://github.com/idlewarden/idlewarden"
+authors = ["The IdleWarden contributors"]
+
+[workspace.dependencies]
+idlewarden-plugin-api = { path = "crates/plugin-api", version = "0.0.0" }
+idlewarden-capture    = { path = "crates/capture", version = "0.0.0" }
+idlewarden-vision     = { path = "crates/vision", version = "0.0.0" }
+idlewarden-input      = { path = "crates/input", version = "0.0.0" }
+idlewarden-plugin-host = { path = "crates/plugin-host", version = "0.0.0" }
+idlewarden-agent      = { path = "crates/agent", version = "0.0.0" }
+idlewarden-core       = { path = "crates/core", version = "0.0.0" }
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+semver = { version = "1", features = ["serde"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

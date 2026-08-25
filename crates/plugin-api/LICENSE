@@ -1,0 +1,11 @@
+The IdleWarden plugin API is licensed under the Apache License, Version 2.0 —
+deliberately NOT MPL-2.0 like the rest of the project, so that plugins can be
+written under any licence. See ../../docs/adr/0011-licensing.md.
+
+  ⚠️  PLACEHOLDER — replace before the first public commit:
+
+        curl -sL https://www.apache.org/licenses/LICENSE-2.0.txt \
+          -o crates/plugin-api/LICENSE
+
+Canonical text: https://www.apache.org/licenses/LICENSE-2.0
+SPDX-License-Identifier: Apache-2.0

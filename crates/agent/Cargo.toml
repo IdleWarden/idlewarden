@@ -1,0 +1,13 @@
+[package]
+name = "idlewarden-agent"
+description = "One ticked behaviour tree with pluggable deciders."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+idlewarden-plugin-api.workspace = true
+tracing.workspace = true

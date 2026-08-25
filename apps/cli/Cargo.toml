@@ -1,0 +1,22 @@
+[package]
+name = "idlewarden-cli"
+description = "Headless driver: run and debug an agent without the desktop UI."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "idlewarden"
+path = "src/main.rs"
+
+[dependencies]
+idlewarden-core.workspace = true
+idlewarden-plugin-api.workspace = true
+idlewarden-plugin-host.workspace = true
+idlewarden-capture.workspace = true
+idlewarden-input.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

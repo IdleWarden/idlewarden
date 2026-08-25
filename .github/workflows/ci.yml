@@ -1,0 +1,64 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets
+      - name: Test
+        run: cargo test --workspace
+
+  licence-headers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every source file declares its SPDX identifier
+        run: |
+          fail=0
+          for f in $(find crates apps -name '*.rs'); do
+            expected="MPL-2.0"
+            case "$f" in crates/plugin-api/*) expected="Apache-2.0";; esac
+            if ! head -1 "$f" | grep -q "SPDX-License-Identifier: $expected"; then
+              echo "::error file=$f::missing or wrong SPDX header (expected $expected)"
+              fail=1
+            fi
+          done
+          exit $fail
+
+  no-native-plugins:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: ADR-0001 — the Core must not gain a dynamic-library loader
+        run: |
+          if grep -rn --include='*.toml' -E '^\s*(libloading|dlopen2)\s*=' .; then
+            echo "::error::ADR-0001 forbids loading third-party native code in-process."
+            echo "If this is deliberate, supersede the ADR in the same pull request."
+            exit 1
+          fi
+          echo "ok"

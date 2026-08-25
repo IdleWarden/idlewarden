@@ -1,0 +1,21 @@
+[package]
+name = "idlewarden-core"
+description = "Orchestration, event bus and the Governor. Knows nothing about any game."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+idlewarden-plugin-api.workspace = true
+idlewarden-capture.workspace = true
+idlewarden-vision.workspace = true
+idlewarden-input.workspace = true
+idlewarden-plugin-host.workspace = true
+idlewarden-agent.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true

@@ -1,0 +1,165 @@
+# IdleWarden
+
+**An extensible automation platform for single-player idle, incremental and
+management games on Windows.**
+
+IdleWarden watches a game window, builds an abstract picture of what is on
+screen, decides what to do, and does it — mouse, keyboard, nothing exotic. New
+games are added as plugins; the engine itself never learns about any particular
+game.
+
+> **Status: pre-alpha.** Nothing here is usable yet. The architecture is
+> settled (see [`docs/adr/`](docs/adr/)); the implementation is not.
+
+---
+
+## The red line
+
+This project is built for games where automation is *legitimate*: single-player,
+offline, idle and incremental titles — the genre where automating the grind is
+arguably the point — and games whose terms explicitly allow it.
+
+IdleWarden is **not** designed around defeating anti-cheat systems, and the
+official plugin registry refuses plugins targeting competitive or multiplayer
+titles. That boundary is editorial, not technical: the engine is generic and
+cannot police what people do with it, but what we distribute, we curate. See
+[`PLUGIN_POLICY.md`](PLUGIN_POLICY.md).
+
+There is deliberately **no** memory reading, DLL injection or process hooking
+anywhere in this codebase, and adding some would be a breaking architectural
+change. On idle games those techniques buy nothing that screen capture does not
+already give you, while contaminating the entire security model.
+
+---
+
+## How it works
+
+```
+   Game window
+        │  Windows Graphics Capture, 2–4 fps, window-relative
+        ▼
+    Capture ──────────► Frame (Arc, never cloned)
+        │
+        ▼
+     Vision ──────────► anchored ROIs · template match · OCR · colour probe
+        │
+        ▼
+   Observation ───────► typed signals, each with a confidence and an age
+        │
+        ▼
+      Agent ──────────► one ticked behaviour tree, pluggable deciders
+        │
+        ▼
+     Intent  ─────────► "buy_upgrade", in the plugin's own vocabulary
+        │
+        ▼
+  ┌─ Governor ─┐ ◄──── rate limits · confidence floor · intent allow-list
+  │   allow?   │       geometry bounds · session budget
+  └─────┬──────┘
+        ▼
+     Input ───────────► window-relative commands · jitter · kill switch
+        │
+        ▼
+   Game window
+```
+
+Two properties are load-bearing:
+
+**Perception is probabilistic, and the uncertainty travels.** Every signal
+carries a confidence and every observation carries an age. The agent sees both.
+This is what stops it from clicking on ghosts.
+
+**The agent does not police itself.** Every intent it produces passes through
+the Governor before it can become a mouse event. Rate limits, confidence floors,
+geometry bounds and session budgets live in the Core, not in the agent — which
+is where the project's name comes from.
+
+---
+
+## Levels of integration
+
+| Level | What it is | Plugin needed |
+|-------|-----------|---------------|
+| **L0** | Window detection + regions you draw yourself in the UI + simple rules | none — the UI writes an L1 plugin for you |
+| **L1** | Declarative plugin: manifest, template assets, rules. No code. | yes |
+| **L2** | L1 + sandboxed script (Rhai) for conditional logic, optional ONNX perception | yes |
+| **L3** | Official integration: a supported mod, a documented API, a save file read read-only — in a **separate process** | yes |
+
+L0 is not a second code path. "Working without a plugin" means the app builds a
+declarative plugin from what you draw on screen, then runs it like any other.
+One pipeline, always.
+
+---
+
+## Repository layout
+
+```
+idlewarden/
+├── crates/
+│   ├── plugin-api/    ← the contract. Apache-2.0, not MPL. Depend on this.
+│   ├── capture/       ← Windows Graphics Capture of the game window
+│   ├── vision/        ← anchored ROI matching, OCR, colour probes
+│   ├── input/         ← SendInput, humanised timing, kill switch
+│   ├── plugin-host/   ← loads plugins. Never loads native third-party code.
+│   ├── agent/         ← behaviour tree + deciders
+│   └── core/          ← orchestration, event bus, Governor. No UI, no game.
+├── apps/
+│   ├── cli/           ← headless driver. Comes before the UI, on purpose.
+│   └── desktop/       ← Tauri v2 shell (scaffolded in Phase 2)
+├── plugins/           ← first-party plugins, one folder per game
+└── docs/adr/          ← why everything is the way it is
+```
+
+The plugin registry lives in a separate repository:
+[`idlewarden/registry`](https://github.com/idlewarden/registry).
+
+---
+
+## Build
+
+```bash
+rustup toolchain install stable
+cargo check --workspace
+cargo test  --workspace
+cargo run   -p idlewarden-cli
+```
+
+The CLI runs against a stub capture backend, so it works on any OS. The real
+capture and input backends are Windows-only.
+
+---
+
+## Writing a plugin
+
+A plugin is a directory with a `plugin.json` and its assets:
+
+```
+plugins/example-game/
+├── plugin.json        ← manifest: id, game matcher, signal schema, capabilities
+├── rules.json         ← what to extract, and what to do about it
+└── assets/
+    └── collect_button.png
+```
+
+No compilation, no linking, no `cdylib`. The contract is a **data schema**, not
+a Rust ABI — which is the only reason a stable plugin API is achievable at all.
+See [`docs/adr/0001-plugin-model.md`](docs/adr/0001-plugin-model.md) and
+[`docs/adr/0010-versioned-contract.md`](docs/adr/0010-versioned-contract.md).
+
+---
+
+## Licensing
+
+| Part | Licence | Why |
+|------|---------|-----|
+| `crates/plugin-api` | **Apache-2.0** | Anything that must be adopted widely should be maximally permissive, with a patent grant. Your plugin can be licensed however you like. |
+| Everything else | **MPL-2.0** | File-level copyleft: modify our files, publish those modifications. Combine with proprietary code freely otherwise. |
+
+MPL-2.0 is GPL-compatible by default, so this choice does not close the
+copyleft door — it just declines to force it open. See
+[`docs/adr/0011-licensing.md`](docs/adr/0011-licensing.md).
+
+## Contributing
+
+Sign-offs, not CLAs — see [`CONTRIBUTING.md`](CONTRIBUTING.md). Security issues
+go to [`SECURITY.md`](SECURITY.md), not the issue tracker.

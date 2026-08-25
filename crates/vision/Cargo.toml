@@ -1,0 +1,16 @@
+[package]
+name = "idlewarden-vision"
+description = "Anchored ROI matching and OCR. Pure Rust, no OpenCV."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+idlewarden-plugin-api.workspace = true
+idlewarden-capture.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+serde.workspace = true
