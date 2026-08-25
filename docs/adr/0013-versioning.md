@@ -13,6 +13,14 @@ Releases are managed by **FerrFlow**, one `.ferrflow` per repository, with one
 | `api_version` in a manifest | **semver requirement** | `^0.1` |
 | Plugins | **calver-short** (`YY.M.PATCH`) | `26.8.1` |
 
+### Crates carry an explicit version
+
+Every crate declares `version = "x.y.z"` in its own `Cargo.toml` rather than
+`version.workspace = true`. Inheritance reads as tidier and makes the table
+above impossible: one workspace version means one version for everything, so
+"independently released unit" would be a claim the manifests contradict.
+FerrFlow refuses the inherited form outright (E4103) for the same reason.
+
 ## Why plugins are not semver
 
 Semver encodes *compatibility*. A plugin has no API and no consumers — it either
