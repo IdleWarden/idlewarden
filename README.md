@@ -107,7 +107,8 @@ idlewarden/
 │   ├── cli/           ← headless driver. Comes before the UI, on purpose.
 │   └── desktop/       ← Tauri v2 shell (scaffolded in Phase 2)
 ├── plugins/           ← first-party plugins, one folder per game
-└── docs/adr/          ← why everything is the way it is
+├── docs/adr/          ← why everything is the way it is
+└── .ferrflow          ← release config: crates semver, plugins calver-short
 ```
 
 The plugin registry lives in a separate repository:
@@ -145,6 +146,28 @@ No compilation, no linking, no `cdylib`. The contract is a **data schema**, not
 a Rust ABI — which is the only reason a stable plugin API is achievable at all.
 See [`docs/adr/0001-plugin-model.md`](docs/adr/0001-plugin-model.md) and
 [`docs/adr/0010-versioned-contract.md`](docs/adr/0010-versioned-contract.md).
+
+Start from the [template](https://github.com/IdleWarden/registry/tree/main/template).
+
+### It reloads live
+
+Edit `rules.json` or a template crop and save: the running agent picks it up at
+the next safe swap point. **No app restart, and never a game restart** — the
+latter is not a feature but a consequence of being purely external.
+
+Swaps only happen between agent ticks with no action in flight, so a save can
+never land in the middle of a macro. Capabilities and `api_version` are
+deliberately excluded: a plugin able to grant itself new powers by writing to a
+file the host already watches would be privilege escalation dressed as
+convenience. See [`docs/adr/0012-hot-reload.md`](docs/adr/0012-hot-reload.md).
+
+### Versioning
+
+Plugins use **calver-short** (`YY.M.PATCH`, e.g. `26.8.1`); the crates and
+`api_version` stay **semver**. A plugin version tracks the *game's* patches,
+which carry no compatibility meaning — semver there would be decoration
+pretending to be a contract. Releases are managed by FerrFlow from conventional
+commits. See [`docs/adr/0013-versioning.md`](docs/adr/0013-versioning.md).
 
 ---
 

@@ -1,0 +1,26 @@
+{
+  "$comment": "Plugin DEFAULTS. Read-only at runtime. The user's own profile is stored separately in %APPDATA% and merged on top, so updating the plugin never wipes their settings — and never silently loosens a limit they tightened.",
+
+  "name": "Default",
+  "description": "Conservative settings. Start here.",
+
+  "governor": {
+    "max_actions_per_minute": 20,
+    "min_confidence": 0.80,
+    "max_observation_age_ms": 2000,
+    "max_session_minutes": 240,
+    "allowed_intents": ["collect_reward", "buy_upgrade", "dismiss_popup"]
+  },
+
+  "input": {
+    "humanisation": { "min_delay_ms": 60, "max_delay_ms": 220 }
+  },
+
+  "capture": { "target_fps": 2 },
+
+  "tuning": {
+    "$comment": "Plugin-specific knobs, surfaced as UI controls automatically. Anything hardcoded in rules.json that a user might reasonably want to change belongs here instead.",
+    "collect_interval_ms": { "value": 5000, "min": 1000, "max": 60000, "label": "Time between reward collections" },
+    "buy_when_gold_above": { "value": 500, "min": 0, "max": 1000000, "label": "Only buy upgrades above this gold" }
+  }
+}

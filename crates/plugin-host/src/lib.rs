@@ -13,6 +13,8 @@
 //! | 2 | Sandboxed script (Rhai): pure Rust interpreter, no FFI. | trapped |
 //! | 3 | Out-of-process: child process over IPC, for official integrations. | its own process |
 
+pub mod reload;
+
 use idlewarden_plugin_api::{Capability, PluginError, PluginManifest, TrustLevel};
 use std::path::{Path, PathBuf};
 

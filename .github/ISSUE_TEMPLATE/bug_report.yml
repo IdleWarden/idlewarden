@@ -1,0 +1,48 @@
+name: Bug report
+description: Something behaves differently from what the ADRs and docs describe.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: an antivirus flagging IdleWarden is expected, not a bug —
+        see SECURITY.md. So is automation being detectable by a game.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: And what you expected instead.
+    validations: { required: true }
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to reproduce
+      value: |
+        1.
+        2.
+        3.
+    validations: { required: true }
+  - type: input
+    id: version
+    attributes:
+      label: IdleWarden version
+      placeholder: "0.1.0, or the commit sha"
+    validations: { required: true }
+  - type: input
+    id: plugin
+    attributes:
+      label: Plugin and version
+      placeholder: "dev.example.some-game 26.8.1 — or 'none / L0'"
+  - type: input
+    id: display
+    attributes:
+      label: Resolution, DPI scaling and window mode
+      description: Most perception bugs are anchoring bugs, and these three decide it.
+      placeholder: "2560x1440, 125%, borderless windowed"
+    validations: { required: true }
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Run with `RUST_LOG=debug`. Paste the events around the failure.
+      render: text

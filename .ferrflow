@@ -1,0 +1,72 @@
+{
+  "$schema": "https://ferrflow.com/schema/ferrflow.json",
+
+  "workspace": {
+    "versioning": "semver",
+    "tagTemplate": "{name}@v{version}",
+    "recoverMissedReleases": true,
+    "releaseCommitMode": "pr",
+    "autoMergeReleases": false
+  },
+
+  "package": [
+    {
+      "name": "plugin-api",
+      "path": "crates/plugin-api",
+      "changelog": "crates/plugin-api/CHANGELOG.md",
+      "versionedFiles": [{ "path": "crates/plugin-api/Cargo.toml", "format": "toml" }],
+      "floatingTags": ["major", "minor"]
+    },
+    {
+      "name": "capture",
+      "path": "crates/capture",
+      "changelog": "crates/capture/CHANGELOG.md",
+      "versionedFiles": [{ "path": "crates/capture/Cargo.toml", "format": "toml" }]
+    },
+    {
+      "name": "vision",
+      "path": "crates/vision",
+      "changelog": "crates/vision/CHANGELOG.md",
+      "versionedFiles": [{ "path": "crates/vision/Cargo.toml", "format": "toml" }]
+    },
+    {
+      "name": "input",
+      "path": "crates/input",
+      "changelog": "crates/input/CHANGELOG.md",
+      "versionedFiles": [{ "path": "crates/input/Cargo.toml", "format": "toml" }]
+    },
+    {
+      "name": "plugin-host",
+      "path": "crates/plugin-host",
+      "changelog": "crates/plugin-host/CHANGELOG.md",
+      "versionedFiles": [{ "path": "crates/plugin-host/Cargo.toml", "format": "toml" }]
+    },
+    {
+      "name": "agent",
+      "path": "crates/agent",
+      "changelog": "crates/agent/CHANGELOG.md",
+      "versionedFiles": [{ "path": "crates/agent/Cargo.toml", "format": "toml" }]
+    },
+    {
+      "name": "core",
+      "path": "crates/core",
+      "changelog": "crates/core/CHANGELOG.md",
+      "versionedFiles": [{ "path": "crates/core/Cargo.toml", "format": "toml" }]
+    },
+    {
+      "name": "cli",
+      "path": "apps/cli",
+      "changelog": "apps/cli/CHANGELOG.md",
+      "versionedFiles": [{ "path": "apps/cli/Cargo.toml", "format": "toml" }]
+    },
+
+    {
+      "name": "plugin-example-game",
+      "path": "plugins/example-game",
+      "versioning": "calver-short",
+      "tagTemplate": "plugin/example-game@v{version}",
+      "changelog": "plugins/example-game/CHANGELOG.md",
+      "versionedFiles": [{ "path": "plugins/example-game/plugin.json", "format": "json" }]
+    }
+  ]
+}

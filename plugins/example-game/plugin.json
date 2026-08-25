@@ -1,25 +1,74 @@
 {
+  "$schema": "https://idlewarden.github.io/registry/schema/plugin-manifest.schema.json",
   "id": "dev.idlewarden.example-game",
   "name": "Example Game",
-  "version": "0.1.0",
+  "version": "26.8.1",
   "api_version": "^0.1",
-  "authors": ["The IdleWarden contributors"],
-  "description": "A tier-1 declarative plugin, written to be copied. No code.",
-  "license": "Apache-2.0",
   "game": {
     "executable": "ExampleGame.exe",
-    "window_title": "Example Game"
+    "window_title": "Example Game",
+    "title": "Example Game",
+    "tested_versions": [
+      {
+        "version": "0.0.0-stub",
+        "status": "partial",
+        "tested_on": "2026-08-25",
+        "notes": "Reference plugin. Nothing is verified against a real game yet."
+      }
+    ]
   },
   "multiplayer": false,
+  "presentation": {
+    "description": "A tier-1 declarative plugin, written to be copied. No code.",
+    "tags": [
+      "reference",
+      "template"
+    ]
+  },
+  "rights": {
+    "license": "Apache-2.0",
+    "authors": [
+      "The IdleWarden contributors"
+    ],
+    "asset_provenance": "hashes-only",
+    "trademark_notice": "Fictional game. No third-party trademarks involved."
+  },
+  "hot_reload": {
+    "rules": true,
+    "assets": true,
+    "profiles": true,
+    "presentation": true
+  },
   "signals": [
-    { "id": "ui.screen_id",       "value_type": "enum",  "description": "Which screen is currently shown." },
-    { "id": "resource.gold",      "value_type": "int",   "description": "Gold counter.", "unit": "gold" },
-    { "id": "upgrade.affordable", "value_type": "bool",  "description": "Is the next upgrade buyable." },
-    { "id": "progress.bar",       "value_type": "ratio", "description": "Main progress bar, 0..1." }
+    {
+      "id": "ui.screen_id",
+      "value_type": "enum",
+      "description": "Which screen is currently shown."
+    },
+    {
+      "id": "resource.gold",
+      "value_type": "int",
+      "description": "Gold counter.",
+      "unit": "gold"
+    },
+    {
+      "id": "upgrade.affordable",
+      "value_type": "bool",
+      "description": "Is the next upgrade buyable."
+    },
+    {
+      "id": "progress.bar",
+      "value_type": "ratio",
+      "description": "Main progress bar, 0..1."
+    }
   ],
-  "intents": ["collect_reward", "buy_upgrade", "dismiss_popup"],
+  "intents": [
+    "collect_reward",
+    "buy_upgrade",
+    "dismiss_popup"
+  ],
   "capabilities": [
-    { "kind": "capture" },
-    { "kind": "input_mouse" }
+    "capture",
+    "input.mouse"
   ]
 }

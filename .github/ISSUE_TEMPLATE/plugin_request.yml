@@ -1,0 +1,34 @@
+name: Plugin request
+description: Ask for a game to be supported.
+labels: ["plugin-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Read [PLUGIN_POLICY.md](https://github.com/IdleWarden/idlewarden/blob/main/PLUGIN_POLICY.md)
+        first. Games with any competitive or ranked multiplayer mode are refused
+        — including "but I only play single-player". That one is not negotiable.
+  - type: input
+    id: game
+    attributes:
+      label: Game
+      placeholder: "Title, and Steam AppID if it has one"
+    validations: { required: true }
+  - type: dropdown
+    id: multiplayer
+    attributes:
+      label: Does this game have ANY multiplayer or competitive mode?
+      options: ["No — single-player / offline only", "Yes", "Co-op only", "Single-player with online leaderboards"]
+    validations: { required: true }
+  - type: textarea
+    id: terms
+    attributes:
+      label: What do the game's terms say about automation?
+      description: Quote the clause if you can find it. "I don't know" is an acceptable answer.
+    validations: { required: true }
+  - type: textarea
+    id: automate
+    attributes:
+      label: What would the plugin automate?
+      description: Which loop, and what should it deliberately NOT do.
+    validations: { required: true }
