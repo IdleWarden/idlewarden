@@ -1,7 +1,7 @@
 [package]
 name = "idlewarden-plugin-host"
 description = "Loads plugins. Never loads third-party native code in-process."
-version = "0.0.0"
+version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
