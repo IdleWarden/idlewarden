@@ -2,7 +2,7 @@
   "$schema": "https://ferrflow.com/schema/ferrflow.json",
 
   "workspace": {
-    "versioning": "semver",
+    "versioning": "calver-short",
     "tagTemplate": "{name}@v{version}",
     "recoverMissedReleases": true
   },
@@ -70,7 +70,6 @@
     {
       "name": "plugin-example-game",
       "path": "plugins/example-game",
-      "versioning": "calver-short",
       "tagTemplate": "plugin/example-game@v{version}",
       "changelog": "plugins/example-game/CHANGELOG.md",
       "versionedFiles": [{ "path": "plugins/example-game/plugin.json", "format": "json" }]

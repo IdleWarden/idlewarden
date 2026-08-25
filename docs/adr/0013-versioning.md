@@ -1,6 +1,6 @@
 # ADR-0013 — calver-short for plugins, semver for the contract
 
-**Status:** Accepted · **Date:** 2026-08-25
+**Status:** Superseded by [ADR-0015](0015-calver-everywhere.md) · **Date:** 2026-08-25
 
 ## Decision
 

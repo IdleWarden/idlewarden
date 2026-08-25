@@ -18,5 +18,6 @@ request against the ADR, not around it.
 | [0010](0010-versioned-contract.md) | The plugin contract is a data schema, not a Rust ABI | Accepted |
 | [0011](0011-licensing.md) | MPL-2.0 core, Apache-2.0 plugin API | Accepted |
 | [0012](0012-hot-reload.md) | Plugin data hot-reloads at safe swap points; capabilities never do | Accepted |
-| [0013](0013-versioning.md) | calver-short for plugins, semver for the contract | Accepted |
+| [0013](0013-versioning.md) | calver-short for plugins, semver for the contract | Superseded by 0015 |
 | [0014](0014-bridge.md) | L3 bridges connect to a user-installed mod; the Core never injects | Accepted |
+| [0015](0015-calver-everywhere.md) | calver-short everywhere, including the contract | Accepted |
