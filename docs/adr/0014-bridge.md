@@ -42,10 +42,32 @@ MelonLoader, Reloaded-II) or by dropping a file into the game directory.
   Every other capability can be granted by trust; this one always asks.
 * Capabilities never hot-reload (ADR-0012), so a bridge cannot be switched on
   mid-session.
-* The registry never carries a mod binary, and does not distribute third-party
-  bridge plugins, exactly as it already refuses anything needing injection or
-  memory reading (`PLUGIN_POLICY.md`). A third-party bridge plugin is therefore
-  `Unverified`: installed by hand, no auto-update, loud warning.
+* The registry never carries a mod binary. It indexes mods the same way it
+  indexes plugins: an entry under `mods/` holding a public source repository, an
+  immutable release URL, a checksum and a build attestation.
+
+### What `verified` means for a mod
+
+A plugin entry is reviewable because a plugin is data: a human reads it. A mod
+is a binary, and pretending someone read it would hollow out the badge that is
+the registry's only real protection.
+
+So a bridge entry is not verified by reading the artefact. It is verified by
+**requiring the artefact to be reproducible from public source**:
+
+* the source repository is public and named in the entry,
+* the release is built by CI from that repository, with a provenance attestation
+  (`gh attestation verify`),
+* the entry's `sha256` matches the attested artefact.
+
+`verified` on a mod therefore claims exactly one thing, and it must be worded
+this way in the UI: *this binary was built by a public CI run from this public
+commit*. It is not a code review, and must never be presented as one. It is
+still strictly stronger than the download-a-zip-from-a-forum norm the modding
+ecosystem runs on.
+
+A plugin may declare `bridge:<name>` only if a mod entry provides that endpoint
+for that plugin. A dangling bridge capability is a broken entry, and CI says so.
 
 ### First-party mods are in scope
 
