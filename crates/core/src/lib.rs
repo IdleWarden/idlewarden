@@ -16,4 +16,4 @@ pub mod session;
 
 pub use event::{Command, Event};
 pub use governor::{Governor, GovernorConfig, Verdict};
-pub use session::{Session, SessionState};
+pub use session::{Refusal, Session, SessionState};
