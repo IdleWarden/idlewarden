@@ -23,7 +23,8 @@ screens the user will spend the most time in.
 ## Why the boundary matters more than the toolkit
 
 Keeping the Core UI-free is what makes three later moves cheap rather than
-catastrophic: a headless daemon, a CLI that is not a toy, and replacing the UI
+catastrophic: a headless daemon, an automation entry point that is not a toy,
+and replacing the UI
 toolkit if Tauri turns out to be the wrong bet. The discipline costs almost
 nothing today.
 
@@ -31,5 +32,7 @@ nothing today.
 
 * Every UI capability must be expressible as `Command`/`Event`. This is a
   feature: it keeps the Core's surface honest and makes the session replayable.
-* `apps/cli` exists partly as an enforcement mechanism — if the CLI can drive a
-  session, the Core is genuinely UI-independent.
+* `crates/core/tests/pipeline.rs` is the enforcement mechanism: it drives a
+  full session, capture through Governor through input, with no UI and no
+  binary. If it stops compiling because the Core grew a UI dependency, the
+  boundary has been broken.

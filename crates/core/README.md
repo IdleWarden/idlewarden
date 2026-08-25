@@ -11,7 +11,8 @@ system exists to prevent.
 **It contains no UI code.** Not one `tauri::` symbol
 ([ADR-0004](../../docs/adr/0004-ui-boundary.md)). The desktop app is an adapter
 over `Command` and `Event`; that discipline is what makes a headless daemon a
-refactor rather than a rewrite — and `apps/cli` exists partly to prove it.
+refactor rather than a rewrite, and `tests/pipeline.rs` proves it by driving a
+whole session with no UI at all.
 
 ## The Governor
 

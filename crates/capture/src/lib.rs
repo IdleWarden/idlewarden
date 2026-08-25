@@ -56,8 +56,9 @@ pub trait CaptureBackend: Send {
     fn window(&self) -> WindowHandle;
 }
 
-/// Placeholder backend so the workspace builds and the CLI can be exercised on
-/// any OS. Phase 1 replaces this with Windows Graphics Capture.
+/// Placeholder backend so the workspace builds and the pipeline can be
+/// exercised on any OS. Phase 1 replaces this with the real per-platform
+/// backends.
 pub struct NullBackend {
     next_id: u64,
     size: Size,

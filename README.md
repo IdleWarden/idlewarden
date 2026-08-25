@@ -104,7 +104,6 @@ idlewarden/
 │   ├── agent/         ← behaviour tree + deciders
 │   └── core/          ← orchestration, event bus, Governor. No UI, no game.
 ├── apps/
-│   ├── cli/           ← headless driver. Comes before the UI, on purpose.
 │   └── desktop/       ← Tauri v2 shell (scaffolded in Phase 2)
 ├── plugins/           ← first-party plugins, one folder per game
 ├── docs/adr/          ← why everything is the way it is
@@ -122,11 +121,12 @@ The plugin registry lives in a separate repository:
 rustup toolchain install stable
 cargo check --workspace
 cargo test  --workspace
-cargo run   -p idlewarden-cli
 ```
 
-The CLI runs against a stub capture backend, so it works on any OS. The real
-capture and input backends are Windows-only.
+There is no binary yet: the desktop app is the only front end and it is
+scaffolded in Phase 2. Until then the whole pipeline is exercised headless by
+`crates/core/tests/pipeline.rs`, which runs on any OS against the stub capture
+backend.
 
 ---
 

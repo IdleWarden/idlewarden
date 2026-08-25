@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-//! Session state machine: the lifecycle the UI renders and the CLI drives.
+//! Session state machine: the lifecycle the UI renders.
 
 use serde::{Deserialize, Serialize};
 

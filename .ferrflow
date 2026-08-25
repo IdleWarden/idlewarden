@@ -54,13 +54,6 @@
       "versionedFiles": [{ "path": "crates/core/Cargo.toml", "format": "toml" }]
     },
     {
-      "name": "cli",
-      "path": "apps/cli",
-      "changelog": "apps/cli/CHANGELOG.md",
-      "versionedFiles": [{ "path": "apps/cli/Cargo.toml", "format": "toml" }]
-    },
-
-    {
       "name": "plugin-example-game",
       "path": "plugins/example-game",
       "versioning": "calver-short",

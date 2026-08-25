@@ -13,7 +13,7 @@ Frame capture. Governed by [ADR-0005](../../docs/adr/0005-capture.md).
 
 ## Backends
 
-* `NullBackend` — synthetic frames, works on any OS, keeps the CLI and the tests
+* `NullBackend` — synthetic frames, works on any OS, keeps the tests
   honest.
 * Windows Graphics Capture — **not yet written**. Replaces `NullBackend` in
   Phase 1.

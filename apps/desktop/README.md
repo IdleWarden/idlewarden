@@ -1,9 +1,11 @@
 # Desktop app (Tauri v2)
 
-Not scaffolded yet — this arrives in **Phase 2**, and deliberately after
-`apps/cli`. If the CLI can drive a full session, the Core is genuinely
-UI-independent (ADR-0004); scaffolding the UI first would let that boundary rot
-before it was ever tested.
+Not scaffolded yet: this arrives in **Phase 2**. It is the only front end the
+project ships.
+
+The Core stays UI-independent regardless (ADR-0004), and that is enforced by
+`crates/core/tests/pipeline.rs` rather than by a second binary: it drives a full
+session, capture through Governor through input, without a UI.
 
 When the time comes:
 
