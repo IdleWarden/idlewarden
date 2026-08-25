@@ -21,6 +21,9 @@ pub enum Capability {
     FsRead { path: String },
     /// Reach the network. Never granted to `Unverified` plugins by default.
     Net { host: String },
+    /// Talk to a mod the user installed in the game process (ADR-0014). Never
+    /// granted silently, at any trust level.
+    Bridge { name: String },
 }
 
 impl Capability {
@@ -32,6 +35,7 @@ impl Capability {
             Capability::InputGamepad => "input.gamepad".into(),
             Capability::FsRead { path } => format!("fs.read:{path}"),
             Capability::Net { host } => format!("net:{host}"),
+            Capability::Bridge { name } => format!("bridge:{name}"),
         }
     }
 }
@@ -56,11 +60,59 @@ impl TrustLevel {
     }
 
     /// Capabilities granted without an explicit per-capability prompt.
+    ///
+    /// A bridge puts code the Core cannot inspect inside the game process, so
+    /// it is excluded here for every trust level, `Official` included.
     pub fn grants_silently(self, cap: &Capability) -> bool {
+        if matches!(cap, Capability::Bridge { .. }) {
+            return false;
+        }
         match self {
             TrustLevel::Official => true,
             TrustLevel::Verified => !matches!(cap, Capability::Net { .. }),
             TrustLevel::Unverified => false,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const LEVELS: [TrustLevel; 3] = [
+        TrustLevel::Unverified,
+        TrustLevel::Verified,
+        TrustLevel::Official,
+    ];
+
+    #[test]
+    fn a_bridge_is_never_granted_silently() {
+        let bridge = Capability::Bridge {
+            name: "cookie".into(),
+        };
+        for level in LEVELS {
+            assert!(
+                !level.grants_silently(&bridge),
+                "{level:?} granted a bridge silently"
+            );
+        }
+    }
+
+    #[test]
+    fn an_official_plugin_still_gets_everything_else_silently() {
+        assert!(TrustLevel::Official.grants_silently(&Capability::Capture));
+        assert!(TrustLevel::Official.grants_silently(&Capability::Net { host: "x".into() }));
+    }
+
+    #[test]
+    fn capability_labels_round_trip_into_the_registry_pattern() {
+        assert_eq!(
+            Capability::Bridge {
+                name: "cookie".into()
+            }
+            .label(),
+            "bridge:cookie"
+        );
+        assert_eq!(Capability::InputMouse.label(), "input.mouse");
     }
 }
