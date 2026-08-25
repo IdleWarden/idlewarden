@@ -36,6 +36,12 @@
       "versionedFiles": [{ "path": "crates/input/Cargo.toml", "format": "toml" }]
     },
     {
+      "name": "bridge",
+      "path": "crates/bridge",
+      "changelog": "crates/bridge/CHANGELOG.md",
+      "versionedFiles": [{ "path": "crates/bridge/Cargo.toml", "format": "toml" }]
+    },
+    {
       "name": "plugin-host",
       "path": "crates/plugin-host",
       "changelog": "crates/plugin-host/CHANGELOG.md",

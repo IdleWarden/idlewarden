@@ -1454,6 +1454,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "idlewarden-bridge"
+version = "0.0.0"
+dependencies = [
+ "idlewarden-plugin-api",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.20",
+ "tracing",
+]
+
+[[package]]
 name = "idlewarden-capture"
 version = "0.0.0"
 dependencies = [
