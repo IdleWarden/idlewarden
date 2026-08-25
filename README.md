@@ -83,7 +83,7 @@ is where the project's name comes from.
 | **L0** | Window detection + regions you draw yourself in the UI + simple rules | none — the UI writes an L1 plugin for you |
 | **L1** | Declarative plugin: manifest, template assets, rules. No code. | yes |
 | **L2** | L1 + sandboxed script (Rhai) for conditional logic, optional ONNX perception | yes |
-| **L3** | Official integration: a supported mod, a documented API, a save file read read-only — in a **separate process** | yes |
+| **L3** | Official integration: a supported mod over IPC, a documented API, a save file read read-only — the Core connects, it never injects ([ADR-0014](docs/adr/0014-bridge.md)) | yes |
 
 L0 is not a second code path. "Working without a plugin" means the app builds a
 declarative plugin from what you draw on screen, then runs it like any other.
@@ -100,6 +100,7 @@ idlewarden/
 │   ├── capture/       ← Windows Graphics Capture of the game window
 │   ├── vision/        ← anchored ROI matching, OCR, colour probes
 │   ├── input/         ← SendInput, humanised timing, kill switch
+│   ├── bridge/        ← client for a user-installed game mod (ADR-0014)
 │   ├── plugin-host/   ← loads plugins. Never loads native third-party code.
 │   ├── agent/         ← behaviour tree + deciders
 │   └── core/          ← orchestration, event bus, Governor. No UI, no game.

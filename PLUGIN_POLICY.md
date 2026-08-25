@@ -20,8 +20,11 @@ curate is what we ship.
 * Anything that circumvents, disables, probes or works around an anti-cheat
   system or any other protection mechanism.
 * Plugins relying on memory reading, DLL injection, code hooking or driver
-  installation. The plugin model provides no mechanism for these, and requests
-  to add one will be declined.
+  installation. This includes **bridge plugins** (ADR-0014), which depend on a
+  mod running inside the game process. Such a plugin is perfectly legitimate to
+  build and to install by hand; it is the *registry* that will not carry it,
+  because we cannot review a binary we do not host and would not want to host.
+  Requests to relax this will be declined.
 * Games whose terms explicitly forbid automation, regardless of the mode.
 * Anything designed to obtain a competitive advantage over other human players,
   or to acquire tradeable goods for sale.
@@ -36,8 +39,12 @@ Three layers, in order of strength:
    nothing granted silently; network access is never granted silently below
    `Official`.
 3. **Architecture.** There is no code path in IdleWarden that could load a
-   native plugin, read another process's memory or install a driver. This is
-   the strongest layer precisely because it is not a rule anyone can waive.
+   native plugin, read another process's memory, inject into another process or
+   install a driver. This is the strongest layer precisely because it is not a
+   rule anyone can waive. A bridge does not weaken it: the Core connects to an
+   endpoint the user created, it never creates one, and
+   `Capability::Bridge` is the single capability no trust level grants
+   silently.
 
 ## Grey areas
 
