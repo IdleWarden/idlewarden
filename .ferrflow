@@ -4,9 +4,7 @@
   "workspace": {
     "versioning": "semver",
     "tagTemplate": "{name}@v{version}",
-    "recoverMissedReleases": true,
-    "releaseCommitMode": "pr",
-    "autoMergeReleases": false
+    "recoverMissedReleases": true
   },
 
   "package": [
