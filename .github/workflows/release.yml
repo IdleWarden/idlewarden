@@ -1,0 +1,33 @@
+name: release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run — no tag, no release"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'chore(release)')) ||
+      github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: FerrLabs/FerrFlow@v5
+        with:
+          bot: true
+          dry_run: ${{ inputs.dry_run || false }}
