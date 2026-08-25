@@ -104,7 +104,7 @@ idlewarden/
 │   ├── agent/         ← behaviour tree + deciders
 │   └── core/          ← orchestration, event bus, Governor. No UI, no game.
 ├── apps/
-│   └── desktop/       ← Tauri v2 shell (scaffolded in Phase 2)
+│   └── desktop/       ← Tauri v2 + Angular shell. An adapter, nothing more.
 ├── plugins/           ← first-party plugins, one folder per game
 ├── docs/adr/          ← why everything is the way it is
 └── .ferrflow          ← release config: crates semver, plugins calver-short
@@ -121,12 +121,14 @@ The plugin registry lives in a separate repository:
 rustup toolchain install stable
 cargo check --workspace
 cargo test  --workspace
+
+cd apps/desktop && pnpm install && pnpm tauri dev
 ```
 
-There is no binary yet: the desktop app is the only front end and it is
-scaffolded in Phase 2. Until then the whole pipeline is exercised headless by
-`crates/core/tests/pipeline.rs`, which runs on any OS against the stub capture
-backend.
+The desktop app is the only front end. The pipeline underneath it is also
+exercised headless by `crates/core/tests/pipeline.rs`, which runs on any OS
+against the stub capture backend. The real capture and input backends do not
+exist yet, so a session stays in `searching`.
 
 ---
 

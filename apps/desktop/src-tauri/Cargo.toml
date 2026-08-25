@@ -1,0 +1,22 @@
+[package]
+name = "idlewarden-desktop"
+description = "Desktop shell: an adapter over idlewarden-core's Command and Event."
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[lib]
+name = "idlewarden_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+idlewarden-core.workspace = true
+serde.workspace = true
+tauri = { version = "2", features = [] }

@@ -54,6 +54,16 @@
       "versionedFiles": [{ "path": "crates/core/Cargo.toml", "format": "toml" }]
     },
     {
+      "name": "desktop",
+      "path": "apps/desktop",
+      "changelog": "apps/desktop/CHANGELOG.md",
+      "versionedFiles": [
+        { "path": "apps/desktop/src-tauri/Cargo.toml", "format": "toml" },
+        { "path": "apps/desktop/src-tauri/tauri.conf.json", "format": "json" }
+      ]
+    },
+
+    {
       "name": "plugin-example-game",
       "path": "plugins/example-game",
       "versioning": "calver-short",

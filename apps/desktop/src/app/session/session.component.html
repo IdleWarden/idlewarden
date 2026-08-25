@@ -1,0 +1,48 @@
+<main>
+  <header>
+    <h1>IdleWarden</h1>
+    @if (session(); as s) {
+      <span class="state" [attr.data-state]="s.state">{{ s.state }}</span>
+    }
+  </header>
+
+  @if (session(); as s) {
+    <dl>
+      <dt>Plugin</dt>
+      <dd>{{ s.plugin ?? "none detected" }}</dd>
+      <dt>Profile</dt>
+      <dd>{{ s.profile ?? "none" }}</dd>
+      <dt>Actions taken</dt>
+      <dd>{{ s.actions_taken }}</dd>
+      <dt>Dry run</dt>
+      <dd>{{ s.dry_run ? "on, nothing touches the mouse" : "off" }}</dd>
+      @if (s.last_reason) {
+        <dt>Last reason</dt>
+        <dd>{{ s.last_reason }}</dd>
+      }
+    </dl>
+
+    <div class="controls">
+      <button type="button" (click)="start()" [disabled]="plugin() === null">
+        Start
+      </button>
+      <button type="button" (click)="pause()">Pause</button>
+      <button type="button" (click)="resume()">Resume</button>
+      <button type="button" (click)="stop()">Stop</button>
+      <button type="button" (click)="toggleDryRun()">
+        {{ s.dry_run ? "Disable dry run" : "Enable dry run" }}
+      </button>
+    </div>
+  } @else {
+    <p class="muted">Reading the session…</p>
+  }
+
+  @if (refusal(); as r) {
+    <p class="refusal">{{ r.message }}</p>
+  }
+
+  <p class="muted">
+    Window detection arrives with the capture backend in Phase 1. Until then the session
+    stays in <code>searching</code> and Start has nothing to start.
+  </p>
+</main>

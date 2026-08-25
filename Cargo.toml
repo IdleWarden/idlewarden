@@ -8,9 +8,8 @@ members = [
     "crates/plugin-host",
     "crates/agent",
     "crates/core",
+    "apps/desktop/src-tauri",
 ]
-# apps/desktop is intentionally NOT a member yet: it is scaffolded with
-# `pnpm create tauri-app` in Phase 2. See apps/desktop/README.md.
 
 [workspace.package]
 version = "0.0.0"

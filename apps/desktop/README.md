@@ -1,20 +1,9 @@
-# Desktop app (Tauri v2)
+# Desktop app (Tauri v2 + Angular)
 
-Not scaffolded yet: this arrives in **Phase 2**. It is the only front end the
-project ships.
-
-The Core stays UI-independent regardless (ADR-0004), and that is enforced by
-`crates/core/tests/pipeline.rs` rather than by a second binary: it drives a full
-session, capture through Governor through input, without a UI.
-
-When the time comes:
-
-```bash
-cd apps/desktop
-pnpm create tauri-app@latest .   # vanilla TS or Svelte; no framework opinion yet
-```
-
-Then add `apps/desktop/src-tauri` to `members` in the workspace `Cargo.toml`.
+The only front end the project ships. Tauri renders an Angular application in
+the platform's own web view (WebView2 on Windows, WebKitGTK on Linux) with a
+Rust backend in the same process, so capture, vision, input and the Governor all
+run natively and only the interface is web.
 
 ## The one rule
 
@@ -22,13 +11,55 @@ Then add `apps/desktop/src-tauri` to `members` in the workspace `Cargo.toml`.
 
 The app is an adapter: it turns UI gestures into `idlewarden_core::Command` and
 renders `idlewarden_core::Event`. If a screen needs something the event
-vocabulary cannot express, extend the vocabulary in the Core — do not reach past
+vocabulary cannot express, extend the vocabulary in the Core, do not reach past
 it.
+
+That rule is enforced by `crates/core/tests/pipeline.rs`, which drives a full
+session with no UI at all. `src-tauri/src/session.rs` holds a `Mutex<Session>`
+and forwards commands to `Session::apply`; it decides nothing itself.
+
+## Running it
+
+```bash
+pnpm install
+pnpm tauri dev      # Angular dev server on :1420, inside the Tauri window
+pnpm tauri build    # bundle for the host platform
+pnpm build          # frontend only
+pnpm format         # prettier
+```
+
+On Linux you need the Tauri system packages first: `libwebkit2gtk-4.1-dev`,
+`libayatana-appindicator3-dev`, `librsvg2-dev`, `libxdo-dev`, `libssl-dev`,
+`patchelf`. The CI workflow installs exactly that list.
+
+## Layout
+
+```
+apps/desktop/
+├── src/app/session/    ← the Session screen: state, controls, refusals
+├── src/app/            ← shell, routes, global styles
+└── src-tauri/          ← the adapter. Four Rust files, no decisions.
+```
+
+Components are generated with separate `.ts` / `.html` / `.css` files;
+`angular.json` pins `inlineTemplate` and `inlineStyle` to false so
+`ng generate component` keeps doing that.
+
+## Known gap
+
+`src/app/session/session.model.ts` restates by hand the shapes that
+`idlewarden_core` serialises. Nothing checks the two stay in step. Generating
+them (ts-rs, tauri-specta) means putting derive macros on Core types for the
+UI's benefit, which cuts against ADR-0004, so it is deliberately unresolved
+rather than quietly solved.
 
 ## Screens, in build order
 
 1. **Detect** — installed games found, whether a plugin exists for each.
 2. **Session** — start/stop, dry-run toggle, live state, kill-switch status.
+   _Scaffolded._ It renders the real `Session` and surfaces the Core's
+   refusals; detection lands with the capture backend, so the state stays
+   `searching` until then.
 3. **Activity** — timeline of intents, Governor verdicts and outcomes.
 4. **Logs** — filterable structured log stream.
 5. **Region editor** — draw ROIs and anchors on a captured frame. This is what
