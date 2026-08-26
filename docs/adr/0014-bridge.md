@@ -1,4 +1,4 @@
-# ADR-0014 — L3 bridges connect to a mod the user installed; the Core never injects
+# ADR-0014: L3 bridges connect to a mod the user installed; the Core never injects
 
 **Status:** Accepted · **Date:** 2026-08-25
 

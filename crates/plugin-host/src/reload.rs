@@ -15,7 +15,7 @@ use std::sync::Arc;
 /// What changed on disk. Each variant carries a different blast radius.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChangeKind {
-    /// `rules.json` — extractors, intents, tree.
+    /// `rules.json`, extractors, intents, tree.
     Rules,
     /// Anything under `assets/`.
     Assets,
@@ -93,7 +93,7 @@ pub struct ReloadOutcome {
 }
 
 /// Applies a validated swap. Note what is *absent*: the Governor is not passed
-/// in and cannot be reset here. Its counters deliberately survive a reload —
+/// in and cannot be reset here. Its counters deliberately survive a reload,
 /// otherwise "touch a file" would be an escape hatch from the rate limit, and
 /// every limit in ADR-0009 would become advisory.
 pub fn apply(

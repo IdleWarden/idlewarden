@@ -4,13 +4,13 @@
 
 Read [`docs/adr/`](docs/adr/). Ten decisions shape everything here, and a pull
 request that contradicts one without arguing against the ADR will be closed with
-a link to it. If you think an ADR is wrong, that is a legitimate pull request —
+a link to it. If you think an ADR is wrong, that is a legitimate pull request,
 against the ADR.
 
 Two of them are effectively constitutional:
 
-* **ADR-0001** — the Core never loads third-party native code in-process.
-* **ADR-0009** — limits live in the Core, never in the agent.
+* **ADR-0001**: the Core never loads third-party native code in-process.
+* **ADR-0009**: limits live in the Core, never in the agent.
 
 ## Sign your commits off (DCO)
 
@@ -54,8 +54,8 @@ cargo test --workspace
 ## What will not be merged
 
 * Anything reading another process's memory, injecting code, or installing a
-  driver — see [`PLUGIN_POLICY.md`](PLUGIN_POLICY.md).
+  driver, see [`PLUGIN_POLICY.md`](PLUGIN_POLICY.md).
 * Game-specific knowledge inside `crates/`. It belongs in a plugin. If a plugin
-  cannot express it, that is a gap in `plugin-api` — open an issue about the
+  cannot express it, that is a gap in `plugin-api`, open an issue about the
   gap.
 * `tauri::` anywhere outside `apps/desktop/`.

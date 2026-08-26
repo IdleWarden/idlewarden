@@ -1,4 +1,4 @@
-# ADR-0002 — No `GameState` type; a schema-declared stream of confident observations
+# ADR-0002: No `GameState` type; a schema-declared stream of confident observations
 
 **Status:** Accepted · **Date:** 2026-08-25
 
@@ -31,8 +31,8 @@ There is **no** `GameState` type in the Core. Instead:
   advance.
 * **Vision is probabilistic and the uncertainty must travel.** A struct of plain
   values silently asserts certainty the perception layer does not have. Carrying
-  `Confidence` to the agent — and letting the Governor halt on a confidence
-  collapse — is what stops the agent acting on a misread screen.
+  `Confidence` to the agent, and letting the Governor halt on a confidence
+  collapse, is what stops the agent acting on a misread screen.
 * **Observations are stamped and age.** Acting on a two-second-old screen is a
   bug; making age a first-class field makes it a checkable one.
 

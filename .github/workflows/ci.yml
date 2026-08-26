@@ -92,7 +92,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: ADR-0001 — the Core must not gain a dynamic-library loader
+      - name: ADR-0001, the Core must not gain a dynamic-library loader
         run: |
           if grep -rn --include='*.toml' -E '^\s*(libloading|dlopen2)\s*=' .; then
             echo "::error::ADR-0001 forbids loading third-party native code in-process."

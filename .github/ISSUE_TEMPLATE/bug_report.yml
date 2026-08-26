@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Before filing: an antivirus flagging IdleWarden is expected, not a bug —
+        Before filing: an antivirus flagging IdleWarden is expected, not a bug,
         see SECURITY.md. So is automation being detectable by a game.
   - type: textarea
     id: what-happened
@@ -32,7 +32,7 @@ body:
     id: plugin
     attributes:
       label: Plugin and version
-      placeholder: "dev.example.some-game 26.8.1 — or 'none / L0'"
+      placeholder: "dev.example.some-game 26.8.1, or 'none / L0'"
   - type: input
     id: display
     attributes:

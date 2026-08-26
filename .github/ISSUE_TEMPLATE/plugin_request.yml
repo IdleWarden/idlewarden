@@ -7,7 +7,7 @@ body:
       value: |
         Read [PLUGIN_POLICY.md](https://github.com/IdleWarden/idlewarden/blob/main/PLUGIN_POLICY.md)
         first. Games with any competitive or ranked multiplayer mode are refused
-        — including "but I only play single-player". That one is not negotiable.
+        - including "but I only play single-player". That one is not negotiable.
   - type: input
     id: game
     attributes:
@@ -18,7 +18,7 @@ body:
     id: multiplayer
     attributes:
       label: Does this game have ANY multiplayer or competitive mode?
-      options: ["No — single-player / offline only", "Yes", "Co-op only", "Single-player with online leaderboards"]
+      options: ["No, single-player / offline only", "Yes", "Co-op only", "Single-player with online leaderboards"]
     validations: { required: true }
   - type: textarea
     id: terms

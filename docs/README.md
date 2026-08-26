@@ -1,6 +1,6 @@
 # Documentation
 
-* [`adr/`](adr/) — the thirteen decisions that constrain everything else. Read
+* [`adr/`](adr/), the thirteen decisions that constrain everything else. Read
   these before writing code; a pull request that contradicts one without
   arguing against the ADR gets closed with a link to it.
 

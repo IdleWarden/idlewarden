@@ -5,7 +5,7 @@ contact_links:
     about: Never open a public issue for a vulnerability. Use a private advisory.
   - name: Plugin policy question or grey area
     url: https://github.com/IdleWarden/registry/discussions
-    about: Co-op-only multiplayer, leaderboards, terms that are silent rather than permissive — ask before writing the plugin.
+    about: Co-op-only multiplayer, leaderboards, terms that are silent rather than permissive, ask before writing the plugin.
   - name: Question or idea
     url: https://github.com/IdleWarden/idlewarden/discussions
     about: Anything that is not a concrete bug or a concrete change.

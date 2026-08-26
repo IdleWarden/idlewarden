@@ -1,4 +1,4 @@
-# ADR-0006 — Pure-Rust classical vision; anchoring is the hard part
+# ADR-0006: Pure-Rust classical vision; anchoring is the hard part
 
 **Status:** Accepted · **Date:** 2026-08-25
 
@@ -13,9 +13,9 @@ never in the Core.
 
 ## Why not OpenCV
 
-The C++ dependency on Windows is a build and distribution liability —
+The C++ dependency on Windows is a build and distribution liability,
 vcpkg/CMake in CI, DLLs in the installer, a whole class of "works on my machine"
-— for capability we do not need. Idle-game UIs are flat, static and
+- for capability we do not need. Idle-game UIs are flat, static and
 high-contrast: template matching solves them.
 
 ## Why not start with ML
@@ -26,7 +26,7 @@ crop.
 
 ## The actual hard problem
 
-Not matching — **anchoring**. Resolution, DPI scaling, UI language and game
+Not matching, **anchoring**. Resolution, DPI scaling, UI language and game
 patches each invalidate raw pixel coordinates, and they do it all at once.
 
 Mitigations, designed in from day one because retrofitting them means rewriting
@@ -42,7 +42,7 @@ every plugin:
 
 ## Consequences
 
-* Plugin packages ship image crops of game UI — copyrighted assets, in small
+* Plugin packages ship image crops of game UI, copyrighted assets, in small
   fragments. Prefer **perceptual hashes/descriptors** over raw crops where they
   suffice, and support **locally generated** templates from the user's own
   install. This constrains the package format, hence its presence in an ADR.

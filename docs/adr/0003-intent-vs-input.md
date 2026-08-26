@@ -1,4 +1,4 @@
-# ADR-0003 — `Intent` and `InputCommand` are strictly separated
+# ADR-0003: `Intent` and `InputCommand` are strictly separated
 
 **Status:** Accepted · **Date:** 2026-08-25
 
@@ -6,20 +6,20 @@
 
 Two layers that never mix:
 
-* **`Intent`** — what the agent decides, in the plugin's vocabulary:
+* **`Intent`**: what the agent decides, in the plugin's vocabulary:
   `buy_upgrade { tier: 3 }`.
-* **`InputCommand`** — what the Core executes: move, click, key, scroll, wait —
+* **`InputCommand`**: what the Core executes: move, click, key, scroll, wait,
   in **window-relative coordinates normalised to `0.0..=1.0`**, never screen
   pixels.
 
 The plugin owns the translation. The Core executes sequences with
 **preconditions** (focus, expected resolution, known screen), humanised timing,
-and — critically — a **post-condition check**. Every action returns an
+and, critically, a **post-condition check**. Every action returns an
 `ActionOutcome`: `Succeeded`, `Failed`, `Rejected`, `Aborted` or `TimedOut`.
 
 ## Why
 
-* **Screen-absolute coordinates break constantly** — the window moves, the user
+* **Screen-absolute coordinates break constantly**: the window moves, the user
   changes monitor, DPI scaling shifts. Window-relative coordinates survive all
   three, and bounds-checking against `0.0..=1.0` gives the Governor a trivial,
   reliable geometry guard.

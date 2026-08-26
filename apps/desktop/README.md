@@ -55,13 +55,13 @@ rather than quietly solved.
 
 ## Screens, in build order
 
-1. **Detect** — installed games found, whether a plugin exists for each.
-2. **Session** — start/stop, dry-run toggle, live state, kill-switch status.
+1. **Detect**: installed games found, whether a plugin exists for each.
+2. **Session**: start/stop, dry-run toggle, live state, kill-switch status.
    _Scaffolded._ It renders the real `Session` and surfaces the Core's
    refusals; detection lands with the capture backend, so the state stays
    `searching` until then.
-3. **Activity** — timeline of intents, Governor verdicts and outcomes.
-4. **Logs** — filterable structured log stream.
-5. **Region editor** — draw ROIs and anchors on a captured frame. This is what
+3. **Activity**: timeline of intents, Governor verdicts and outcomes.
+4. **Logs**: filterable structured log stream.
+5. **Region editor**: draw ROIs and anchors on a captured frame. This is what
    turns "no plugin exists" into "you just wrote one" (L0 in the README).
-6. **Profiles** — per-game configuration and Governor limits.
+6. **Profiles**: per-game configuration and Governor limits.

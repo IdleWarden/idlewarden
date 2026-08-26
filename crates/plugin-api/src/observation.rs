@@ -46,7 +46,7 @@ impl Observation {
         self.signals.iter().find(|s| s.id.as_str() == id)
     }
 
-    /// The lowest confidence across all signals — the Governor pauses the agent
+    /// The lowest confidence across all signals, the Governor pauses the agent
     /// when this drops below the configured floor.
     pub fn weakest_confidence(&self) -> Confidence {
         self.signals

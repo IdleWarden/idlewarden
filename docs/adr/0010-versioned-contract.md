@@ -1,4 +1,4 @@
-# ADR-0010 — The plugin contract is a data schema, not a Rust ABI
+# ADR-0010: The plugin contract is a data schema, not a Rust ABI
 
 **Status:** Accepted · **Date:** 2026-08-25
 

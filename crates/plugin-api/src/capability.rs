@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 /// Declared in the manifest, shown to the user at install time, enforced by the
 /// host. A plugin that asks for nothing can still observe and act through the
-/// Core — capabilities gate *direct* access to the machine.
+/// Core, capabilities gate *direct* access to the machine.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Capability {

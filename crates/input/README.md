@@ -17,7 +17,7 @@ Actuation. Governed by [ADR-0007](../../docs/adr/0007-input.md).
 ## Using it correctly
 
 Always wrap a backend in `GuardedInput`. A raw `InputBackend` bypasses the kill
-switch and the geometry check — an unguarded backend in a pull request is a bug
+switch and the geometry check, an unguarded backend in a pull request is a bug
 review should catch.
 
 ## Scope

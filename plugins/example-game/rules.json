@@ -1,5 +1,5 @@
 {
-  "$comment": "How signals are extracted, and what to do about them. All coordinates are window-relative, 0.0..=1.0 — never screen pixels (ADR-0003).",
+  "$comment": "How signals are extracted, and what to do about them. All coordinates are window-relative, 0.0..=1.0, never screen pixels (ADR-0003).",
 
   "anchors": [
     {

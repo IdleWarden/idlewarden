@@ -1,5 +1,5 @@
 {
-  "$comment": "Plugin DEFAULTS. Read-only at runtime. The user's own profile is stored separately in %APPDATA% and merged on top, so updating the plugin never wipes their settings — and never silently loosens a limit they tightened.",
+  "$comment": "Plugin DEFAULTS. Read-only at runtime. The user's own profile is stored separately in %APPDATA% and merged on top, so updating the plugin never wipes their settings, and never silently loosens a limit they tightened.",
 
   "name": "Default",
   "description": "Conservative settings. Start here.",

@@ -1,4 +1,4 @@
-# ADR-0015 — calver-short everywhere, including the contract
+# ADR-0015: calver-short everywhere, including the contract
 
 **Status:** Accepted · **Date:** 2026-08-25 · **Supersedes:** [ADR-0013](0013-versioning.md)
 

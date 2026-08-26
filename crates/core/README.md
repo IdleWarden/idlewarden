@@ -20,7 +20,7 @@ The component the project is named after, and the reason it is named that.
 
 Every `Intent` the agent produces passes through it before it can become a mouse
 event: rate limit, confidence floor, staleness, intent allow-list, geometry,
-session budget. Verdicts are `Allow`, `Reject` or `Halt` — and halts are checked
+session budget. Verdicts are `Allow`, `Reject` or `Halt`, and halts are checked
 before rejections, so a failing session stops instead of spinning on refusals.
 
 **An agent cannot police itself.** Putting limits outside the agent, on the

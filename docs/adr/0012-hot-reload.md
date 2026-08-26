@@ -1,4 +1,4 @@
-# ADR-0012 — Hot reload of plugin data, at safe swap points only
+# ADR-0012: Hot reload of plugin data, at safe swap points only
 
 **Status:** Accepted · **Date:** 2026-08-25
 
@@ -15,7 +15,7 @@ writes plugins.
 A file watcher (`notify`, debounced ~250 ms) covers each loaded plugin's
 directory. On change: re-parse, validate against the schema, and **swap an
 `Arc<PluginRuntime>` at the next safe point**. On a validation failure, keep the
-running version and surface the error — a bad save must never take a running
+running version and surface the error, a bad save must never take a running
 session down.
 
 | Change | Live | Why |
@@ -31,7 +31,7 @@ session down.
 
 ### The game is never restarted
 
-Not a feature — a consequence. IdleWarden is purely external: it captures a
+Not a feature, a consequence. IdleWarden is purely external: it captures a
 window and synthesises input, and never touches the game's process (ADR-0001,
 ADR-0005). There is no code inside the game that could need reloading.
 
@@ -39,7 +39,7 @@ ADR-0005). There is no code inside the game that could need reloading.
 
 A swap may only happen **between agent ticks, with no action in flight**.
 Swapping mid-sequence would leave a half-executed macro against a rule set that
-no longer describes it — a click landing wherever the old coordinates pointed.
+no longer describes it, a click landing wherever the old coordinates pointed.
 
 The actuator therefore holds a swap gate: a pending reload waits for the current
 `Intent` to reach a terminal `ActionOutcome`, then applies. If the in-flight
@@ -56,17 +56,17 @@ reload, with the same consent prompt as a fresh install.
 ### What survives a swap
 
 * **Governor counters persist.** Resetting the rate limit on reload would make
-  "touch a file" an escape hatch from the limit — every constraint in ADR-0009
+  "touch a file" an escape hatch from the limit, every constraint in ADR-0009
   would become advisory.
 * **The behaviour tree resets.** Its cursor is meaningless against a new tree.
 * **Observations are stateless** and need no migration.
-* The session **stays in its current state** — a reload never silently resumes a
+* The session **stays in its current state**: a reload never silently resumes a
   paused or halted session.
 
 ## Consequences
 
 * `rules.json` must stay purely declarative. The moment behaviour hides in
-  compiled code, this all stops working — which is a second, independent reason
+  compiled code, this all stops working, which is a second, independent reason
   for ADR-0001.
 * Watching is on by default for plugins loaded from a development path and
   opt-in for installed ones: silently re-reading `%APPDATA%` is surprising, and

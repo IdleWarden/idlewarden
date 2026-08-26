@@ -1,4 +1,4 @@
-# ADR-0004 — Tauri v2 + web UI, zero `tauri::` in the Core
+# ADR-0004: Tauri v2 + web UI, zero `tauri::` in the Core
 
 **Status:** Accepted · **Date:** 2026-08-25
 
@@ -16,7 +16,7 @@ The UI needs sortable tables, a filterable log stream, a session timeline, frame
 previews and an interactive region editor. The web platform is simply better at
 all five, and small bundles beat Electron.
 
-`egui` / `iced` are viable and would delete the IPC layer entirely — a real
+`egui` / `iced` are viable and would delete the IPC layer entirely, a real
 advantage. They lose on the region editor and the log viewer, which are the two
 screens the user will spend the most time in.
 

@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Dry run — no tag, no release"
+        description: "Dry run, no tag, no release"
         type: boolean
         default: false
 

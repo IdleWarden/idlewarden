@@ -6,7 +6,7 @@ Perception. Governed by [ADR-0006](../../docs/adr/0006-vision.md).
 
 Template matching on a flat 2D idle-game UI is easy. What is hard is that
 resolution, DPI scaling, UI language and game patches each invalidate raw pixel
-coordinates — and they do it all at once.
+coordinates, and they do it all at once.
 
 So, from day one and not as a retrofit:
 
@@ -20,7 +20,7 @@ So, from day one and not as a retrofit:
 
 These are different failures and the Governor treats them differently:
 
-* A **lost anchor** is a `VisionError` — the layout could not be registered at
+* A **lost anchor** is a `VisionError`, the layout could not be registered at
   all.
 * A **merely uncertain** extraction returns a **low `Confidence`**, not an
   error.

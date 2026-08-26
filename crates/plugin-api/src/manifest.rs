@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-//! The plugin manifest — the actual contract (ADR-0010).
+//! The plugin manifest, the actual contract (ADR-0010).
 //!
 //! Stability is achievable here precisely *because* this is a data schema and
 //! not a Rust ABI. A declarative plugin only ever breaks when this schema
@@ -96,7 +96,7 @@ pub struct PluginManifest {
     pub authors: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    /// SPDX identifier of the plugin's own licence — plugins are Apache-2.0
+    /// SPDX identifier of the plugin's own licence, plugins are Apache-2.0
     /// downstream and may pick anything.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub license: Option<String>,

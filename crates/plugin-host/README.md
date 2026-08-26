@@ -17,7 +17,7 @@ Three tiers instead:
 | Tier | Form | Crash blast radius |
 |---|---|---|
 | Declarative | manifest + assets + rules, no code | none |
-| Script | Rhai — pure Rust, no FFI | trapped |
+| Script | Rhai, pure Rust, no FFI | trapped |
 | Out-of-process | child process over IPC | its own process |
 
 ## Hot reload (`reload.rs`)
@@ -26,7 +26,7 @@ Plugin *data* swaps live; the Core does not; **capabilities never do**. The host
 already watches the plugin's directory, so honouring capability grants read from
 it would let a plugin escalate its own privileges by writing to its own file.
 
-`decide_swap` is a pure function of (what changed, is an action in flight) —
+`decide_swap` is a pure function of (what changed, is an action in flight),
 easy to get subtly wrong, trivial to test.
 
 Note what `apply` does *not* take: the Governor. Its counters survive a reload

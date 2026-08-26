@@ -1,4 +1,4 @@
-# ADR-0007 — `SendInput`, focus required, mandatory kill switch
+# ADR-0007: `SendInput`, focus required, mandatory kill switch
 
 **Status:** Accepted · **Date:** 2026-08-25
 
@@ -7,7 +7,7 @@
 * Mouse and keyboard via **`SendInput`**.
 * **The game window must hold focus.** Background input is not promised.
 * **A global kill switch is mandatory**, registered via `RegisterHotKey`, and
-  checked before *every* command — not once per sequence.
+  checked before *every* command, not once per sequence.
 * Timing is **jittered**, never metronomic.
 * **Dry-run is the default.** Nothing touches the mouse until the user
   explicitly asks.

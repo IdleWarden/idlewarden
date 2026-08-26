@@ -4,7 +4,7 @@
 integration ever depends on.
 
 **Licensed Apache-2.0**, unlike the rest of the workspace (MPL-2.0), so a plugin
-can be licensed however its author likes — see [ADR-0011](../../docs/adr/0011-licensing.md).
+can be licensed however its author likes, see [ADR-0011](../../docs/adr/0011-licensing.md).
 
 ## What lives here
 
@@ -14,11 +14,11 @@ can be licensed however its author likes — see [ADR-0011](../../docs/adr/0011-
 | `observation` | `Observation`, `Signal`, `Confidence` |
 | `action` | `Intent`, `InputCommand`, `ActionOutcome` |
 | `capability` | `Capability`, `TrustLevel` |
-| `value` | `Value` — dynamically typed signal values |
+| `value` | `Value`, dynamically typed signal values |
 
 ## The invariant
 
-**Everything here is serialisable, and the contract is the data shape — not the
+**Everything here is serialisable, and the contract is the data shape, not the
 Rust types.** The types are a convenience for writing a host or an
 out-of-process plugin in Rust; the actual interface is the JSON schema and the
 message shapes ([ADR-0010](../../docs/adr/0010-versioned-contract.md)).

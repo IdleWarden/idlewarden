@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 //! Two strictly separated layers (ADR-0003):
 //!
-//! * [`Intent`] — what the *agent* decides ("buy_upgrade"). Game vocabulary.
-//! * [`InputCommand`] — what the *Core* executes. Window-relative, never
+//! * [`Intent`], what the *agent* decides ("buy_upgrade"). Game vocabulary.
+//! * [`InputCommand`], what the *Core* executes. Window-relative, never
 //!   screen-absolute, so it survives the window being moved or the display
 //!   changing.
 //!

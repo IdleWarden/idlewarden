@@ -5,7 +5,7 @@
 //!
 //! 1. We capture the **window**, not the screen, so moving it or changing
 //!    monitor does not break every template.
-//! 2. We target **2–4 fps**, not 60. Idle games do not move fast, and this
+//! 2. We target **2-4 fps**, not 60. Idle games do not move fast, and this
 //!    simplification removes an entire class of pipeline complexity.
 //! 3. Frames are `Arc<Frame>` and never cloned.
 

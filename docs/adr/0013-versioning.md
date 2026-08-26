@@ -1,4 +1,4 @@
-# ADR-0013 — calver-short for plugins, semver for the contract
+# ADR-0013: calver-short for plugins, semver for the contract
 
 **Status:** Superseded by [ADR-0015](0015-calver-everywhere.md) · **Date:** 2026-08-25
 
@@ -23,7 +23,7 @@ FerrFlow refuses the inherited form outright (E4103) for the same reason.
 
 ## Why plugins are not semver
 
-Semver encodes *compatibility*. A plugin has no API and no consumers — it either
+Semver encodes *compatibility*. A plugin has no API and no consumers, it either
 still matches the current build of a game or it does not, and that question is
 answered by `game.tested_versions`, not by a version number. Calling a release
 "2.0.0" because a publisher moved a button would be decoration pretending to be
@@ -40,7 +40,7 @@ a host must be able to refuse a plugin built against an incompatible contract
 
 ## The convenient accident
 
-`calver-short` is `^(\d{2})\.(\d{1,2})\.(\d{1,2})$` — three numeric components,
+`calver-short` is `^(\d{2})\.(\d{1,2})\.(\d{1,2})$`, three numeric components,
 no leading zeros. That is **also valid semver**, and it sorts correctly
 (`26.8.1 < 26.9.0 < 27.1.0`). So the registry schema, `semver::Version` in the
 host, and update comparison all work unchanged. No special case anywhere.

@@ -25,7 +25,7 @@ pub enum InputError {
 }
 
 /// Shared, cheap to check, flipped by a global hotkey. Every backend checks it
-/// before each command — not once per sequence.
+/// before each command, not once per sequence.
 #[derive(Clone, Default)]
 pub struct KillSwitch(Arc<AtomicBool>);
 

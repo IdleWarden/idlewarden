@@ -1,4 +1,4 @@
-# ADR-0005 — Windows Graphics Capture, window-scoped, 2–4 fps
+# ADR-0005: Windows Graphics Capture, window-scoped, 2-4 fps
 
 **Status:** Accepted · **Date:** 2026-08-25
 
@@ -6,7 +6,7 @@
 
 * Capture via **Windows Graphics Capture**, not BitBlt/GDI.
 * Capture the **game window**, never the whole screen.
-* Target **2–4 fps**.
+* Target **2-4 fps**.
 * Frames are `Arc<Frame>`, BGRA, never cloned. Perception downscales once.
 * **Exclusive fullscreen is unsupported**; borderless windowed is required and
   the error message says so.
@@ -18,7 +18,7 @@
 * Window-scoped capture survives the window being moved and multi-monitor
   setups, and it hands the vision layer a stable coordinate space for free.
 * **The frame rate is the single biggest simplification available.** Idle games
-  change slowly; at 2–4 fps there is no need for a zero-copy GPU pipeline, frame
+  change slowly; at 2-4 fps there is no need for a zero-copy GPU pipeline, frame
   pacing, or dropped-frame accounting. Building a 60 fps pipeline for a genre
   that idles would be pure self-harm.
 

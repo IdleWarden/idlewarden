@@ -83,7 +83,7 @@ pub enum Extractor {
     },
     /// Read text, then parse it as the declared value type.
     Ocr { roi: Roi },
-    /// Presence of a colour within tolerance — cheapest and surprisingly
+    /// Presence of a colour within tolerance, cheapest and surprisingly
     /// effective for idle-game state (button enabled, resource full).
     ColorProbe {
         roi: Roi,

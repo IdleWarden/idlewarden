@@ -4,7 +4,7 @@
 management games on Windows.**
 
 IdleWarden watches a game window, builds an abstract picture of what is on
-screen, decides what to do, and does it — mouse, keyboard, nothing exotic. New
+screen, decides what to do, and does it: mouse, keyboard, nothing exotic. New
 games are added as plugins; the engine itself never learns about any particular
 game.
 
@@ -16,8 +16,8 @@ game.
 ## The red line
 
 This project is built for games where automation is *legitimate*: single-player,
-offline, idle and incremental titles — the genre where automating the grind is
-arguably the point — and games whose terms explicitly allow it.
+offline, idle and incremental titles, the genre where automating the grind is
+arguably the point, and games whose terms explicitly allow it.
 
 IdleWarden is **not** designed around defeating anti-cheat systems, and the
 official plugin registry refuses plugins targeting competitive or multiplayer
@@ -36,7 +36,7 @@ already give you, while contaminating the entire security model.
 
 ```
    Game window
-        │  Windows Graphics Capture, 2–4 fps, window-relative
+        │  Windows Graphics Capture, 2-4 fps, window-relative
         ▼
     Capture ──────────► Frame (Arc, never cloned)
         │
@@ -71,7 +71,7 @@ This is what stops it from clicking on ghosts.
 
 **The agent does not police itself.** Every intent it produces passes through
 the Governor before it can become a mouse event. Rate limits, confidence floors,
-geometry bounds and session budgets live in the Core, not in the agent — which
+geometry bounds and session budgets live in the Core, not in the agent, which
 is where the project's name comes from.
 
 ---
@@ -80,10 +80,10 @@ is where the project's name comes from.
 
 | Level | What it is | Plugin needed |
 |-------|-----------|---------------|
-| **L0** | Window detection + regions you draw yourself in the UI + simple rules | none — the UI writes an L1 plugin for you |
+| **L0** | Window detection + regions you draw yourself in the UI + simple rules | none, the UI writes an L1 plugin for you |
 | **L1** | Declarative plugin: manifest, template assets, rules. No code. | yes |
 | **L2** | L1 + sandboxed script (Rhai) for conditional logic, optional ONNX perception | yes |
-| **L3** | Official integration: a supported mod over IPC, a documented API, a save file read read-only — the Core connects, it never injects ([ADR-0014](docs/adr/0014-bridge.md)) | yes |
+| **L3** | Official integration: a supported mod over IPC, a documented API, a save file read read-only, the Core connects, it never injects ([ADR-0014](docs/adr/0014-bridge.md)) | yes |
 
 L0 is not a second code path. "Working without a plugin" means the app builds a
 declarative plugin from what you draw on screen, then runs it like any other.
@@ -146,7 +146,7 @@ plugins/example-game/
 ```
 
 No compilation, no linking, no `cdylib`. The contract is a **data schema**, not
-a Rust ABI — which is the only reason a stable plugin API is achievable at all.
+a Rust ABI, which is the only reason a stable plugin API is achievable at all.
 See [`docs/adr/0001-plugin-model.md`](docs/adr/0001-plugin-model.md) and
 [`docs/adr/0010-versioned-contract.md`](docs/adr/0010-versioned-contract.md).
 
@@ -155,7 +155,7 @@ Start from the [template](https://github.com/IdleWarden/registry/tree/main/templ
 ### It reloads live
 
 Edit `rules.json` or a template crop and save: the running agent picks it up at
-the next safe swap point. **No app restart, and never a game restart** — the
+the next safe swap point. **No app restart, and never a game restart**: the
 latter is not a feature but a consequence of being purely external.
 
 Swaps only happen between agent ticks with no action in flight, so a save can
@@ -168,7 +168,7 @@ convenience. See [`docs/adr/0012-hot-reload.md`](docs/adr/0012-hot-reload.md).
 
 Plugins use **calver-short** (`YY.M.PATCH`, e.g. `26.8.1`); the crates and
 `api_version` stay **semver**. A plugin version tracks the *game's* patches,
-which carry no compatibility meaning — semver there would be decoration
+which carry no compatibility meaning, semver there would be decoration
 pretending to be a contract. Releases are managed by FerrFlow from conventional
 commits. See [`docs/adr/0013-versioning.md`](docs/adr/0013-versioning.md).
 
@@ -182,10 +182,10 @@ commits. See [`docs/adr/0013-versioning.md`](docs/adr/0013-versioning.md).
 | Everything else | **MPL-2.0** | File-level copyleft: modify our files, publish those modifications. Combine with proprietary code freely otherwise. |
 
 MPL-2.0 is GPL-compatible by default, so this choice does not close the
-copyleft door — it just declines to force it open. See
+copyleft door, it just declines to force it open. See
 [`docs/adr/0011-licensing.md`](docs/adr/0011-licensing.md).
 
 ## Contributing
 
-Sign-offs, not CLAs — see [`CONTRIBUTING.md`](CONTRIBUTING.md). Security issues
+Sign-offs, not CLAs, see [`CONTRIBUTING.md`](CONTRIBUTING.md). Security issues
 go to [`SECURITY.md`](SECURITY.md), not the issue tracker.

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 //! The agent (ADR-0008).
 //!
-//! There is exactly **one** execution model — a ticked behaviour tree — and the
+//! There is exactly **one** execution model, a ticked behaviour tree, and the
 //! "kinds of agent" (rules, state machine, model, LLM) are node types inside
 //! it. Building five parallel agent implementations would mean maintaining five
 //! loops; this way a new decision strategy is a new [`Decider`].
