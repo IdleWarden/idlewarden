@@ -2,7 +2,7 @@
 name = "idlewarden-plugin-api"
 description = "The stable, versioned contract between IdleWarden and its plugins."
 license = "Apache-2.0"          # NOTE: deliberately NOT MPL-2.0. See ADR-0010.
-version = "0.0.0"
+version = "26.8.26"
 edition.workspace = true
 rust-version.workspace = true
 repository.workspace = true
