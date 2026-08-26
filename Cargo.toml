@@ -16,7 +16,7 @@ members = [
 edition = "2021"
 rust-version = "1.82"
 license = "MPL-2.0"
-repository = "https://github.com/idlewarden/idlewarden"
+repository = "https://github.com/IdleWarden/idlewarden"
 authors = ["The IdleWarden contributors"]
 
 [workspace.dependencies]
