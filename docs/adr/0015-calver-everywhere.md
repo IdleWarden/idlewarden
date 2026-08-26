@@ -65,3 +65,11 @@ moves forward without a collision.
   everything once the first calendar release lands.
 * A patch release in a new month is `26.9.0`, not `26.8.4`. That is the scheme
   working as intended, not a mistake.
+* **Internal path dependencies cannot carry a caret constraint.** `^26.8` stops
+  matching the moment the calendar rolls to `27`, and every January would break
+  the workspace build. The crates in `[workspace.dependencies]` are therefore
+  path-only, with no `version` field. That is fine for building and testing, and
+  it blocks `cargo publish`, which needs a version on every path dependency.
+  Publishing is [#22](https://github.com/IdleWarden/idlewarden/issues/22) and has
+  to solve this rather than inherit it: with one calendar version shared by every
+  crate, the honest form is an exact pin rewritten on each release, not a range.

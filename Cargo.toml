@@ -20,14 +20,14 @@ repository = "https://github.com/idlewarden/idlewarden"
 authors = ["The IdleWarden contributors"]
 
 [workspace.dependencies]
-idlewarden-plugin-api = { path = "crates/plugin-api", version = "0" }
-idlewarden-capture    = { path = "crates/capture", version = "0" }
-idlewarden-vision     = { path = "crates/vision", version = "0" }
-idlewarden-input      = { path = "crates/input", version = "0" }
-idlewarden-bridge     = { path = "crates/bridge", version = "0" }
-idlewarden-plugin-host = { path = "crates/plugin-host", version = "0" }
-idlewarden-agent      = { path = "crates/agent", version = "0" }
-idlewarden-core       = { path = "crates/core", version = "0" }
+idlewarden-plugin-api = { path = "crates/plugin-api" }
+idlewarden-capture    = { path = "crates/capture" }
+idlewarden-vision     = { path = "crates/vision" }
+idlewarden-input      = { path = "crates/input" }
+idlewarden-bridge     = { path = "crates/bridge" }
+idlewarden-plugin-host = { path = "crates/plugin-host" }
+idlewarden-agent      = { path = "crates/agent" }
+idlewarden-core       = { path = "crates/core" }
 
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
