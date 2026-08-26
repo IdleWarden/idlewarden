@@ -98,6 +98,21 @@ dotnet build src/IdleWarden.Reference --configuration Release
 Drop the resulting `IdleWarden.Reference.dll` and `IdleWarden.Bridge.dll` into
 `BepInEx/plugins/` in the game directory.
 
+## Versions
+
+Both projects are release units in the root `.ferrflow`, tagged `mod/bridge@v...`
+and `mod/reference@v...`, on the same calver-short scheme as everything else
+([ADR-0015](../docs/adr/0015-calver-everywhere.md)).
+
+FerrFlow writes `<Version>` in each `.csproj`, and that single value drives
+everything downstream: the assembly version, and `MyPluginInfo.PLUGIN_VERSION`,
+which is what `[BepInPlugin]` reports to BepInEx.
+
+That last part is the whole point. BepInEx reads the version from the attribute,
+not from the assembly, so a literal there would silently disagree with the tag
+the moment either moved. CI greps for a version literal inside `[BepInPlugin]`
+and fails the build if one comes back.
+
 ## Known gaps
 
 The transport is Windows named pipes only. The Rust client also speaks Unix

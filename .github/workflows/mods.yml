@@ -25,3 +25,11 @@ jobs:
 
       - name: Build the reference mod
         run: dotnet build src/IdleWarden.Reference --configuration Release
+
+      - name: The plugin version comes from the project, never a literal
+        run: |
+          if grep -rnE '\[BepInPlugin\([^)]*"[0-9]+\.[0-9]+' src; then
+            echo "::error::a hardcoded version in [BepInPlugin] drifts from the release tag; use MyPluginInfo.PLUGIN_VERSION"
+            exit 1
+          fi
+          echo "ok"

@@ -15,7 +15,7 @@ namespace IdleWarden.Reference
     /// plumbing below does not change.
     /// </para>
     /// </summary>
-    [BepInPlugin(PluginId, "IdleWarden reference bridge", "0.0.0")]
+    [BepInPlugin(PluginId, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
     public sealed class ReferencePlugin : BaseUnityPlugin
     {
         private const string PluginId = "com.idlewarden.reference";

@@ -68,6 +68,25 @@
     },
 
     {
+      "name": "mod-bridge",
+      "path": "mods/src/IdleWarden.Bridge",
+      "tagTemplate": "mod/bridge@v{version}",
+      "changelog": "mods/src/IdleWarden.Bridge/CHANGELOG.md",
+      "versionedFiles": [
+        { "path": "mods/src/IdleWarden.Bridge/IdleWarden.Bridge.csproj", "format": "csproj" }
+      ]
+    },
+    {
+      "name": "mod-reference",
+      "path": "mods/src/IdleWarden.Reference",
+      "tagTemplate": "mod/reference@v{version}",
+      "changelog": "mods/src/IdleWarden.Reference/CHANGELOG.md",
+      "versionedFiles": [
+        { "path": "mods/src/IdleWarden.Reference/IdleWarden.Reference.csproj", "format": "csproj" }
+      ]
+    },
+
+    {
       "name": "plugin-example-game",
       "path": "plugins/example-game",
       "tagTemplate": "plugin/example-game@v{version}",
