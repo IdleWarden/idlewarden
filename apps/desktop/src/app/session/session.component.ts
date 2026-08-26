@@ -1,10 +1,11 @@
 import { Component, OnInit, computed, inject } from "@angular/core";
 
+import { UpdatesComponent } from "../updates/updates.component";
 import { SessionService } from "./session.service";
 
 @Component({
   selector: "app-session",
-  imports: [],
+  imports: [UpdatesComponent],
   templateUrl: "./session.component.html",
   styleUrl: "./session.component.css",
 })

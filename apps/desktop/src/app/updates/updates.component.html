@@ -1,0 +1,49 @@
+<section>
+  <h2>Updates</h2>
+
+  @if (settings(); as s) {
+    <div class="channels">
+      @for (channel of channels; track channel) {
+        <button
+          type="button"
+          [class.selected]="s.channel === channel"
+          (click)="select(channel)"
+        >
+          {{ channel }}
+        </button>
+      }
+    </div>
+    <p class="muted">
+      Beta takes stable builds too. Stable never receives a beta build.
+    </p>
+  }
+
+  <button type="button" class="check" (click)="check()" [disabled]="checking()">
+    {{ checking() ? "Checking…" : "Check for updates" }}
+  </button>
+
+  @if (result(); as r) {
+    @if (r.outcome === "up_to_date") {
+      <p class="ok">You are on the newest build for this channel.</p>
+    } @else {
+      <dl>
+        <dt>Version</dt>
+        <dd>{{ r.offer.version }}</dd>
+        <dt>Published</dt>
+        <dd>{{ r.offer.pub_date }}</dd>
+        @if (r.offer.notes) {
+          <dt>Notes</dt>
+          <dd>{{ r.offer.notes }}</dd>
+        }
+      </dl>
+      <p class="muted">
+        Downloading and installing it is not built yet, so nothing here will replace
+        your copy.
+      </p>
+    }
+  }
+
+  @if (error(); as e) {
+    <p class="failed">{{ e }}</p>
+  }
+</section>

@@ -1,0 +1,76 @@
+section {
+  border-top: 1px solid var(--line);
+  padding-top: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+h2 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem;
+}
+
+.channels {
+  display: flex;
+  gap: 0.5rem;
+}
+
+button {
+  font: inherit;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.35rem 0.85rem;
+  cursor: pointer;
+  text-transform: capitalize;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+button:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+button.selected {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.check {
+  margin-top: 1rem;
+  text-transform: none;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: 8rem 1fr;
+  gap: 0.35rem 1rem;
+  margin: 1rem 0 0.5rem;
+}
+
+dt {
+  color: var(--muted);
+}
+
+dd {
+  margin: 0;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.ok {
+  color: var(--accent);
+}
+
+.failed {
+  color: var(--warn);
+  border-left: 2px solid var(--warn);
+  padding-left: 0.75rem;
+}

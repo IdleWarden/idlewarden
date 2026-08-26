@@ -45,6 +45,25 @@ Components are generated with separate `.ts` / `.html` / `.css` files;
 `angular.json` pins `inlineTemplate` and `inlineStyle` to false so
 `ng generate component` keeps doing that.
 
+## Updates
+
+`src-tauri/src/updates.rs` asks the cloud endpoint whether a newer build exists.
+The channel is a setting in the app rather than a URL to edit, which is the
+point: a user opts into beta from the Updates panel and it survives a restart.
+
+It also generates a **per-installation identifier**, stored next to the
+settings, and sends it as `x-idlewarden-install`. Staged rollout needs a stable
+value to bucket on, and without it the endpoint withholds any partial rollout by
+design. It identifies an install, never a person: a random value made locally
+and sent to nothing but our own endpoint.
+
+Two things this deliberately does **not** do. It never downloads or installs
+anything: that needs the updater plugin and a signing key that does not exist
+yet ([#19](https://github.com/IdleWarden/idlewarden/issues/19),
+[#20](https://github.com/IdleWarden/idlewarden/issues/20)). And the endpoint
+constant is `https://idlewarden.com/api`, a placeholder nobody has registered,
+the same one the site carries.
+
 ## Known gap
 
 `src/app/session/session.model.ts` restates by hand the shapes that
