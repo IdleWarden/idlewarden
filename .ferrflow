@@ -1,79 +1,168 @@
 {
   "$schema": "https://ferrflow.com/schema/ferrflow.json",
-
   "workspace": {
     "versioning": "calver-short",
     "tagTemplate": "{name}@v{version}",
     "recoverMissedReleases": true
   },
-
   "package": [
     {
       "name": "plugin-api",
       "path": "crates/plugin-api",
       "changelog": "crates/plugin-api/CHANGELOG.md",
-      "versionedFiles": [{ "path": "crates/plugin-api/Cargo.toml", "format": "toml" }],
-      "floatingTags": ["major", "minor"]
+      "versionedFiles": [
+        {
+          "path": "crates/plugin-api/Cargo.toml",
+          "format": "toml"
+        },
+        {
+          "path": "Cargo.toml",
+          "format": "txt",
+          "selector": "(?m)^idlewarden-plugin\\-api\\s*=\\s*\\{[^}]*version = \"(.+?)\""
+        }
+      ],
+      "floatingTags": [
+        "major",
+        "minor"
+      ]
     },
     {
       "name": "capture",
       "path": "crates/capture",
       "changelog": "crates/capture/CHANGELOG.md",
-      "versionedFiles": [{ "path": "crates/capture/Cargo.toml", "format": "toml" }]
+      "versionedFiles": [
+        {
+          "path": "crates/capture/Cargo.toml",
+          "format": "toml"
+        },
+        {
+          "path": "Cargo.toml",
+          "format": "txt",
+          "selector": "(?m)^idlewarden-capture\\s*=\\s*\\{[^}]*version = \"(.+?)\""
+        }
+      ]
     },
     {
       "name": "vision",
       "path": "crates/vision",
       "changelog": "crates/vision/CHANGELOG.md",
-      "versionedFiles": [{ "path": "crates/vision/Cargo.toml", "format": "toml" }]
+      "versionedFiles": [
+        {
+          "path": "crates/vision/Cargo.toml",
+          "format": "toml"
+        },
+        {
+          "path": "Cargo.toml",
+          "format": "txt",
+          "selector": "(?m)^idlewarden-vision\\s*=\\s*\\{[^}]*version = \"(.+?)\""
+        }
+      ]
     },
     {
       "name": "input",
       "path": "crates/input",
       "changelog": "crates/input/CHANGELOG.md",
-      "versionedFiles": [{ "path": "crates/input/Cargo.toml", "format": "toml" }]
+      "versionedFiles": [
+        {
+          "path": "crates/input/Cargo.toml",
+          "format": "toml"
+        },
+        {
+          "path": "Cargo.toml",
+          "format": "txt",
+          "selector": "(?m)^idlewarden-input\\s*=\\s*\\{[^}]*version = \"(.+?)\""
+        }
+      ]
     },
     {
       "name": "bridge",
       "path": "crates/bridge",
       "changelog": "crates/bridge/CHANGELOG.md",
-      "versionedFiles": [{ "path": "crates/bridge/Cargo.toml", "format": "toml" }]
+      "versionedFiles": [
+        {
+          "path": "crates/bridge/Cargo.toml",
+          "format": "toml"
+        },
+        {
+          "path": "Cargo.toml",
+          "format": "txt",
+          "selector": "(?m)^idlewarden-bridge\\s*=\\s*\\{[^}]*version = \"(.+?)\""
+        }
+      ]
     },
     {
       "name": "plugin-host",
       "path": "crates/plugin-host",
       "changelog": "crates/plugin-host/CHANGELOG.md",
-      "versionedFiles": [{ "path": "crates/plugin-host/Cargo.toml", "format": "toml" }]
+      "versionedFiles": [
+        {
+          "path": "crates/plugin-host/Cargo.toml",
+          "format": "toml"
+        },
+        {
+          "path": "Cargo.toml",
+          "format": "txt",
+          "selector": "(?m)^idlewarden-plugin\\-host\\s*=\\s*\\{[^}]*version = \"(.+?)\""
+        }
+      ]
     },
     {
       "name": "agent",
       "path": "crates/agent",
       "changelog": "crates/agent/CHANGELOG.md",
-      "versionedFiles": [{ "path": "crates/agent/Cargo.toml", "format": "toml" }]
+      "versionedFiles": [
+        {
+          "path": "crates/agent/Cargo.toml",
+          "format": "toml"
+        },
+        {
+          "path": "Cargo.toml",
+          "format": "txt",
+          "selector": "(?m)^idlewarden-agent\\s*=\\s*\\{[^}]*version = \"(.+?)\""
+        }
+      ]
     },
     {
       "name": "core",
       "path": "crates/core",
       "changelog": "crates/core/CHANGELOG.md",
-      "versionedFiles": [{ "path": "crates/core/Cargo.toml", "format": "toml" }]
+      "versionedFiles": [
+        {
+          "path": "crates/core/Cargo.toml",
+          "format": "toml"
+        },
+        {
+          "path": "Cargo.toml",
+          "format": "txt",
+          "selector": "(?m)^idlewarden-core\\s*=\\s*\\{[^}]*version = \"(.+?)\""
+        }
+      ]
     },
     {
       "name": "desktop",
       "path": "apps/desktop",
       "changelog": "apps/desktop/CHANGELOG.md",
       "versionedFiles": [
-        { "path": "apps/desktop/src-tauri/Cargo.toml", "format": "toml" },
-        { "path": "apps/desktop/src-tauri/tauri.conf.json", "format": "json" }
+        {
+          "path": "apps/desktop/src-tauri/Cargo.toml",
+          "format": "toml"
+        },
+        {
+          "path": "apps/desktop/src-tauri/tauri.conf.json",
+          "format": "json"
+        }
       ]
     },
-
     {
       "name": "mod-bridge",
       "path": "mods/src/IdleWarden.Bridge",
       "tagTemplate": "mod/bridge@v{version}",
       "changelog": "mods/src/IdleWarden.Bridge/CHANGELOG.md",
       "versionedFiles": [
-        { "path": "mods/src/IdleWarden.Bridge/IdleWarden.Bridge.csproj", "format": "csproj" }
+        {
+          "path": "mods/src/IdleWarden.Bridge/IdleWarden.Bridge.csproj",
+          "format": "csproj"
+        }
       ]
     },
     {
@@ -82,16 +171,23 @@
       "tagTemplate": "mod/reference@v{version}",
       "changelog": "mods/src/IdleWarden.Reference/CHANGELOG.md",
       "versionedFiles": [
-        { "path": "mods/src/IdleWarden.Reference/IdleWarden.Reference.csproj", "format": "csproj" }
+        {
+          "path": "mods/src/IdleWarden.Reference/IdleWarden.Reference.csproj",
+          "format": "csproj"
+        }
       ]
     },
-
     {
       "name": "plugin-example-game",
       "path": "plugins/example-game",
       "tagTemplate": "plugin/example-game@v{version}",
       "changelog": "plugins/example-game/CHANGELOG.md",
-      "versionedFiles": [{ "path": "plugins/example-game/plugin.json", "format": "json" }]
+      "versionedFiles": [
+        {
+          "path": "plugins/example-game/plugin.json",
+          "format": "json"
+        }
+      ]
     }
   ]
 }
