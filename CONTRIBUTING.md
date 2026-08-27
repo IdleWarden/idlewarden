@@ -59,3 +59,21 @@ cargo test --workspace
   cannot express it, that is a gap in `plugin-api`, open an issue about the
   gap.
 * `tauri::` anywhere outside `apps/desktop/`.
+
+## Releases
+
+FerrFlow tags and bumps on every push to `main`, then a second job publishes the
+eight library crates to crates.io. Publishing is idempotent: a version already on
+the registry is skipped, not an error.
+
+The publish job needs a `CARGO_REGISTRY_TOKEN` repository secret holding a
+crates.io token scoped to `publish-update`. **Without it the job skips and says
+so**, rather than failing, so a fork or a repository without publishing rights
+still gets a green release.
+
+`apps/desktop` and the mods are not published: the desktop crate is
+`publish = false`, and the mods are .NET, which cargo has nothing to say about.
+
+The order of the `package` array in `.ferrflow` is the publish order, and it has
+to stay a topological one: a crate cannot reach crates.io before something it
+depends on, or its verification build fails with `no matching package`.
