@@ -1,7 +1,7 @@
 [package]
 name = "idlewarden-bridge"
 description = "Client for a user-installed game mod exposing an IPC endpoint (ADR-0014)."
-version = "0.0.0"
+version = "26.8.26"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
