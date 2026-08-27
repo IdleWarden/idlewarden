@@ -1,10 +1,14 @@
 # Changelog
 
-All notable changes to `desktop` will be documented here.
+All notable changes to `bridge` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [26.8.27] - 2026-08-27
+
+### Breaking Changes
+
+- feat(release)!: version every package with calver-short
 
 ### Features
 
@@ -16,13 +20,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - fix: bring idlewarden-bridge to the version its siblings already carry
 - fix(release): pin internal dependencies and let ferrflow rewrite them
 - fix: drop caret constraints on internal deps, calendar versions never match them
-
-## [26.8.26] - 2026-08-26
-
-### Breaking Changes
-
-- feat(release)!: version every package with calver-short
-
-### Bug Fixes
-
 - fix: let internal path deps accept any 0.x so release bumps do not break the build

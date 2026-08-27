@@ -24,7 +24,7 @@ idlewarden-plugin-api = { path = "crates/plugin-api", version = "26.8.26" }
 idlewarden-capture    = { path = "crates/capture", version = "26.8.26" }
 idlewarden-vision     = { path = "crates/vision", version = "26.8.26" }
 idlewarden-input      = { path = "crates/input", version = "26.8.26" }
-idlewarden-bridge     = { path = "crates/bridge", version = "26.8.26" }
+idlewarden-bridge     = { path = "crates/bridge", version = "26.8.27" }
 idlewarden-plugin-host = { path = "crates/plugin-host", version = "26.8.26" }
 idlewarden-agent      = { path = "crates/agent", version = "26.8.26" }
 idlewarden-core       = { path = "crates/core", version = "26.8.26" }
