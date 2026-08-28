@@ -66,12 +66,16 @@ pub enum CheckResult {
     Available { offer: Box<Offer> },
 }
 
+/// Les échecs que ce module peut rendre au front.
+///
+/// Plus de variante `Status` : c'est le plugin qui parle HTTP désormais, et il
+/// range les codes de réponse dans le message de ses propres erreurs, qui
+/// arrivent ici en `Unreachable`. Garder une variante que plus rien ne
+/// construit aurait laissé croire au front qu'il peut encore la distinguer.
 #[derive(Debug, thiserror::Error)]
 pub enum UpdateError {
     #[error("cannot reach the update endpoint: {0}")]
     Unreachable(String),
-    #[error("the update endpoint answered {0}")]
-    Status(u16),
     #[error("the update endpoint sent something unreadable: {0}")]
     Malformed(String),
     #[error("cannot read or write {path}: {source}")]

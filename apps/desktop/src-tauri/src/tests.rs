@@ -2,9 +2,7 @@
 
 use std::path::PathBuf;
 
-use crate::updates::{
-    check_url, install_id, load_settings, save_settings, Channel, CheckResult, Settings,
-};
+use crate::updates::{check_url, install_id, load_settings, save_settings, Channel, Settings};
 
 fn scratch(name: &str) -> PathBuf {
     let dir = std::env::temp_dir()
