@@ -99,22 +99,28 @@ jobs:
             exit 1
           fi
 
-          # L'archive de mise à jour et sa signature, produites par
-          # `createUpdaterArtifacts`. Leur absence est une erreur et non un
-          # avertissement : sans elles la release est installable à la main mais
-          # invisible pour l'auto-update, ce qui ne se remarque qu'au moment où
-          # personne ne reçoit la version suivante.
-          updaters=(target/release/bundle/nsis/*.nsis.zip)
-          sigs=(target/release/bundle/nsis/*.nsis.zip.sig)
-          if [ ${#updaters[@]} -eq 0 ] || [ ${#sigs[@]} -eq 0 ]; then
-            echo "artefact de mise à jour ou signature manquant" >&2
+          # Signatures de mise à jour, produites par `createUpdaterArtifacts`.
+          #
+          # Tauri v2 signe l'INSTALLEUR lui-même et dépose un `.sig` détaché à
+          # côté : `IdleWarden_x.y.z_x64-setup.exe` et `.exe.sig`. Il n'y a pas
+          # d'archive intermédiaire — le `.nsis.zip` était la forme de Tauri v1,
+          # et le chercher faisait échouer cette étape alors que le bundle avait
+          # parfaitement réussi.
+          #
+          # Leur absence reste une erreur et non un avertissement : sans elles
+          # la release est installable à la main mais invisible pour
+          # l'auto-update, ce qui ne se remarque qu'au moment où personne ne
+          # reçoit la version suivante.
+          sigs=(target/release/bundle/nsis/*.exe.sig)
+          if [ ${#sigs[@]} -eq 0 ]; then
+            echo "signature de mise à jour manquante" >&2
             ls -R target/release/bundle >&2 || true
             exit 1
           fi
 
-          printf 'à publier : %s\n' "${bundles[@]}" "${updaters[@]}" "${sigs[@]}"
+          printf 'à publier : %s\n' "${bundles[@]}" "${sigs[@]}"
           gh release upload "$TAG" \
-            "${bundles[@]}" "${updaters[@]}" "${sigs[@]}" \
+            "${bundles[@]}" "${sigs[@]}" \
             --clobber --repo "$GITHUB_REPOSITORY"
 
       # Sur un déclenchement manuel il n'y a pas de release à alimenter, mais
@@ -127,6 +133,5 @@ jobs:
           name: idlewarden-windows
           path: |
             target/release/bundle/nsis/*.exe
-            target/release/bundle/nsis/*.nsis.zip
-            target/release/bundle/nsis/*.nsis.zip.sig
+            target/release/bundle/nsis/*.exe.sig
           if-no-files-found: error
