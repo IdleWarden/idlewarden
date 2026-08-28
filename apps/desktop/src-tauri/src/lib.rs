@@ -15,6 +15,7 @@ pub fn run() {
     use tauri::Manager;
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             app.manage(updates::Updates::new(app.handle()));
             Ok(())
@@ -25,7 +26,8 @@ pub fn run() {
             session::dispatch,
             updates::update_settings,
             updates::set_update_channel,
-            updates::check_for_update
+            updates::check_for_update,
+            updates::install_update
         ])
         .run(tauri::generate_context!())
         .expect("the tauri runtime failed to start");
