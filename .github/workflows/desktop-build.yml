@@ -1,0 +1,95 @@
+# Construit l'installeur Windows et l'attache à la release du paquet `desktop`.
+#
+# Jusqu'ici rien ne produisait de binaire téléchargeable : `release.yml` ne fait
+# que du versionnage FerrFlow, et l'application n'existait donc nulle part sous
+# une forme installable. C'est ce que ce workflow ajoute.
+#
+# Volontairement séparé de `ci.yml` : la CI valide chaque commit et doit rester
+# rapide, alors qu'un bundle Tauri complet prend plusieurs minutes et n'a de sens
+# qu'une fois la version publiée.
+name: desktop build
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag de release à construire, par exemple desktop@v26.8.27"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    # FerrFlow publie une release par paquet du dépôt — `core@v…`, `vision@v…`,
+    # `desktop@v…`. Sans ce filtre, chaque release de crate déclencherait un
+    # bundle Tauri complet pour rien.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      startsWith(github.event.release.tag_name, 'desktop@v')
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Construire le tag publié, pas la tête de `main` : entre la release
+          # et l'exécution de ce job, `main` a pu avancer, et l'installeur
+          # porterait alors un numéro de version qui ne correspond à rien.
+          ref: ${{ inputs.tag || github.event.release.tag_name }}
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: apps/desktop/pnpm-lock.yaml
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      - name: Dépendances front
+        working-directory: apps/desktop
+        run: pnpm install --frozen-lockfile
+
+      # `tauri build` enchaîne le `beforeBuildCommand` (build Angular) puis le
+      # bundle. Pas de signature de mise à jour ici : la clé n'existe pas encore
+      # et l'auto-update viendra dans un second temps. L'installeur produit est
+      # complet et fonctionnel sans elle.
+      - name: Bundle Windows
+        working-directory: apps/desktop
+        run: pnpm tauri build
+
+      - name: Attacher l'installeur à la release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          bundles=(apps/desktop/src-tauri/target/release/bundle/nsis/*.exe)
+          if [ ${#bundles[@]} -eq 0 ]; then
+            echo "aucun installeur NSIS produit — le bundle a échoué en silence" >&2
+            exit 1
+          fi
+          printf 'installeur trouvé : %s\n' "${bundles[@]}"
+          gh release upload "$TAG" "${bundles[@]}" --clobber --repo "$GITHUB_REPOSITORY"
+
+      # Sur un déclenchement manuel il n'y a pas de release à alimenter, mais
+      # l'artefact reste récupérable : c'est ce qui permet de tester une
+      # construction sans publier quoi que ce soit.
+      - name: Conserver l'installeur comme artefact
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: idlewarden-windows
+          path: apps/desktop/src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
