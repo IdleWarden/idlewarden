@@ -1,6 +1,10 @@
-<img src="docs/logo.png" alt="" width="176" align="right">
+<p align="center">
+  <img src="docs/logo.png" alt="" width="150">
+</p>
 
-# IdleWarden
+<p align="center">
+  <img src="docs/wordmark.png" alt="IdleWarden" width="330">
+</p>
 
 **An extensible automation platform for single-player idle, incremental and
 management games on Windows.**
