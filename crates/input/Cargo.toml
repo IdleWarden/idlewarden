@@ -1,7 +1,7 @@
 [package]
 name = "idlewarden-input"
 description = "Serialised, humanised input execution with a mandatory kill switch."
-version = "26.8.26"
+version = "26.8.28"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
