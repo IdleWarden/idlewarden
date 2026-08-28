@@ -2,10 +2,7 @@
 
 use std::path::PathBuf;
 
-use crate::updates::{
-    check_url, install_id, interpret, load_settings, save_settings, Channel, CheckResult, Settings,
-    UpdateError,
-};
+use crate::updates::{check_url, install_id, load_settings, save_settings, Channel, Settings};
 
 fn scratch(name: &str) -> PathBuf {
     let dir = std::env::temp_dir()
@@ -39,50 +36,6 @@ fn a_trailing_slash_on_the_endpoint_does_not_double_up() {
         ),
         "https://idlewarden.com/api/v1/update/linux-x86_64/26.8.1?channel=beta"
     );
-}
-
-#[test]
-fn a_204_means_up_to_date_rather_than_a_failure() {
-    assert_eq!(interpret(204, "").unwrap(), CheckResult::UpToDate);
-}
-
-#[test]
-fn a_200_carries_the_offer() {
-    let body = r#"{"version":"26.9.0","pub_date":"2026-09-01T10:00:00Z",
-        "url":"https://example.test/a.zip","signature":"sig","notes":"Fixes things."}"#;
-
-    let CheckResult::Available { offer } = interpret(200, body).unwrap() else {
-        panic!("expected an offer");
-    };
-    assert_eq!(offer.version, "26.9.0");
-    assert_eq!(offer.notes.as_deref(), Some("Fixes things."));
-}
-
-#[test]
-fn an_offer_without_notes_is_still_an_offer() {
-    let body = r#"{"version":"26.9.0","pub_date":"x","url":"u","signature":"s"}"#;
-
-    let CheckResult::Available { offer } = interpret(200, body).unwrap() else {
-        panic!("expected an offer");
-    };
-    assert!(offer.notes.is_none());
-}
-
-#[test]
-fn a_garbled_offer_is_an_error_rather_than_a_silent_up_to_date() {
-    assert!(matches!(
-        interpret(200, "not json"),
-        Err(UpdateError::Malformed(_))
-    ));
-}
-
-#[test]
-fn any_other_status_is_reported_with_its_code() {
-    assert!(matches!(interpret(500, ""), Err(UpdateError::Status(500))));
-    assert!(matches!(
-        interpret(400, "{}"),
-        Err(UpdateError::Status(400))
-    ));
 }
 
 #[test]

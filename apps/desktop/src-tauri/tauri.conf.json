@@ -30,6 +30,15 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdDRjNBQkRDMTkzMUU3QkEKUldTNjV6RVozS3Z6ZkcyeGNvSm01L09zUVFIOVZUUXJrU0pYQUUxdmhjUXhUV1IyYWcyODRKRUIK",
+      "endpoints": [
+        "https://idlewarden.com/api/v1/update/{{target}}/{{current_version}}?channel=stable"
+      ]
+    }
   }
 }
