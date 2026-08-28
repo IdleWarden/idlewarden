@@ -1,3 +1,5 @@
+<img src="docs/logo.png" alt="" width="176" align="right">
+
 # IdleWarden
 
 **An extensible automation platform for single-player idle, incremental and

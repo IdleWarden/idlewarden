@@ -1480,7 +1480,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-core"
-version = "26.8.26"
+version = "26.8.28"
 dependencies = [
  "idlewarden-agent",
  "idlewarden-capture",
@@ -1510,7 +1510,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-input"
-version = "26.8.26"
+version = "26.8.28"
 dependencies = [
  "idlewarden-plugin-api",
  "thiserror 2.0.20",
