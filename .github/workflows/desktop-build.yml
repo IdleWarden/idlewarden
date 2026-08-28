@@ -42,7 +42,14 @@ jobs:
           ref: ${{ inputs.tag || github.event.release.tag_name }}
           persist-credentials: false
 
+      # `package_json_file` est indispensable : la racine du dépôt est un
+      # workspace Cargo, sans `package.json`, et l'action y cherche la clé
+      # `packageManager` par défaut. Sans ce chemin elle échoue au démarrage
+      # avec « No pnpm version is specified ». `ci.yml` le passe déjà ; je
+      # l'avais omis en recopiant ses étapes.
       - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: apps/desktop/package.json
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
