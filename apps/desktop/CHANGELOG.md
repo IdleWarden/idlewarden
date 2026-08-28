@@ -4,6 +4,20 @@ All notable changes to `desktop` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.8.28] - 2026-08-28
+
+### Features
+
+- feat(desktop): download and install updates through the plugin
+- feat(desktop): build and publish the windows installer
+- feat(core): run a session from a tick, on its own thread
+
+### Bug Fixes
+
+- fix(desktop): drop the import and variant the plugin made dead
+- fix(desktop): point pnpm setup at the app package.json
+- fix(ci): give the release job the registry token, publishers run inside it
+
 ## [26.8.27] - 2026-08-27
 
 ### Features
