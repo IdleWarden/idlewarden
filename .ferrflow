@@ -3,7 +3,8 @@
   "workspace": {
     "versioning": "calver-short",
     "tagTemplate": "{name}@v{version}",
-    "recoverMissedReleases": true
+    "recoverMissedReleases": true,
+    "updateLockfiles": true
   },
   "package": [
     {
