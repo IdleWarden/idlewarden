@@ -27,49 +27,15 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+
+      # Configured publishers run inside release mode, so this job needs the
+      # toolchain and the registry token, not a later one.
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
       - uses: FerrLabs/FerrFlow@v7
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         with:
           bot: true
           dry_run: ${{ inputs.dry_run || false }}
-
-  publish:
-    needs: release
-    if: ${{ !inputs.dry_run }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      # Skip rather than fail when no token is configured, so a repository
-      # without publishing rights still gets a green release.
-      - id: token
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: |
-          if [ -z "$CARGO_REGISTRY_TOKEN" ]; then
-            echo "::notice::CARGO_REGISTRY_TOKEN is not set, nothing will be published"
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      # main has moved: the release job pushed the version bump, and that commit
-      # carries the versions being published.
-      - if: steps.token.outputs.ready == 'true'
-        uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
-          persist-credentials: false
-
-      - if: steps.token.outputs.ready == 'true'
-        uses: dtolnay/rust-toolchain@stable
-      - if: steps.token.outputs.ready == 'true'
-        uses: Swatinem/rust-cache@v2
-
-      - name: Publish the crates
-        if: steps.token.outputs.ready == 'true'
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        uses: FerrLabs/FerrFlow@v7
-        with:
-          mode: publish

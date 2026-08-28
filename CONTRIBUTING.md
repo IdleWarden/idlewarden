@@ -62,14 +62,17 @@ cargo test --workspace
 
 ## Releases
 
-FerrFlow tags and bumps on every push to `main`, then a second job publishes the
-eight library crates to crates.io. Publishing is idempotent: a version already on
-the registry is skipped, not an error.
+FerrFlow tags, bumps and publishes on every push to `main`, all in one job.
+Configured publishers run inside release mode, so there is no separate publish
+step and no way to split them: a job that tags is a job that publishes.
+Publishing is idempotent, a version already on the registry is skipped rather
+than treated as an error.
 
-The publish job needs a `CARGO_REGISTRY_TOKEN` repository secret holding a
-crates.io token scoped to `publish-update`. **Without it the job skips and says
-so**, rather than failing, so a fork or a repository without publishing rights
-still gets a green release.
+It needs a `CARGO_REGISTRY_TOKEN` repository secret holding a crates.io token
+scoped to `publish-update`. **A fork without that secret gets a red release**,
+because the publishers fail after the tag and the commit have already been
+pushed. That ordering is worth knowing when a release run goes red: the tag
+usually landed, and only the upload did not.
 
 `apps/desktop` and the mods are not published: the desktop crate is
 `publish = false`, and the mods are .NET, which cargo has nothing to say about.
