@@ -84,11 +84,22 @@ jobs:
       # c'est un workspace Cargo, et tous les crates partagent le même
       # répertoire de sortie. Tauri l'annonce d'ailleurs en fin de bundle
       # (« Finished 2 bundles at: …/target/release/bundle/… »).
+      # Le déclenchement manuel attache lui aussi, dès lors qu'on lui a donné un
+      # tag de release. C'est la raison d'être de ce chemin : réparer une
+      # publication ratée. Le limiter à l'évènement `release` le rendait
+      # incapable de traiter exactement le cas pour lequel on s'en sert — une
+      # release existante et vide, dont l'exécution automatique a échoué.
+      #
+      # Un `workflow_dispatch` sur une branche (`main`, une branche de test) ne
+      # correspond à aucune release : la condition l'écarte, et l'étape suivante
+      # conserve alors l'installeur en artefact.
       - name: Attacher l'installeur à la release
-        if: github.event_name == 'release'
+        if: >-
+          github.event_name == 'release' ||
+          startsWith(inputs.tag, 'desktop@v')
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.event.release.tag_name }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
         shell: bash
         run: |
           set -euo pipefail
@@ -127,7 +138,9 @@ jobs:
       # l'artefact reste récupérable : c'est ce qui permet de tester une
       # construction sans publier quoi que ce soit.
       - name: Conserver l'installeur comme artefact
-        if: github.event_name == 'workflow_dispatch'
+        if: >-
+          github.event_name == 'workflow_dispatch' &&
+          !startsWith(inputs.tag, 'desktop@v')
         uses: actions/upload-artifact@v4
         with:
           name: idlewarden-windows
