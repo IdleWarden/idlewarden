@@ -12,8 +12,12 @@
 
 pub mod event;
 pub mod governor;
+pub mod runner;
+pub mod service;
 pub mod session;
 
 pub use event::{Command, Event};
 pub use governor::{Governor, GovernorConfig, Verdict};
+pub use runner::{Actuator, Parts, Runner};
+pub use service::{SessionService, DEFAULT_TICK};
 pub use session::{Refusal, Session, SessionState};

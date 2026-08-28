@@ -14,6 +14,29 @@ over `Command` and `Event`; that discipline is what makes a headless daemon a
 refactor rather than a rewrite, and `tests/pipeline.rs` proves it by driving a
 whole session with no UI at all.
 
+## The session runner
+
+`runner.rs` is the loop that plays: capture, perceive, decide, govern, act. It
+is a **tick** rather than a thread, so a whole session can be driven
+deterministically in a test with no sleeping and no wall clock. `service.rs`
+owns the thread, and is deliberately thin because nothing worth testing lives in
+it.
+
+Two rules are enforced here rather than trusted:
+
+**Every intent goes through the Governor.** There is no path from the behaviour
+tree to the input backend that does not pass `review`.
+
+**Nothing is reported as succeeded until it has been checked.** An action's
+commands run, and the intent is then held in flight until the *next*
+observation, which is the only thing that can say whether the world changed
+(ADR-0003). Reporting success at the moment the click was sent would be a lie
+the rest of the system would believe.
+
+The pieces are traits the Core does not implement: `vision::Perceiver`,
+`agent::Node`, `runner::Actuator`, `capture::CaptureBackend`,
+`input::InputBackend`. The Core sequences them and knows nothing about any game.
+
 ## The Governor
 
 The component the project is named after, and the reason it is named that.

@@ -1461,7 +1461,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-bridge"
-version = "26.8.26"
+version = "26.8.27"
 dependencies = [
  "idlewarden-plugin-api",
  "serde",
@@ -1496,7 +1496,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-desktop"
-version = "26.8.26"
+version = "26.8.27"
 dependencies = [
  "idlewarden-core",
  "serde",

@@ -68,6 +68,12 @@ pub trait InputBackend: Send {
     fn execute(&mut self, cmd: &InputCommand) -> Result<(), InputError>;
 }
 
+impl InputBackend for Box<dyn InputBackend> {
+    fn execute(&mut self, cmd: &InputCommand) -> Result<(), InputError> {
+        (**self).execute(cmd)
+    }
+}
+
 /// Wraps any backend with the checks that must never be skipped.
 pub struct GuardedInput<B: InputBackend> {
     backend: B,
