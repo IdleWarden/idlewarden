@@ -73,6 +73,33 @@ jobs:
       # dégradation silencieuse : le bundle échoue, ce qui est le bon
       # comportement — une release sans signature ne serait acceptée par aucune
       # installation existante.
+      - name: signtool dans le PATH
+        shell: pwsh
+        run: |
+          $roots = @(
+            (Join-Path ${env:ProgramFiles(x86)} 'Windows Kits/10/bin'),
+            (Join-Path $env:ProgramFiles 'Windows Kits/10/bin')
+          )
+          $found = foreach ($root in $roots) {
+            if (Test-Path $root) {
+              Get-ChildItem -Path $root -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue |
+                Where-Object { $_.Directory.Name -eq 'x64' } |
+                ForEach-Object {
+                  $parsed = [version]'0.0.0.0'
+                  if ([version]::TryParse($_.Directory.Parent.Name, [ref]$parsed)) {
+                    [pscustomobject]@{ Version = $parsed; Dir = $_.Directory.FullName }
+                  }
+                }
+            }
+          }
+          $best = $found | Sort-Object Version -Descending | Select-Object -First 1
+          if (-not $best) {
+            Write-Error "signtool.exe introuvable sous $($roots -join ' | ')"
+            exit 1
+          }
+          Write-Host "signtool $($best.Version) : $($best.Dir)"
+          Add-Content -Path $env:GITHUB_PATH -Value $best.Dir
+
       - name: Outil de signature Authenticode
         run: cargo install artifact-signing-cli --locked
 
