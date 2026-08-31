@@ -33,6 +33,13 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: write
+    env:
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      SIGNING_ENDPOINT: ${{ vars.AZURE_SIGNING_ENDPOINT }}
+      SIGNING_ACCOUNT: ${{ vars.AZURE_SIGNING_ACCOUNT }}
+      SIGNING_PROFILE: ${{ vars.AZURE_SIGNING_PROFILE }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -74,6 +81,7 @@ jobs:
       # comportement — une release sans signature ne serait acceptée par aucune
       # installation existante.
       - name: signtool dans le PATH
+        if: env.AZURE_TENANT_ID != ''
         shell: pwsh
         run: |
           $roots = @(
@@ -101,6 +109,7 @@ jobs:
           Add-Content -Path $env:GITHUB_PATH -Value $best.Dir
 
       - name: Outil de signature Authenticode
+        if: env.AZURE_TENANT_ID != ''
         shell: pwsh
         env:
           SIGNING_CLI_VERSION: "0.11.0"
@@ -126,22 +135,28 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          SIGNING_ENDPOINT: ${{ vars.AZURE_SIGNING_ENDPOINT }}
-          SIGNING_ACCOUNT: ${{ vars.AZURE_SIGNING_ACCOUNT }}
-          SIGNING_PROFILE: ${{ vars.AZURE_SIGNING_PROFILE }}
         run: |
           set -euo pipefail
+          configured=0
+          missing=""
           for name in AZURE_TENANT_ID AZURE_CLIENT_ID AZURE_CLIENT_SECRET SIGNING_ENDPOINT SIGNING_ACCOUNT SIGNING_PROFILE; do
-            if [ -z "${!name:-}" ]; then
-              echo "$name manquant : l'installeur sortirait non signé" >&2
-              exit 1
+            if [ -n "${!name:-}" ]; then
+              configured=$((configured + 1))
+            else
+              missing="$missing $name"
             fi
           done
-          sign="artifact-signing-cli -e $SIGNING_ENDPOINT -a $SIGNING_ACCOUNT -c $SIGNING_PROFILE %1"
-          pnpm tauri build --config "{\"bundle\":{\"windows\":{\"signCommand\":\"$sign\"}}}"
+
+          if [ "$configured" -eq 0 ]; then
+            echo "::warning title=Installeur non signe::SmartScreen avertira les utilisateurs tant que la signature Authenticode n'est pas configuree."
+            pnpm tauri build
+          elif [ -n "$missing" ]; then
+            echo "configuration de signature incomplete, il manque :$missing" >&2
+            exit 1
+          else
+            sign="artifact-signing-cli -e $SIGNING_ENDPOINT -a $SIGNING_ACCOUNT -c $SIGNING_PROFILE %1"
+            pnpm tauri build --config "{\"bundle\":{\"windows\":{\"signCommand\":\"$sign\"}}}"
+          fi
 
       # `target/` est à la RACINE du dépôt, pas sous `apps/desktop/src-tauri/` :
       # c'est un workspace Cargo, et tous les crates partagent le même
