@@ -101,7 +101,24 @@ jobs:
           Add-Content -Path $env:GITHUB_PATH -Value $best.Dir
 
       - name: Outil de signature Authenticode
-        run: cargo install artifact-signing-cli --locked
+        shell: pwsh
+        env:
+          SIGNING_CLI_VERSION: "0.11.0"
+          SIGNING_CLI_SHA256: "ddc6f6ef68631bf367ad051d7d37109e58d46095406e1fbba60d553b10f94393"
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          $dir = Join-Path $env:RUNNER_TEMP 'signing-cli'
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          $exe = Join-Path $dir 'artifact-signing-cli.exe'
+          $url = "https://github.com/levminer/trusted-signing-cli/releases/download/${env:SIGNING_CLI_VERSION}/artifact-signing-cli.exe"
+          Invoke-WebRequest -Uri $url -OutFile $exe
+          $actual = (Get-FileHash -Path $exe -Algorithm SHA256).Hash.ToLower()
+          if ($actual -ne ${env:SIGNING_CLI_SHA256}) {
+            Write-Error "empreinte inattendue pour artifact-signing-cli : $actual"
+            exit 1
+          }
+          Write-Host "artifact-signing-cli ${env:SIGNING_CLI_VERSION} verifie"
+          Add-Content -Path $env:GITHUB_PATH -Value $dir
 
       - name: Bundle Windows
         working-directory: apps/desktop
