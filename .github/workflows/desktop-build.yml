@@ -73,12 +73,31 @@ jobs:
       # dégradation silencieuse : le bundle échoue, ce qui est le bon
       # comportement — une release sans signature ne serait acceptée par aucune
       # installation existante.
+      - name: Outil de signature Authenticode
+        run: cargo install artifact-signing-cli --locked
+
       - name: Bundle Windows
         working-directory: apps/desktop
+        shell: bash
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: pnpm tauri build
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          SIGNING_ENDPOINT: ${{ vars.AZURE_SIGNING_ENDPOINT }}
+          SIGNING_ACCOUNT: ${{ vars.AZURE_SIGNING_ACCOUNT }}
+          SIGNING_PROFILE: ${{ vars.AZURE_SIGNING_PROFILE }}
+        run: |
+          set -euo pipefail
+          for name in AZURE_TENANT_ID AZURE_CLIENT_ID AZURE_CLIENT_SECRET SIGNING_ENDPOINT SIGNING_ACCOUNT SIGNING_PROFILE; do
+            if [ -z "${!name:-}" ]; then
+              echo "$name manquant : l'installeur sortirait non signé" >&2
+              exit 1
+            fi
+          done
+          sign="artifact-signing-cli -e $SIGNING_ENDPOINT -a $SIGNING_ACCOUNT -c $SIGNING_PROFILE %1"
+          pnpm tauri build --config "{\"bundle\":{\"windows\":{\"signCommand\":\"$sign\"}}}"
 
       # `target/` est à la RACINE du dépôt, pas sous `apps/desktop/src-tauri/` :
       # c'est un workspace Cargo, et tous les crates partagent le même
