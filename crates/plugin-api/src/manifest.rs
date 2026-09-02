@@ -63,7 +63,7 @@ pub struct GameMatcher {
     /// Executable file name, case-insensitive, e.g. "Game.exe".
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub executable: Option<String>,
-    /// Substring or regex the window title must contain.
+    /// Substring the window title must contain, compared without case.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub window_title: Option<String>,
 }
