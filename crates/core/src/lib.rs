@@ -10,12 +10,14 @@
 //!   `Command`. That discipline is what makes a future headless daemon a
 //!   refactor rather than a rewrite.
 
+pub mod detector;
 pub mod event;
 pub mod governor;
 pub mod runner;
 pub mod service;
 pub mod session;
 
+pub use detector::{Detector, WindowSource};
 pub use event::{Command, Event};
 pub use governor::{Governor, GovernorConfig, Verdict};
 pub use runner::{Actuator, Parts, Runner};

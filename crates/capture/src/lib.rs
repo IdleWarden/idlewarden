@@ -11,15 +11,24 @@
 
 use std::sync::Arc;
 
+mod detect;
 mod frame;
 mod null;
 
 #[cfg(windows)]
+mod enumerate;
+#[cfg(windows)]
+mod steam;
+
+#[cfg(windows)]
 mod wgc;
 
+pub use detect::{detect, matches, Detection, GameWindow};
 pub use frame::{Frame, Size};
 pub use null::NullBackend;
 
+#[cfg(windows)]
+pub use enumerate::windows as enumerate_windows;
 #[cfg(windows)]
 pub use wgc::WindowsCapture;
 

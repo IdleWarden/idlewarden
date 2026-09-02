@@ -55,7 +55,7 @@ impl ApiVersion {
 
 /// How to recognise that the game is running. Declarative on purpose: detection
 /// is configuration, not code (ADR-0001).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct GameMatcher {
     #[serde(default, skip_serializing_if = "Option::is_none")]

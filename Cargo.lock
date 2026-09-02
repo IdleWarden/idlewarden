@@ -1535,6 +1535,7 @@ dependencies = [
 name = "idlewarden-capture"
 version = "26.9.2"
 dependencies = [
+ "idlewarden-plugin-api",
  "thiserror 2.0.20",
  "tracing",
  "windows 0.62.2",
