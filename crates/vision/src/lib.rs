@@ -6,6 +6,16 @@
 //! Every region is therefore expressed relative to the window client area, and
 //! optionally re-registered against a stable anchor before matching.
 
+mod gray;
+mod ncc;
+mod perceiver;
+mod probe;
+
+pub use gray::Gray;
+pub use ncc::{best_match, best_match_multi_scale, Found, SCALES};
+pub use perceiver::RuleSet;
+pub use probe::colour_fraction;
+
 use idlewarden_capture::Frame;
 use idlewarden_plugin_api::{Confidence, SignalId, Value};
 use serde::{Deserialize, Serialize};
@@ -64,6 +74,9 @@ impl Roi {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Anchor {
     pub name: String,
+    /// Where to look. The anchor is expected at the centre of this area,
+    /// and how far the match lands from that centre becomes the offset
+    /// applied to every region.
     pub search_area: Roi,
     /// Template asset name, resolved inside the plugin package.
     pub template: String,
