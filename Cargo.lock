@@ -1603,7 +1603,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-vision"
-version = "26.8.26"
+version = "26.9.2"
 dependencies = [
  "idlewarden-capture",
  "idlewarden-plugin-api",
