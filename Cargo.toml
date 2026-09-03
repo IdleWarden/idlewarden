@@ -20,8 +20,8 @@ repository = "https://github.com/IdleWarden/idlewarden"
 authors = ["The IdleWarden contributors"]
 
 [workspace.dependencies]
-idlewarden-plugin-api = { path = "crates/plugin-api", version = "26.9.2" }
-idlewarden-capture    = { path = "crates/capture", version = "26.9.2" }
+idlewarden-plugin-api = { path = "crates/plugin-api", version = "26.9.3" }
+idlewarden-capture    = { path = "crates/capture", version = "26.9.3" }
 idlewarden-vision     = { path = "crates/vision", version = "26.9.2" }
 idlewarden-input      = { path = "crates/input", version = "26.8.28" }
 idlewarden-bridge     = { path = "crates/bridge", version = "26.8.27" }

@@ -4,6 +4,12 @@ All notable changes to `capture` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.3] - 2026-09-03
+
+### Features
+
+- feat(detect): match running windows against plugin manifests
+
 ## [26.9.2] - 2026-09-02
 
 ### Features
