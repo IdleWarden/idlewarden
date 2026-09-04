@@ -71,7 +71,7 @@ impl Roi {
 }
 
 /// A visually stable element used to re-register the layout before matching.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Anchor {
     pub name: String,
     /// Where to look. The anchor is expected at the centre of this area,
@@ -85,7 +85,7 @@ pub struct Anchor {
 }
 
 /// How a signal is extracted from a frame.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "method", rename_all = "snake_case")]
 pub enum Extractor {
     /// Normalised cross-correlation against a template asset.
@@ -105,7 +105,7 @@ pub enum Extractor {
     },
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SignalRule {
     pub id: SignalId,
     pub extractor: Extractor,

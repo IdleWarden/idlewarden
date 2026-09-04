@@ -1,5 +1,5 @@
 {
-  "$comment": "How signals are extracted, and what to do about them. All coordinates are window-relative, 0.0..=1.0, never screen pixels (ADR-0003).",
+  "$comment": "How signals are extracted, and what to do about them. All coordinates are window-relative, 0.0..=1.0, never screen pixels (ADR-0003). Conditions are structured rather than written as expressions, so a schema can validate them and the region editor can round-trip them without parsing text.",
 
   "anchors": [
     {
@@ -21,17 +21,19 @@
       }
     },
     {
-      "id": "resource.gold",
+      "id": "ui.reward_ready",
       "extractor": {
-        "method": "ocr",
-        "roi": { "x": 0.42, "y": 0.02, "w": 0.16, "h": 0.05 }
+        "method": "color_probe",
+        "roi": { "x": 0.49, "y": 0.71, "w": 0.02, "h": 0.02 },
+        "rgb": [232, 185, 62],
+        "tolerance": 24
       }
     },
     {
       "id": "upgrade.affordable",
       "extractor": {
         "method": "color_probe",
-        "roi": { "x": 0.80, "y": 0.60, "w": 0.02, "h": 0.02 },
+        "roi": { "x": 0.8, "y": 0.6, "w": 0.02, "h": 0.02 },
         "rgb": [64, 200, 96],
         "tolerance": 24
       }
@@ -40,25 +42,29 @@
 
   "intents": [
     {
+      "$comment": "Declaration order is priority: the first intent whose conditions hold wins.",
       "name": "collect_reward",
-      "when": "ui.screen_id == 'main'",
+      "when": [
+        { "op": "is_true", "signal": "ui.screen_id" },
+        { "op": "is_true", "signal": "ui.reward_ready" }
+      ],
       "commands": [
         { "op": "click", "at": { "x": 0.5, "y": 0.72 }, "button": "left" },
         { "op": "wait", "ms": 300 }
       ],
-      "$comment": "An intent without a post-condition is a bug (ADR-0003).",
-      "post_condition": "resource.gold > before('resource.gold')",
-      "timeout_ms": 3000
+      "$comment2": "An intent without a post-condition is refused at load (ADR-0003).",
+      "post_condition": [{ "op": "is_false", "signal": "ui.reward_ready" }],
+      "min_confidence": 0.8
     },
     {
       "name": "buy_upgrade",
-      "when": "upgrade.affordable == true",
+      "when": [{ "op": "is_true", "signal": "upgrade.affordable" }],
       "commands": [
         { "op": "click", "at": { "x": 0.81, "y": 0.61 }, "button": "left" },
         { "op": "wait", "ms": 250 }
       ],
-      "post_condition": "upgrade.affordable == false",
-      "timeout_ms": 3000
+      "post_condition": [{ "op": "is_false", "signal": "upgrade.affordable" }],
+      "min_confidence": 0.8
     }
   ]
 }
