@@ -68,7 +68,7 @@
     "dismiss_popup"
   ],
   "capabilities": [
-    "capture",
-    "input.mouse"
+    { "kind": "capture" },
+    { "kind": "input_mouse" }
   ]
 }
