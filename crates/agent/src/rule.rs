@@ -28,6 +28,13 @@ impl Condition {
         }
     }
 
+    /// Whether this condition holds against an observation, ignoring
+    /// confidence: callers decide their own floor.
+    pub fn met(&self, obs: &Observation) -> bool {
+        obs.get(self.signal())
+            .is_some_and(|signal| self.holds(&signal.value))
+    }
+
     fn holds(&self, value: &Value) -> bool {
         match self {
             Condition::IsTrue { .. } => matches!(value, Value::Bool(true)),

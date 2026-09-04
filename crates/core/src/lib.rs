@@ -13,6 +13,7 @@
 pub mod detector;
 pub mod event;
 pub mod governor;
+pub mod recipe;
 pub mod runner;
 pub mod service;
 pub mod session;
@@ -20,6 +21,7 @@ pub mod session;
 pub use detector::{Detector, WindowSource};
 pub use event::{Command, Event};
 pub use governor::{Governor, GovernorConfig, Verdict};
+pub use recipe::{Recipe, RecipeActuator};
 pub use runner::{Actuator, Parts, Runner};
 pub use service::{SessionService, DEFAULT_TICK};
 pub use session::{Refusal, Session, SessionState};
