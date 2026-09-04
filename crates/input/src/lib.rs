@@ -8,6 +8,16 @@
 //! * A global kill switch must be registered before any backend is allowed to
 //!   emit a single event.
 
+mod coords;
+mod humanise;
+mod keys;
+
+#[cfg(windows)]
+mod sendinput;
+
+#[cfg(windows)]
+pub use sendinput::SendInputBackend;
+
 use idlewarden_plugin_api::{InputCommand, Point};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
