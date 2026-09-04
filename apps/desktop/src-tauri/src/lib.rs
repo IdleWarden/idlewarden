@@ -11,6 +11,14 @@ mod updates;
 #[cfg(test)]
 mod tests;
 
+fn plugin_root(app: &tauri::AppHandle) -> std::path::PathBuf {
+    use tauri::Manager;
+    app.path()
+        .app_data_dir()
+        .map(|dir| dir.join("plugins"))
+        .unwrap_or_else(|_| std::path::PathBuf::from("plugins"))
+}
+
 pub fn run() {
     use tauri::Manager;
 
@@ -18,12 +26,14 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             app.manage(updates::Updates::new(app.handle()));
+            app.manage(session::SessionHandle::new(plugin_root(app.handle())));
             Ok(())
         })
-        .manage(session::SessionHandle::default())
         .invoke_handler(tauri::generate_handler![
             session::session_state,
+            session::session_events,
             session::dispatch,
+            session::engage_kill_switch,
             updates::update_settings,
             updates::set_update_channel,
             updates::check_for_update,

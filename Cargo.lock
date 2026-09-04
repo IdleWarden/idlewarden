@@ -1563,7 +1563,9 @@ dependencies = [
 name = "idlewarden-desktop"
 version = "26.8.28"
 dependencies = [
+ "idlewarden-capture",
  "idlewarden-core",
+ "idlewarden-input",
  "serde",
  "serde_json",
  "tauri",
