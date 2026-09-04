@@ -4,6 +4,12 @@ All notable changes to `input` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.4] - 2026-09-04
+
+### Features
+
+- feat(input): implement the SendInput backend
+
 ## [26.8.28] - 2026-08-28
 
 ### Features
