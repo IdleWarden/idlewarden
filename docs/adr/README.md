@@ -21,3 +21,4 @@ request against the ADR, not around it.
 | [0013](0013-versioning.md) | calver-short for plugins, semver for the contract | Superseded by 0015 |
 | [0014](0014-bridge.md) | L3 bridges connect to a user-installed mod; the Core never injects | Accepted |
 | [0015](0015-calver-everywhere.md) | calver-short everywhere, including the contract | Accepted |
+| [0016](0016-branch-protection.md) | Two rulesets on `main`, and the release bot bypasses only one | Accepted |
