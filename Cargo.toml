@@ -22,7 +22,7 @@ authors = ["The IdleWarden contributors"]
 [workspace.dependencies]
 idlewarden-plugin-api = { path = "crates/plugin-api", version = "26.9.3" }
 idlewarden-capture    = { path = "crates/capture", version = "26.9.3" }
-idlewarden-vision     = { path = "crates/vision", version = "26.9.2" }
+idlewarden-vision     = { path = "crates/vision", version = "26.9.4" }
 idlewarden-input      = { path = "crates/input", version = "26.9.4" }
 idlewarden-bridge     = { path = "crates/bridge", version = "26.8.27" }
 idlewarden-plugin-host = { path = "crates/plugin-host", version = "26.8.26" }
