@@ -1610,6 +1610,7 @@ version = "26.9.4"
 dependencies = [
  "idlewarden-capture",
  "idlewarden-plugin-api",
+ "png 0.18.1",
  "serde",
  "thiserror 2.0.20",
  "tracing",

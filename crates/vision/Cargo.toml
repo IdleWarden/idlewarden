@@ -13,4 +13,5 @@ idlewarden-plugin-api.workspace = true
 idlewarden-capture.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
+png = "0.18"
 serde.workspace = true

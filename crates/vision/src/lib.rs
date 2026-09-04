@@ -6,11 +6,13 @@
 //! Every region is therefore expressed relative to the window client area, and
 //! optionally re-registered against a stable anchor before matching.
 
+mod decode;
 mod gray;
 mod ncc;
 mod perceiver;
 mod probe;
 
+pub use decode::png_to_gray;
 pub use gray::Gray;
 pub use ncc::{best_match, best_match_multi_scale, Found, SCALES};
 pub use perceiver::RuleSet;
