@@ -9,6 +9,12 @@
 //! The LLM is never in the hot loop. It proposes a *goal*, rarely; the tree
 //! executes it.
 
+mod rule;
+mod spec;
+
+pub use rule::{Condition, RuleDecider, RuleSpec};
+pub use spec::NodeSpec;
+
 use idlewarden_plugin_api::{Intent, Observation};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

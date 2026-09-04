@@ -1517,6 +1517,8 @@ name = "idlewarden-agent"
 version = "26.8.26"
 dependencies = [
  "idlewarden-plugin-api",
+ "serde",
+ "serde_json",
  "tracing",
 ]
 
