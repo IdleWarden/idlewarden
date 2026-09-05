@@ -11,18 +11,36 @@ the policy conflict it is.
 
 ## Decision
 
-Keep releases committing directly. Protect `main` with **two** rulesets rather
-than one, because bypass in GitHub is granted per ruleset:
+Keep releases committing directly. Protect `main` with **two** rulesets, because
+a bypass actor in GitHub skips the whole ruleset it is listed on:
 
-* **`main-integrity`**, no bypass actors: block force pushes, block deletion,
-  require the status checks `check`, `desktop`, `licence-headers`,
-  `no-native-plugins`, `signed-off` and `build`.
-* **`main-review`**, bypass actor the FerrFlow GitHub App: require a pull
-  request.
+* **`main-integrity`**, no bypass at all: block force pushes, block deletion.
+  Neither rule stands in the way of an ordinary push, so the release bot obeys
+  them like everyone else.
+* **`main-review`**, bypassed by the FerrFlow GitHub App (id 3455369) and by
+  repository admins: require a pull request, and require the status checks
+  `check (ubuntu-latest)`, `check (windows-latest)`, `desktop`,
+  `licence-headers`, `no-native-plugins`, `build` and `signed-off`.
 
-The bot therefore cannot force-push, cannot delete the branch, and cannot land
-anything that failed CI. The only rule it skips is the one it structurally
-cannot satisfy.
+## Why required checks sit with the pull-request rule, not against it
+
+The tempting split is integrity plus checks on one side, review on the other.
+It does not work: a ruleset's required status checks apply to **direct pushes**
+as well as merges, and checks only run *after* a commit exists. A release pushed
+straight to `main` can never have passing checks at push time, so that split
+rejects every release. `signed-off` makes it worse, since `dco.yml` only runs on
+`pull_request` and therefore never reports for a pushed commit at all.
+
+Checks and the pull-request requirement are the same policy, "changes are
+reviewed and green before they land", so they belong in the same ruleset and
+share its bypass.
+
+## Why the check names are spelled out
+
+`check` is a matrix job. GitHub reports it as `check (ubuntu-latest)` and
+`check (windows-latest)`, and a required check whose name matches nothing is
+never satisfied, which locks the branch permanently. The list above was read off
+an actual pull request rather than derived from job ids.
 
 ## Why not put the release back behind a pull request
 
@@ -37,18 +55,14 @@ It stays the right answer if the project grows enough reviewers that a release
 PR costs nothing, in which case delete `main-review`'s bypass rather than
 inventing something new.
 
-## Why not one ruleset with a bypass
-
-A bypass actor skips the *whole* ruleset it is listed on. Putting force-push
-protection and the pull-request requirement in the same ruleset would hand the
-bot both. Splitting them costs one extra ruleset and keeps the exemption to the
-single rule that needs it.
-
 ## Consequences
 
-* Anyone with push access can land on `main` without review, exactly as today:
-  this ADR does not make the repository stricter for humans, it makes protection
-  possible to enable at all (see #24).
+* Admins keep pushing straight to `main`, exactly as today. The review rule
+  binds contributors, not the maintainer, which is honest for a single-maintainer
+  repository and is one line to tighten the day that changes.
+* Force pushes and branch deletion are blocked for **everyone**, including
+  admins and the bot. That is the half worth having immediately, because it
+  guards against accidents rather than against people.
 * The exemption is tied to the App's identity. Anything able to act as
   `ferrflow[bot]` inherits it, so its installation scope is worth reviewing
   whenever repository permissions change.
