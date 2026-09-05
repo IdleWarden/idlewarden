@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
 //! What a plugin is allowed to do, and how much the user is asked to trust it.
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::str::FromStr;
 
 /// Declared in the manifest, shown to the user at install time, enforced by the
 /// host. A plugin that asks for nothing can still observe and act through the
 /// Core, capabilities gate *direct* access to the machine.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "snake_case")]
+///
+/// The wire form is the label, `capture`, `input.mouse`, `bridge:my-mod`, which
+/// is what the registry schema validates and what a plugin author writes.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Capability {
     /// Read captured frames of the game window.
     Capture,
@@ -24,6 +27,54 @@ pub enum Capability {
     /// Talk to a mod the user installed in the game process (ADR-0014). Never
     /// granted silently, at any trust level.
     Bridge { name: String },
+}
+
+#[derive(Debug, thiserror::Error)]
+#[error("`{0}` is not a capability this host knows")]
+pub struct UnknownCapability(String);
+
+impl FromStr for Capability {
+    type Err = UnknownCapability;
+
+    fn from_str(text: &str) -> Result<Self, Self::Err> {
+        let unknown = || UnknownCapability(text.to_owned());
+        let parameterised = |prefix: &str| {
+            text.strip_prefix(prefix)
+                .filter(|rest| !rest.is_empty())
+                .map(str::to_owned)
+        };
+
+        Ok(match text {
+            "capture" => Capability::Capture,
+            "input.mouse" => Capability::InputMouse,
+            "input.keyboard" => Capability::InputKeyboard,
+            "input.gamepad" => Capability::InputGamepad,
+            _ => {
+                if let Some(path) = parameterised("fs.read:") {
+                    Capability::FsRead { path }
+                } else if let Some(host) = parameterised("net:") {
+                    Capability::Net { host }
+                } else if let Some(name) = parameterised("bridge:") {
+                    Capability::Bridge { name }
+                } else {
+                    return Err(unknown());
+                }
+            }
+        })
+    }
+}
+
+impl Serialize for Capability {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&self.label())
+    }
+}
+
+impl<'de> Deserialize<'de> for Capability {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let text = String::deserialize(deserializer)?;
+        text.parse().map_err(serde::de::Error::custom)
+    }
 }
 
 impl Capability {
@@ -114,5 +165,52 @@ mod tests {
             "bridge:cookie"
         );
         assert_eq!(Capability::InputMouse.label(), "input.mouse");
+    }
+
+    #[test]
+    fn every_capability_survives_a_round_trip_through_json() {
+        let all = [
+            Capability::Capture,
+            Capability::InputMouse,
+            Capability::InputKeyboard,
+            Capability::InputGamepad,
+            Capability::FsRead {
+                path: "saves".into(),
+            },
+            Capability::Net {
+                host: "example.com".into(),
+            },
+            Capability::Bridge {
+                name: "cookie".into(),
+            },
+        ];
+
+        for capability in all {
+            let json = serde_json::to_string(&capability).expect("serialises");
+            let read: Capability = serde_json::from_str(&json).expect("parses back");
+            assert_eq!(read, capability, "{json} did not survive");
+        }
+    }
+
+    #[test]
+    fn the_wire_form_is_the_label_a_plugin_author_writes() {
+        let json = serde_json::to_string(&Capability::InputMouse).expect("serialises");
+
+        assert_eq!(json, "\"input.mouse\"");
+    }
+
+    #[test]
+    fn an_unknown_capability_is_refused_rather_than_ignored() {
+        assert!("read.everything".parse::<Capability>().is_err());
+        assert!("".parse::<Capability>().is_err());
+    }
+
+    #[test]
+    fn a_parameterised_capability_needs_its_parameter() {
+        assert!(
+            "bridge:".parse::<Capability>().is_err(),
+            "a bridge with no name grants access to nothing nameable"
+        );
+        assert!("net:".parse::<Capability>().is_err());
     }
 }
