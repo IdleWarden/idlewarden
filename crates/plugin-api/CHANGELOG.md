@@ -4,6 +4,12 @@ All notable changes to `plugin-api` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.5] - 2026-09-05
+
+### Bug Fixes
+
+- fix(plugin-api): capabilities are written as labels, not tagged objects
+
 ## [26.9.2] - 2026-09-02
 
 ### Features
