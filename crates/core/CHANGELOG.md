@@ -4,6 +4,13 @@ All notable changes to `core` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.5] - 2026-09-05
+
+### Features
+
+- feat(core): assemble a session from a plugin directory
+- feat(core): load a plugin's rules into perception, tree and recipes
+
 ## [26.9.4] - 2026-09-04
 
 ### Features

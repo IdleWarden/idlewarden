@@ -4,6 +4,12 @@ All notable changes to `desktop` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.5] - 2026-09-05
+
+### Bug Fixes
+
+- fix(desktop): build off Windows again
+
 ## [26.9.4] - 2026-09-04
 
 ### Features

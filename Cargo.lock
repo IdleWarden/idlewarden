@@ -1514,7 +1514,7 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "idlewarden-agent"
-version = "26.9.4"
+version = "26.9.5"
 dependencies = [
  "idlewarden-plugin-api",
  "serde",
@@ -1545,7 +1545,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-core"
-version = "26.9.4"
+version = "26.9.5"
 dependencies = [
  "idlewarden-agent",
  "idlewarden-capture",
@@ -1561,7 +1561,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-desktop"
-version = "26.9.4"
+version = "26.9.5"
 dependencies = [
  "idlewarden-capture",
  "idlewarden-core",
@@ -1608,7 +1608,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-vision"
-version = "26.9.4"
+version = "26.9.5"
 dependencies = [
  "idlewarden-capture",
  "idlewarden-plugin-api",
