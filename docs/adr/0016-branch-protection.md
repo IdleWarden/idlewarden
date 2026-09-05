@@ -14,10 +14,10 @@ the policy conflict it is.
 Keep releases committing directly. Protect `main` with **two** rulesets, because
 a bypass actor in GitHub skips the whole ruleset it is listed on:
 
-* **`main-integrity`**, no bypass at all: block force pushes, block deletion.
+* **`main-integrity`** (id 22327785), no bypass at all: block force pushes, block deletion.
   Neither rule stands in the way of an ordinary push, so the release bot obeys
   them like everyone else.
-* **`main-review`**, bypassed by the FerrFlow GitHub App (id 3455369) and by
+* **`main-review`** (id 22327791), bypassed by the FerrFlow GitHub App (id 3455369) and by
   repository admins: require a pull request, and require the status checks
   `check (ubuntu-latest)`, `check (windows-latest)`, `desktop`,
   `licence-headers`, `no-native-plugins`, `build` and `signed-off`.
