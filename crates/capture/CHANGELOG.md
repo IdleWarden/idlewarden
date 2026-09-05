@@ -4,6 +4,12 @@ All notable changes to `capture` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.5] - 2026-09-05
+
+### Features
+
+- feat(desktop): lay the app out around the watched game
+
 ## [26.9.3] - 2026-09-03
 
 ### Features
