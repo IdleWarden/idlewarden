@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MPL-2.0
 
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::Mutex;
 
@@ -30,6 +31,23 @@ struct Inner {
     service: Option<SessionService>,
     events: Vec<Event>,
     kill: KillSwitch,
+    /// Intents the user switched off, keyed `plugin::intent`. The Governor is
+    /// told about them when a session starts.
+    disabled: HashSet<String>,
+}
+
+/// One plugin as the sidebar and the automations list need it.
+#[derive(Debug, Serialize)]
+pub struct PluginSummary {
+    pub id: String,
+    pub detected: bool,
+    pub intents: Vec<IntentSummary>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct IntentSummary {
+    pub name: String,
+    pub enabled: bool,
 }
 
 impl SessionHandle {
@@ -64,6 +82,7 @@ impl SessionHandle {
             service: None,
             events,
             kill: KillSwitch::new(),
+            disabled: HashSet::new(),
         }))
     }
 }
@@ -116,6 +135,41 @@ impl Inner {
         Err("capture and input are only implemented on Windows".to_owned())
     }
 
+    fn key(plugin: &str, intent: &str) -> String {
+        format!("{plugin}::{intent}")
+    }
+
+    fn allowed(&self, bundle: &PluginBundle) -> Vec<String> {
+        bundle
+            .rules
+            .intents
+            .iter()
+            .map(|intent| intent.name.clone())
+            .filter(|name| !self.disabled.contains(&Self::key(&bundle.id.0, name)))
+            .collect()
+    }
+
+    fn summaries(&self) -> Vec<PluginSummary> {
+        self.plugins
+            .iter()
+            .map(|bundle| PluginSummary {
+                id: bundle.id.0.clone(),
+                detected: self.session.plugin.as_ref() == Some(&bundle.id),
+                intents: bundle
+                    .rules
+                    .intents
+                    .iter()
+                    .map(|intent| IntentSummary {
+                        name: intent.name.clone(),
+                        enabled: !self
+                            .disabled
+                            .contains(&Self::key(&bundle.id.0, &intent.name)),
+                    })
+                    .collect(),
+            })
+            .collect()
+    }
+
     fn start(&mut self, command: &Command) -> Result<(), Refusal> {
         self.session.apply(command)?;
 
@@ -129,6 +183,8 @@ impl Inner {
         else {
             return Err(Refusal::NoGameReady);
         };
+
+        let allowed = self.allowed(bundle);
 
         let (capture, input) = match self.backends(window) {
             Ok(backends) => backends,
@@ -147,7 +203,13 @@ impl Inner {
                 actuator: Box::new(bundle.actuator()),
                 input,
                 kill: self.kill.clone(),
-                governor: Governor::new(GovernorConfig::default(), 0),
+                governor: Governor::new(
+                    GovernorConfig {
+                        allowed_intents: allowed,
+                        ..GovernorConfig::default()
+                    },
+                    0,
+                ),
                 session: self.session.clone(),
             }),
             DEFAULT_TICK,
@@ -221,6 +283,32 @@ pub fn dispatch(handle: State<'_, SessionHandle>, command: Command) -> Result<Se
     }
 
     Ok(inner.session.clone())
+}
+
+#[tauri::command]
+pub fn plugins(handle: State<'_, SessionHandle>) -> Vec<PluginSummary> {
+    let mut inner = handle.0.lock().expect("session lock");
+    inner.refresh();
+    inner.summaries()
+}
+
+/// Switching an intent off keeps it out of the Governor's allow list for the
+/// next session. It does not reach into a session already running.
+#[tauri::command]
+pub fn set_intent_enabled(
+    handle: State<'_, SessionHandle>,
+    plugin: String,
+    intent: String,
+    enabled: bool,
+) -> Vec<PluginSummary> {
+    let mut inner = handle.0.lock().expect("session lock");
+    let key = Inner::key(&plugin, &intent);
+    if enabled {
+        inner.disabled.remove(&key);
+    } else {
+        inner.disabled.insert(key);
+    }
+    inner.summaries()
 }
 
 #[tauri::command]

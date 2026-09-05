@@ -1,12 +1,19 @@
 :root {
-  --bg: #14161a;
-  --panel: #1c1f26;
-  --line: #2b3038;
-  --text: #e6e8ec;
-  --muted: #8b93a1;
-  --accent: #6ea8fe;
-  --warn: #e0a458;
+  --bg: #0a0e14;
+  --panel: #111823;
+  --line: #223140;
+  --rule: #16202c;
+  --text: #d7e4ee;
+  --bright: #eafaff;
+  --muted: #7b90a3;
+  --accent: #4dd8ff;
+  --accent-soft: #9fe9ff;
+  --gold: #e8b93e;
+  --ink: #06121a;
   --danger: #e06c75;
+  --mono:
+    ui-monospace, "Cascadia Mono", "Segoe UI Mono", "SF Mono", Menlo, Consolas,
+    monospace;
   color-scheme: dark;
 }
 
@@ -14,13 +21,56 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  height: 100%;
+}
+
 body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font:
-    14px/1.5 system-ui,
-    -apple-system,
-    "Segoe UI",
-    sans-serif;
+  font: 13px/1.6 var(--mono);
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 2px solid var(--line);
+  padding: 9px 16px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
 }

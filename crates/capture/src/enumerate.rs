@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 use std::path::{Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
+use std::time::{Duration, Instant};
 
 use windows::core::BOOL;
 use windows::Win32::Foundation::{CloseHandle, HWND, LPARAM, MAX_PATH};
@@ -25,7 +27,7 @@ pub fn windows() -> Vec<GameWindow> {
         )
     };
 
-    let library = SteamLibrary::load();
+    let library = library();
 
     handles
         .into_iter()
@@ -99,6 +101,31 @@ fn executable_path(hwnd: HWND) -> Option<PathBuf> {
     )))
 }
 
+/// How long an index of installed games is trusted before being rebuilt.
+/// Enumeration runs several times a second; rescanning every Steam manifest
+/// that often is pure disk churn for something that changes when a game is
+/// installed.
+const LIBRARY_TTL: Duration = Duration::from_secs(60);
+
+fn library() -> SteamLibrary {
+    static CACHE: OnceLock<Mutex<Option<(Instant, SteamLibrary)>>> = OnceLock::new();
+    let cache = CACHE.get_or_init(|| Mutex::new(None));
+    let mut held = cache
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+
+    if let Some((built, library)) = held.as_ref() {
+        if built.elapsed() < LIBRARY_TTL {
+            return library.clone();
+        }
+    }
+
+    let fresh = SteamLibrary::load();
+    *held = Some((Instant::now(), fresh.clone()));
+    fresh
+}
+
+#[derive(Clone)]
 struct SteamLibrary {
     games: Vec<(PathBuf, u32)>,
 }

@@ -34,6 +34,8 @@ pub fn run() {
             session::session_events,
             session::dispatch,
             session::engage_kill_switch,
+            session::plugins,
+            session::set_intent_enabled,
             updates::update_settings,
             updates::set_update_channel,
             updates::check_for_update,

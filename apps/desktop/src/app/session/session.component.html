@@ -1,64 +1,117 @@
 <main>
-  <header>
-    <h1>IdleWarden</h1>
-    @if (session(); as s) {
-      <span class="state" [attr.data-state]="s.state">{{ s.state }}</span>
-    }
-  </header>
-
   @if (session(); as s) {
-    <dl>
-      <dt>Plugin</dt>
-      <dd>{{ s.plugin ?? "none detected" }}</dd>
-      <dt>Profile</dt>
-      <dd>{{ s.profile ?? "none" }}</dd>
-      <dt>Actions taken</dt>
-      <dd>{{ s.actions_taken }}</dd>
-      <dt>Dry run</dt>
-      <dd>{{ s.dry_run ? "on, nothing touches the mouse" : "off" }}</dd>
-      @if (s.last_reason) {
-        <dt>Last reason</dt>
-        <dd>{{ s.last_reason }}</dd>
-      }
-    </dl>
-
-    <div class="controls">
-      <button type="button" (click)="start()" [disabled]="plugin() === null">
-        Start
-      </button>
-      <button type="button" (click)="pause()">Pause</button>
-      <button type="button" (click)="resume()">Resume</button>
-      <button type="button" (click)="stop()">Stop</button>
-      <button type="button" (click)="toggleDryRun()">
-        {{ s.dry_run ? "Disable dry run" : "Enable dry run" }}
-      </button>
-      <button type="button" class="kill" (click)="killSwitch()">Kill switch</button>
-    </div>
-  } @else {
-    <p class="muted">Reading the session…</p>
-  }
-
-  @if (refusal(); as r) {
-    <p class="refusal">{{ r.message }}</p>
-  }
-
-  <section class="events">
-    <h2>What the session did</h2>
-    @if (events().length === 0) {
-      <p class="muted">Nothing published yet.</p>
-    } @else {
-      <ul>
-        @for (event of events(); track $index) {
-          <li [attr.data-kind]="event.event">{{ describe(event) }}</li>
+    <header>
+      <div class="who">
+        <h1>{{ plugin() ?? "Aucun jeu détecté" }}</h1>
+        <p class="status">
+          <span class="dot" [attr.data-state]="s.state"></span>
+          {{ headline(s) }}
+        </p>
+      </div>
+      <div class="actions">
+        @if (s.state === "running" || s.state === "paused") {
+          <button type="button" (click)="stop()">Arrêter la veille</button>
+        } @else {
+          <button type="button" (click)="start()" [disabled]="plugin() === null">
+            Démarrer la veille
+          </button>
         }
-      </ul>
+        <button type="button" class="kill" (click)="killSwitch()">Coupe-circuit</button>
+      </div>
+    </header>
+
+    <section class="stats">
+      @for (signal of signals(); track signal.id) {
+        <article>
+          <p class="label">{{ signal.id }}</p>
+          <p class="figure">{{ render(signal) }}</p>
+          <p class="confidence">
+            confiance {{ (signal.confidence * 100).toFixed(0) }} %
+          </p>
+        </article>
+      } @empty {
+        <article class="idle">
+          <p class="label">Actions</p>
+          <p class="figure">{{ s.actions_taken }}</p>
+          <p class="confidence">
+            {{
+              s.dry_run
+                ? "essai à blanc, la souris n'est pas touchée"
+                : "entrées réelles"
+            }}
+          </p>
+        </article>
+      }
+    </section>
+
+    <div class="columns">
+      <section class="automations">
+        <div class="section-head">
+          <p class="label">Automatisations — propres à ce jeu</p>
+          <span class="profile">Profil : {{ s.profile ?? "défaut" }}</span>
+        </div>
+
+        @for (intent of intents(); track intent.name) {
+          <div class="automation">
+            <span class="title">{{ intent.name }}</span>
+            <button
+              type="button"
+              class="toggle"
+              role="switch"
+              [attr.aria-checked]="intent.enabled"
+              [attr.aria-label]="intent.name"
+              (click)="toggleIntent(intent.name, !intent.enabled)"
+            >
+              <span class="knob"></span>
+            </button>
+          </div>
+        } @empty {
+          <p class="muted">Le plugin détecté ne déclare aucune automatisation.</p>
+        }
+
+        <p class="muted footnote">
+          Une automatisation décochée est retirée de la liste que le Gouverneur autorise
+          à la prochaine veille. Elle n'interrompt pas une veille en cours.
+        </p>
+      </section>
+
+      <aside class="side">
+        <div class="watcher">
+          <svg class="owl" viewBox="0 0 16 13" aria-hidden="true">
+            @for (cell of owl; track $index) {
+              <rect
+                [attr.x]="cell.x"
+                [attr.y]="cell.y"
+                width="1"
+                height="1"
+                [attr.fill]="cell.fill"
+              />
+            }
+          </svg>
+          <p class="label">{{ watching(s) }}</p>
+        </div>
+
+        <div class="events">
+          <p class="label">Derniers événements</p>
+          @if (events().length === 0) {
+            <p class="muted">Rien n'a encore été publié.</p>
+          } @else {
+            <ul>
+              @for (event of events(); track $index) {
+                <li [attr.data-kind]="event.event">{{ describe(event) }}</li>
+              }
+            </ul>
+          }
+        </div>
+
+        <app-updates />
+      </aside>
+    </div>
+
+    @if (refusal(); as r) {
+      <p class="refusal">{{ r.message }}</p>
     }
-  </section>
-
-  <app-updates />
-
-  <p class="muted">
-    Capture and input are implemented on Windows only. Elsewhere a session refuses to
-    start rather than running over blank frames.
-  </p>
+  } @else {
+    <p class="muted">Lecture de la session…</p>
+  }
 </main>

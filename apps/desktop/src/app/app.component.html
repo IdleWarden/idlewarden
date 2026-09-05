@@ -1,1 +1,41 @@
-<router-outlet />
+<div class="chrome">
+  <span class="brand">
+    <svg class="owl" viewBox="0 0 16 13" aria-hidden="true">
+      @for (cell of owl(); track $index) {
+        <rect
+          [attr.x]="cell.x"
+          [attr.y]="cell.y"
+          width="1"
+          height="1"
+          [attr.fill]="cell.fill"
+        />
+      }
+    </svg>
+    IDLEWARDEN
+  </span>
+</div>
+
+<div class="shell">
+  <aside>
+    <p class="label">Mes jeux</p>
+    <ul class="games">
+      @for (plugin of plugins(); track plugin.id) {
+        <li [class.active]="plugin.detected">
+          <span class="thumb"></span>
+          <span class="name">
+            {{ plugin.id }}
+            <small [attr.data-state]="stateOf(plugin)">{{ stateOf(plugin) }}</small>
+          </span>
+        </li>
+      } @empty {
+        <li class="empty">Aucun plugin installé</li>
+      }
+    </ul>
+    <p class="hint">
+      Les plugins se lisent dans le dossier de données de l'application.
+    </p>
+    <p class="label bottom">Réglages</p>
+  </aside>
+
+  <router-outlet />
+</div>

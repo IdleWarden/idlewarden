@@ -1,4 +1,112 @@
 :host {
-  display: block;
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.chrome {
+  display: flex;
+  align-items: center;
+  padding: 12px 18px;
+  border-bottom: 2px solid var(--line);
+  background: var(--panel);
+  flex: none;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: 3px;
+  font-size: 13px;
+  color: var(--bright);
+}
+
+.owl {
+  width: 26px;
+  height: 21px;
+  shape-rendering: crispEdges;
+}
+
+.shell {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+aside {
+  width: 240px;
+  flex: none;
+  border-right: 2px solid var(--line);
+  padding: 18px 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+aside .label {
+  padding: 0 18px 12px;
+}
+
+.games {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.games li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border-left: 3px solid transparent;
+}
+
+.games li.active {
+  border-left-color: var(--accent);
+  background: var(--panel);
+}
+
+.games li.empty {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.thumb {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border: 2px solid var(--line);
+  background: var(--rule);
+}
+
+.name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-wrap: anywhere;
+}
+
+.name small {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.name small[data-state="en veille"] {
+  color: var(--accent);
+}
+
+.hint {
+  padding: 14px 18px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.bottom {
+  margin-top: auto;
+  padding: 18px 18px 0;
+  border-top: 2px solid var(--line);
 }
