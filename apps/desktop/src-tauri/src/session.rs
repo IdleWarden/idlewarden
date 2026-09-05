@@ -3,15 +3,21 @@
 use std::path::PathBuf;
 use std::sync::Mutex;
 
-use idlewarden_capture::{CaptureBackend, WindowsCapture};
+use idlewarden_capture::CaptureBackend;
+#[cfg(windows)]
+use idlewarden_capture::WindowsCapture;
 use idlewarden_core::detector::DesktopWindows;
 use idlewarden_core::{
     load_all, Command, Detector, Event, Governor, GovernorConfig, Parts, PluginBundle, Refusal,
     Runner, Session, SessionService, SessionState, DEFAULT_TICK,
 };
-use idlewarden_input::{DryRunBackend, Humanisation, InputBackend, KillSwitch, SendInputBackend};
+use idlewarden_input::{DryRunBackend, InputBackend, KillSwitch};
+#[cfg(windows)]
+use idlewarden_input::{Humanisation, SendInputBackend};
 use serde::Serialize;
 use tauri::State;
+
+type Backends = (Box<dyn CaptureBackend>, Box<dyn InputBackend>);
 
 pub struct SessionHandle(Mutex<Inner>);
 
@@ -88,6 +94,28 @@ impl Inner {
         }
     }
 
+    #[cfg(windows)]
+    fn backends(&self, window: idlewarden_capture::WindowHandle) -> Result<Backends, String> {
+        let capture = WindowsCapture::new(window).map_err(|error| error.to_string())?;
+        let input: Box<dyn InputBackend> = if self.session.dry_run {
+            Box::new(DryRunBackend)
+        } else {
+            Box::new(SendInputBackend::new(
+                window.0,
+                self.kill.clone(),
+                Humanisation::default(),
+            ))
+        };
+        Ok((Box::new(capture), input))
+    }
+
+    /// No capture or input backend exists off Windows yet (#11). Saying so is
+    /// better than running a session over blank frames.
+    #[cfg(not(windows))]
+    fn backends(&self, _window: idlewarden_capture::WindowHandle) -> Result<Backends, String> {
+        Err("capture and input are only implemented on Windows".to_owned())
+    }
+
     fn start(&mut self, command: &Command) -> Result<(), Refusal> {
         self.session.apply(command)?;
 
@@ -102,25 +130,13 @@ impl Inner {
             return Err(Refusal::NoGameReady);
         };
 
-        let capture = match WindowsCapture::new(window) {
-            Ok(capture) => Box::new(capture) as Box<dyn CaptureBackend>,
-            Err(error) => {
-                self.session.pause(error.to_string());
-                self.events.push(Event::Error {
-                    message: error.to_string(),
-                });
+        let (capture, input) = match self.backends(window) {
+            Ok(backends) => backends,
+            Err(reason) => {
+                self.session.pause(reason.clone());
+                self.events.push(Event::Error { message: reason });
                 return Ok(());
             }
-        };
-
-        let input: Box<dyn InputBackend> = if self.session.dry_run {
-            Box::new(DryRunBackend)
-        } else {
-            Box::new(SendInputBackend::new(
-                window.0,
-                self.kill.clone(),
-                Humanisation::default(),
-            ))
         };
 
         self.service = Some(SessionService::spawn(
