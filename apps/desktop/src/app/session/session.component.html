@@ -32,6 +32,7 @@
       <button type="button" (click)="toggleDryRun()">
         {{ s.dry_run ? "Disable dry run" : "Enable dry run" }}
       </button>
+      <button type="button" class="kill" (click)="killSwitch()">Kill switch</button>
     </div>
   } @else {
     <p class="muted">Reading the session…</p>
@@ -41,10 +42,23 @@
     <p class="refusal">{{ r.message }}</p>
   }
 
+  <section class="events">
+    <h2>What the session did</h2>
+    @if (events().length === 0) {
+      <p class="muted">Nothing published yet.</p>
+    } @else {
+      <ul>
+        @for (event of events(); track $index) {
+          <li [attr.data-kind]="event.event">{{ describe(event) }}</li>
+        }
+      </ul>
+    }
+  </section>
+
   <app-updates />
 
   <p class="muted">
-    Window detection arrives with the capture backend in Phase 1. Until then the session
-    stays in <code>searching</code> and Start has nothing to start.
+    Capture and input are implemented on Windows only. Elsewhere a session refuses to
+    start rather than running over blank frames.
   </p>
 </main>

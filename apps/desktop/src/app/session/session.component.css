@@ -97,3 +97,32 @@ button:disabled {
 code {
   font-family: ui-monospace, monospace;
 }
+
+.controls .kill {
+  margin-left: auto;
+}
+
+.events ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 14rem;
+  overflow-y: auto;
+}
+
+.events li {
+  padding: 0.35rem 0;
+  border-bottom: 1px solid rgba(127, 127, 127, 0.2);
+  font-size: 0.85rem;
+}
+
+.events li[data-kind="error"],
+.events li[data-kind="plugin_failed"],
+.events li[data-kind="kill_switch"] {
+  color: #d64545;
+}
+
+.events li[data-kind="intent_rejected"],
+.events li[data-kind="agent_paused"] {
+  color: #b3801f;
+}

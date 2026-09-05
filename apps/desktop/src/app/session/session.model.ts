@@ -23,3 +23,20 @@ export interface Refused {
   refusal: { refusal: RefusalKind };
   message: string;
 }
+
+/// Mirrors `idlewarden_core::Event`. Hand-copied like the rest of this file,
+/// which is what #18 is about.
+export type SessionEvent =
+  | { event: "game_detected"; plugin: string; window_title: string }
+  | { event: "game_lost" }
+  | { event: "plugin_loaded"; plugin: string; version: string }
+  | { event: "plugin_failed"; plugin: string; reason: string }
+  | { event: "observed" }
+  | { event: "intent_proposed"; intent: { name: string } }
+  | { event: "intent_rejected"; intent: { name: string }; reason: string }
+  | { event: "action_started"; intent: { name: string } }
+  | { event: "action_finished"; intent: { name: string }; outcome: unknown }
+  | { event: "agent_paused"; reason: string }
+  | { event: "agent_resumed" }
+  | { event: "kill_switch" }
+  | { event: "error"; message: string };
