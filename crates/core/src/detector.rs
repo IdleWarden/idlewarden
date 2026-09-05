@@ -76,13 +76,19 @@ impl Detector {
     }
 }
 
-#[cfg(windows)]
+/// The real desktop. Off Windows it reports nothing, so a session stays in
+/// `Searching` rather than pretending to have found a game (#11).
 pub struct DesktopWindows;
 
-#[cfg(windows)]
 impl WindowSource for DesktopWindows {
+    #[cfg(windows)]
     fn windows(&mut self) -> Vec<GameWindow> {
         idlewarden_capture::enumerate_windows()
+    }
+
+    #[cfg(not(windows))]
+    fn windows(&mut self) -> Vec<GameWindow> {
+        Vec::new()
     }
 }
 

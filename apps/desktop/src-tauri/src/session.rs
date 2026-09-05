@@ -11,9 +11,9 @@ use idlewarden_core::{
     load_all, Command, Detector, Event, Governor, GovernorConfig, Parts, PluginBundle, Refusal,
     Runner, Session, SessionService, SessionState, DEFAULT_TICK,
 };
-use idlewarden_input::{DryRunBackend, InputBackend, KillSwitch};
 #[cfg(windows)]
-use idlewarden_input::{Humanisation, SendInputBackend};
+use idlewarden_input::{DryRunBackend, Humanisation, SendInputBackend};
+use idlewarden_input::{InputBackend, KillSwitch};
 use serde::Serialize;
 use tauri::State;
 
