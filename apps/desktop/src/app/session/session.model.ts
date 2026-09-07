@@ -82,6 +82,13 @@ export interface IntentSummary {
   enabled: boolean;
 }
 
+export interface WindowCandidate {
+  title: string;
+  executable: string;
+  steam_appid: number | null;
+  plugins: string[];
+}
+
 export interface PluginSummary {
   id: string;
   detected: boolean;

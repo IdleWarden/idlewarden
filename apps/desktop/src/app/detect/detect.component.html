@@ -1,0 +1,58 @@
+<main>
+  <header>
+    <div class="who">
+      <h1>Détection</h1>
+      <p class="status">
+        Ce que le Gardien voit sur ce bureau, et qui revendique quoi.
+      </p>
+    </div>
+  </header>
+
+  <section>
+    <p class="label">Fenêtres reconnues — {{ claimed().length }}</p>
+    @if (claimed().length === 0) {
+      <p class="muted">
+        Aucune fenêtre ouverte ne correspond à un plugin installé. C'est la raison la
+        plus courante d'une veille qui ne démarre pas.
+      </p>
+    } @else {
+      <ul class="windows">
+        @for (candidate of claimed(); track candidate.title + candidate.executable) {
+          <li [class.ambiguous]="ambiguous(candidate)">
+            <span class="title">{{ candidate.title }}</span>
+            <span class="exe">
+              {{ candidate.executable }}
+              @if (candidate.steam_appid !== null) {
+                · steam {{ candidate.steam_appid }}
+              }
+            </span>
+            <span class="verdict">{{ verdict(candidate) }}</span>
+          </li>
+        }
+      </ul>
+      @if (claimed().length > 1) {
+        <p class="muted footnote">
+          Plusieurs jeux connus sont ouverts en même temps. Le Gardien refuse de choisir
+          tant qu'il y a une ambiguïté.
+        </p>
+      }
+    }
+  </section>
+
+  <section>
+    <p class="label">Autres fenêtres — {{ unclaimed().length }}</p>
+    @if (unclaimed().length === 0) {
+      <p class="muted">Rien d'autre n'est ouvert.</p>
+    } @else {
+      <ul class="windows quiet">
+        @for (candidate of unclaimed(); track candidate.title + candidate.executable) {
+          <li>
+            <span class="title">{{ candidate.title }}</span>
+            <span class="exe">{{ candidate.executable }}</span>
+            <span class="verdict">aucun plugin</span>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+</main>

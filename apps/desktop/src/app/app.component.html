@@ -34,7 +34,17 @@
     <p class="hint">
       Les plugins se lisent dans le dossier de données de l'application.
     </p>
-    <p class="label bottom">Réglages</p>
+    <p class="label bottom">Écrans</p>
+    <nav>
+      @for (screen of screens; track screen.path) {
+        <a
+          [routerLink]="screen.path"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          >{{ screen.label }}</a
+        >
+      }
+    </nav>
   </aside>
 
   <router-outlet />

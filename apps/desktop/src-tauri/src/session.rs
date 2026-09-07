@@ -7,7 +7,7 @@ use std::sync::Mutex;
 use idlewarden_capture::CaptureBackend;
 #[cfg(windows)]
 use idlewarden_capture::WindowsCapture;
-use idlewarden_core::detector::DesktopWindows;
+use idlewarden_core::detector::{Candidate, DesktopWindows};
 use idlewarden_core::{
     load_all, Command, Detector, Event, Governor, GovernorConfig, Parts, PluginBundle, Refusal,
     Runner, Session, SessionService, SessionState, DEFAULT_TICK,
@@ -42,6 +42,30 @@ pub struct PluginSummary {
     pub id: String,
     pub detected: bool,
     pub intents: Vec<IntentSummary>,
+}
+
+/// One window detection looked at, as the Detect screen renders it.
+#[derive(Debug, Serialize)]
+pub struct WindowCandidate {
+    pub title: String,
+    pub executable: String,
+    pub steam_appid: Option<u32>,
+    pub plugins: Vec<String>,
+}
+
+impl From<Candidate> for WindowCandidate {
+    fn from(candidate: Candidate) -> Self {
+        WindowCandidate {
+            title: candidate.window.title,
+            executable: candidate.window.executable,
+            steam_appid: candidate.window.steam_appid,
+            plugins: candidate
+                .plugins
+                .into_iter()
+                .map(|plugin| plugin.0)
+                .collect(),
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -283,6 +307,21 @@ pub fn dispatch(handle: State<'_, SessionHandle>, command: Command) -> Result<Se
     }
 
     Ok(inner.session.clone())
+}
+
+/// What detection saw on the last poll. Refreshing first means the screen
+/// shows the desktop as the Detector ruled on it, not a second enumeration
+/// describing a different moment.
+#[tauri::command]
+pub fn window_candidates(handle: State<'_, SessionHandle>) -> Vec<WindowCandidate> {
+    let mut inner = handle.0.lock().expect("session lock");
+    inner.refresh();
+    inner
+        .detector
+        .candidates()
+        .into_iter()
+        .map(WindowCandidate::from)
+        .collect()
 }
 
 #[tauri::command]

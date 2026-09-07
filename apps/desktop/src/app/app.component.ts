@@ -1,5 +1,5 @@
 import { Component, computed, inject } from "@angular/core";
-import { RouterOutlet } from "@angular/router";
+import { RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
 
 import { OWL } from "./owl";
 import { PluginSummary } from "./session/session.model";
@@ -7,7 +7,7 @@ import { SessionService } from "./session/session.service";
 
 @Component({
   selector: "app-root",
-  imports: [RouterOutlet],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet],
   templateUrl: "./app.component.html",
   styleUrl: "./app.component.css",
 })
@@ -16,6 +16,10 @@ export class AppComponent {
 
   readonly plugins = this.sessions.plugins;
   readonly owl = computed(() => OWL);
+  readonly screens = [
+    { path: "/", label: "Session" },
+    { path: "/detection", label: "Détection" },
+  ];
 
   stateOf(plugin: PluginSummary): string {
     if (!plugin.detected) {
