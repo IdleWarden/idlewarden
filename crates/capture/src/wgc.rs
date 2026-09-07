@@ -26,7 +26,7 @@ use windows::Win32::System::WinRT::Direct3D11::{
 use windows::Win32::System::WinRT::Graphics::Capture::IGraphicsCaptureItemInterop;
 use windows::Win32::UI::WindowsAndMessaging::IsWindow;
 
-use crate::frame::pack_rows;
+use crate::pack_rows;
 use crate::{CaptureBackend, CaptureError, Frame, Size, WindowHandle};
 
 const BUFFERS: i32 = 2;

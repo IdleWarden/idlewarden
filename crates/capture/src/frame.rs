@@ -36,7 +36,18 @@ impl std::fmt::Debug for Frame {
     }
 }
 
-pub(crate) fn pack_rows(src: &[u8], row_pitch: usize, size: Size) -> Option<Vec<u8>> {
+/// Copies a padded capture buffer into tight rows.
+///
+/// A GPU hands back rows padded to its own alignment, so `row_pitch` is almost
+/// never `size.row_bytes()`. Every capture backend has to undo that, which is
+/// why this is part of the crate's surface rather than one backend's private
+/// helper: it is the same arithmetic on Windows and on the X11/Wayland backends
+/// #11 will add, and it is worth testing once on every platform rather than
+/// only where a backend happens to exist today.
+///
+/// Returns `None` when `src` is too small for the described image, rather than
+/// reading past it.
+pub fn pack_rows(src: &[u8], row_pitch: usize, size: Size) -> Option<Vec<u8>> {
     let row = size.row_bytes();
     if row_pitch < row {
         return None;
