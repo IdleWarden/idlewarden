@@ -20,6 +20,7 @@ export class AppComponent {
     { path: "/", label: "Session" },
     { path: "/detection", label: "Détection" },
     { path: "/activite", label: "Activité" },
+    { path: "/journaux", label: "Journaux" },
   ];
 
   stateOf(plugin: PluginSummary): string {

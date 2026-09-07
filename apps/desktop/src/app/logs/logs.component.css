@@ -1,0 +1,151 @@
+main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 26px 30px;
+  overflow-y: auto;
+}
+
+header .who h1 {
+  font-size: 17px;
+}
+
+header .status {
+  margin: 6px 0 0;
+  color: var(--muted);
+  max-width: 66ch;
+}
+
+code {
+  color: var(--accent-soft);
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.levels {
+  display: flex;
+  gap: 4px;
+}
+
+.levels button {
+  padding: 6px 11px;
+}
+
+.levels button.on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+input[type="search"] {
+  flex: 1 1 16em;
+  min-width: 12em;
+  font: inherit;
+  color: var(--text);
+  background: var(--panel);
+  border: 2px solid var(--line);
+  padding: 8px 12px;
+}
+
+input[type="search"]:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.records {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.records li {
+  display: grid;
+  grid-template-columns: 6.5em 4.5em minmax(0, 14em) minmax(0, 1fr);
+  gap: 12px;
+  align-items: baseline;
+  padding: 6px 12px;
+  border-left: 2px solid var(--rule);
+}
+
+.records li:nth-child(odd) {
+  background: var(--panel);
+}
+
+.at,
+.target {
+  color: var(--muted);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.level {
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+.message {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.field {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 10px;
+  font-size: 11px;
+}
+
+.field .key {
+  color: var(--muted);
+}
+
+.field .key::after {
+  content: "=";
+}
+
+.field .value {
+  color: var(--accent-soft);
+}
+
+li[data-level="ERROR"] {
+  border-left-color: var(--danger);
+}
+
+li[data-level="ERROR"] .level {
+  color: var(--danger);
+}
+
+li[data-level="WARN"] {
+  border-left-color: var(--gold);
+}
+
+li[data-level="WARN"] .level {
+  color: var(--gold);
+}
+
+li[data-level="INFO"] .level {
+  color: var(--accent);
+}
+
+li[data-level="DEBUG"] .level,
+li[data-level="TRACE"] .level {
+  color: var(--muted);
+}
+
+.muted {
+  margin: 0;
+  color: var(--muted);
+}
+
+.footnote {
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}

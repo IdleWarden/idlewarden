@@ -1,0 +1,55 @@
+<main>
+  <header>
+    <div class="who">
+      <h1>Journaux</h1>
+      <p class="status">
+        Le flux <code>tracing</code> du Core, avec ses champs, dans l'application plutôt
+        que dans une console que tu n'as pas.
+      </p>
+    </div>
+  </header>
+
+  <div class="filters">
+    <div class="levels">
+      @for (level of levels; track level) {
+        <button type="button" [class.on]="floor() === level" (click)="setFloor(level)">
+          {{ level }}
+        </button>
+      }
+    </div>
+    <input
+      type="search"
+      [value]="target()"
+      (input)="setTarget($any($event.target).value)"
+      placeholder="filtrer par cible"
+      aria-label="filtrer par cible"
+    />
+  </div>
+
+  @if (targets().length > 0) {
+    <p class="muted footnote">Cibles vues : {{ targets().join(" · ") }}</p>
+  }
+
+  @if (shown().length === 0) {
+    <p class="muted">Rien à ce niveau. Le Core n'a encore rien émis.</p>
+  } @else {
+    <ol class="records">
+      @for (record of shown(); track $index) {
+        <li [attr.data-level]="record.level">
+          <span class="at">{{ clock(record.at_ms) }}</span>
+          <span class="level">{{ record.level }}</span>
+          <span class="target">{{ record.target }}</span>
+          <span class="message">
+            {{ record.message }}
+            @for (field of entries(record); track field.key) {
+              <span class="field">
+                <span class="key">{{ field.key }}</span>
+                <span class="value">{{ field.value }}</span>
+              </span>
+            }
+          </span>
+        </li>
+      }
+    </ol>
+  }
+</main>

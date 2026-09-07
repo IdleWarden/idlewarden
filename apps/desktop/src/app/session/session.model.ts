@@ -86,6 +86,18 @@ export interface IntentSummary {
   enabled: boolean;
 }
 
+export type LogLevel = "ERROR" | "WARN" | "INFO" | "DEBUG" | "TRACE";
+
+/// One `tracing` event. `fields` keeps the structured values the Core emitted
+/// rather than a rendered line, which is what makes them filterable.
+export interface LogRecord {
+  at_ms: number;
+  level: LogLevel;
+  target: string;
+  message: string;
+  fields: Record<string, unknown>;
+}
+
 export interface WindowCandidate {
   title: string;
   executable: string;
