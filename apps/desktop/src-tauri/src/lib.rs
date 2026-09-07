@@ -5,6 +5,7 @@
 //! `idlewarden_core::Command` and hands `idlewarden_core` types back to the
 //! web view. No decision about a session is taken here.
 
+mod logs;
 mod session;
 mod updates;
 
@@ -20,13 +21,24 @@ fn plugin_root(app: &tauri::AppHandle) -> std::path::PathBuf {
 }
 
 pub fn run() {
+    use std::sync::Arc;
     use tauri::Manager;
+    use tracing_subscriber::prelude::*;
+
+    // Everything below DEBUG is noise the user cannot act on; the Logs screen
+    // filters the rest.
+    let buffered = Arc::new(logs::LogBuffer::default());
+    tracing_subscriber::registry()
+        .with(logs::BufferLayer::new(Arc::clone(&buffered)))
+        .with(tracing_subscriber::filter::LevelFilter::DEBUG)
+        .init();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .setup(|app| {
+        .setup(move |app| {
             app.manage(updates::Updates::new(app.handle()));
             app.manage(session::SessionHandle::new(plugin_root(app.handle())));
+            app.manage(Arc::clone(&buffered));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -37,6 +49,7 @@ pub fn run() {
             session::plugins,
             session::window_candidates,
             session::set_intent_enabled,
+            logs::drain_logs,
             updates::update_settings,
             updates::set_update_channel,
             updates::check_for_update,

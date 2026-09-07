@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import {
   Command,
+  LogRecord,
   Observation,
   PluginSummary,
   PublishedEvent,
@@ -26,6 +27,7 @@ export class SessionService {
   private readonly known = signal<readonly PluginSummary[]>([]);
   private readonly seen = signal<Observation | null>(null);
   private readonly windows = signal<readonly WindowCandidate[]>([]);
+  private readonly buffered = signal<readonly LogRecord[]>([]);
 
   readonly session = this.current.asReadonly();
   readonly refusal = this.lastRefusal.asReadonly();
@@ -33,6 +35,7 @@ export class SessionService {
   readonly plugins = this.known.asReadonly();
   readonly observation = this.seen.asReadonly();
   readonly candidates = this.windows.asReadonly();
+  readonly logs = this.buffered.asReadonly();
 
   /// Polling lives here rather than in a screen because events are drained on
   /// read: a screen that owns the timer stops draining the moment the user
@@ -47,6 +50,7 @@ export class SessionService {
     try {
       await this.refresh();
       await this.refreshCandidates();
+      await this.refreshLogs();
     } catch {
       // Outside the Tauri shell there is no bridge to talk to. Nothing can be
       // done about it and saying so 120 times a minute helps nobody.
@@ -73,6 +77,15 @@ export class SessionService {
 
   async refreshCandidates(): Promise<void> {
     this.windows.set(await invoke<WindowCandidate[]>("window_candidates"));
+  }
+
+  async refreshLogs(): Promise<void> {
+    const drained = await invoke<LogRecord[]>("drain_logs");
+    if (drained.length > 0) {
+      this.buffered.update((existing) =>
+        [...drained.reverse(), ...existing].slice(0, MAX_EVENTS),
+      );
+    }
   }
 
   async refreshPlugins(): Promise<void> {
