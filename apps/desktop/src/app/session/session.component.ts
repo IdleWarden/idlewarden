@@ -1,11 +1,9 @@
-import { Component, OnDestroy, OnInit, computed, inject } from "@angular/core";
+import { Component, computed, inject } from "@angular/core";
 
 import { UpdatesComponent } from "../updates/updates.component";
 import { OWL } from "../owl";
-import { Session, SessionEvent, Signal } from "./session.model";
+import { PublishedEvent, Session, Signal } from "./session.model";
 import { SessionService } from "./session.service";
-
-const POLL_MS = 500;
 
 @Component({
   selector: "app-session",
@@ -13,7 +11,7 @@ const POLL_MS = 500;
   templateUrl: "./session.component.html",
   styleUrl: "./session.component.css",
 })
-export class SessionComponent implements OnInit, OnDestroy {
+export class SessionComponent {
   private readonly sessions = inject(SessionService);
 
   readonly session = this.sessions.session;
@@ -25,13 +23,6 @@ export class SessionComponent implements OnInit, OnDestroy {
   readonly intents = computed(
     () => this.sessions.plugins().find((plugin) => plugin.detected)?.intents ?? [],
   );
-
-  private timer: ReturnType<typeof setInterval> | null = null;
-
-  ngOnInit(): void {
-    void this.sessions.refresh();
-    this.timer = setInterval(() => void this.sessions.refresh(), POLL_MS);
-  }
 
   headline(session: Session): string {
     switch (session.state) {
@@ -74,17 +65,11 @@ export class SessionComponent implements OnInit, OnDestroy {
     void this.sessions.setIntentEnabled(plugin, intent, enabled);
   }
 
-  ngOnDestroy(): void {
-    if (this.timer !== null) {
-      clearInterval(this.timer);
-    }
-  }
-
   killSwitch(): void {
     void this.sessions.engageKillSwitch();
   }
 
-  describe(event: SessionEvent): string {
+  describe(event: PublishedEvent): string {
     switch (event.event) {
       case "game_detected":
         return `detected ${event.plugin} in "${event.window_title}"`;

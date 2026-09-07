@@ -19,6 +19,7 @@ export class AppComponent {
   readonly screens = [
     { path: "/", label: "Session" },
     { path: "/detection", label: "Détection" },
+    { path: "/activite", label: "Activité" },
   ];
 
   stateOf(plugin: PluginSummary): string {

@@ -3,6 +3,7 @@
 use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::Mutex;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use idlewarden_capture::CaptureBackend;
 #[cfg(windows)]
@@ -20,6 +21,31 @@ use tauri::State;
 
 type Backends = (Box<dyn CaptureBackend>, Box<dyn InputBackend>);
 
+/// Events are drained by the UI, and nothing guarantees the UI is polling.
+/// Without a ceiling the buffer grows for as long as a session runs unwatched,
+/// so the oldest are dropped once it is reached.
+const MAX_BUFFERED_EVENTS: usize = 2_000;
+
+/// An event with the moment the desktop observed it.
+///
+/// The Core does not timestamp events, and it should not have to: what a log
+/// reader needs is wall-clock time, and the Core deliberately knows nothing
+/// about clocks it has not been handed. Stamping happens here, at the adapter,
+/// where a real clock exists.
+#[derive(Debug, Clone, Serialize)]
+pub struct Published {
+    pub at_ms: u64,
+    #[serde(flatten)]
+    pub event: Event,
+}
+
+fn now_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|since| since.as_millis() as u64)
+        .unwrap_or_default()
+}
+
 pub struct SessionHandle(Mutex<Inner>);
 
 struct Inner {
@@ -29,7 +55,7 @@ struct Inner {
     /// no session is running the detector maintains it directly.
     session: Session,
     service: Option<SessionService>,
-    events: Vec<Event>,
+    events: Vec<Published>,
     kill: KillSwitch,
     /// Intents the user switched off, keyed `plugin::intent`. The Governor is
     /// told about them when a session starts.
@@ -99,6 +125,12 @@ impl SessionHandle {
             .map(|bundle| (bundle.id.clone(), bundle.matcher.clone()))
             .collect();
 
+        let at_ms = now_ms();
+        let events = events
+            .into_iter()
+            .map(|event| Published { at_ms, event })
+            .collect();
+
         SessionHandle(Mutex::new(Inner {
             plugins,
             detector: Detector::new(Box::new(DesktopWindows), matchers),
@@ -114,10 +146,21 @@ impl SessionHandle {
 impl Inner {
     /// Detection while idle, published events while running. Called before
     /// anything reads the session, so the UI never sees a stale state.
+    fn publish(&mut self, events: impl IntoIterator<Item = Event>) {
+        let at_ms = now_ms();
+        self.events
+            .extend(events.into_iter().map(|event| Published { at_ms, event }));
+
+        if self.events.len() > MAX_BUFFERED_EVENTS {
+            let overflow = self.events.len() - MAX_BUFFERED_EVENTS;
+            self.events.drain(..overflow);
+        }
+    }
+
     fn refresh(&mut self) {
         if self.service.is_none() {
             let found = self.detector.poll(&mut self.session);
-            self.events.extend(found);
+            self.publish(found);
             return;
         }
 
@@ -130,7 +173,7 @@ impl Inner {
         for event in &published {
             project(&mut self.session, event);
         }
-        self.events.extend(published);
+        self.publish(published);
 
         if self.session.state == SessionState::Halted {
             self.service = None;
@@ -214,7 +257,7 @@ impl Inner {
             Ok(backends) => backends,
             Err(reason) => {
                 self.session.pause(reason.clone());
-                self.events.push(Event::Error { message: reason });
+                self.publish([Event::Error { message: reason }]);
                 return Ok(());
             }
         };
@@ -280,7 +323,7 @@ pub fn session_state(handle: State<'_, SessionHandle>) -> Session {
 }
 
 #[tauri::command]
-pub fn session_events(handle: State<'_, SessionHandle>) -> Vec<Event> {
+pub fn session_events(handle: State<'_, SessionHandle>) -> Vec<Published> {
     let mut inner = handle.0.lock().expect("session lock");
     inner.refresh();
     std::mem::take(&mut inner.events)
@@ -356,6 +399,66 @@ pub fn engage_kill_switch(handle: State<'_, SessionHandle>) -> Session {
     inner.kill.engage();
     inner.session.state = SessionState::Halted;
     inner.service = None;
-    inner.events.push(Event::KillSwitch);
+    inner.publish([Event::KillSwitch]);
     inner.session.clone()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn inner() -> Inner {
+        let empty = std::env::temp_dir().join("idlewarden-no-plugins-here");
+        let handle = SessionHandle::new(empty);
+        let mut inner = handle.0.into_inner().expect("session lock");
+        inner.events.clear();
+        inner
+    }
+
+    #[test]
+    fn published_events_carry_the_moment_they_were_observed() {
+        let mut inner = inner();
+
+        inner.publish([Event::KillSwitch]);
+
+        assert_eq!(inner.events.len(), 1);
+        assert!(
+            inner.events[0].at_ms > 1_700_000_000_000,
+            "an event without a real wall-clock stamp cannot answer `why at 3am`"
+        );
+    }
+
+    #[test]
+    fn the_buffer_drops_the_oldest_rather_than_growing_without_bound() {
+        let mut inner = inner();
+
+        for index in 0..MAX_BUFFERED_EVENTS + 50 {
+            inner.publish([Event::Error {
+                message: index.to_string(),
+            }]);
+        }
+
+        assert_eq!(
+            inner.events.len(),
+            MAX_BUFFERED_EVENTS,
+            "a session nobody is watching must not grow the buffer forever"
+        );
+
+        let first = match &inner.events[0].event {
+            Event::Error { message } => message.clone(),
+            other => panic!("unexpected event {other:?}"),
+        };
+        assert_eq!(first, "50", "the oldest events are the ones dropped");
+    }
+
+    #[test]
+    fn draining_the_buffer_leaves_it_empty_for_the_next_poll() {
+        let mut inner = inner();
+        inner.publish([Event::AgentResumed, Event::KillSwitch]);
+
+        let drained = std::mem::take(&mut inner.events);
+
+        assert_eq!(drained.len(), 2);
+        assert!(inner.events.is_empty());
+    }
 }

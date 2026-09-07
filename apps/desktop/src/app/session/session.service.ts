@@ -5,17 +5,24 @@ import {
   Command,
   Observation,
   PluginSummary,
+  PublishedEvent,
   Refused,
   Session,
-  SessionEvent,
   WindowCandidate,
 } from "./session.model";
+
+const POLL_MS = 500;
+
+/// How many published events the app keeps. The Rust side caps its own buffer;
+/// this is the second half of the same decision, for a window left open for
+/// days.
+const MAX_EVENTS = 2000;
 
 @Injectable({ providedIn: "root" })
 export class SessionService {
   private readonly current = signal<Session | null>(null);
   private readonly lastRefusal = signal<Refused | null>(null);
-  private readonly recent = signal<readonly SessionEvent[]>([]);
+  private readonly recent = signal<readonly PublishedEvent[]>([]);
   private readonly known = signal<readonly PluginSummary[]>([]);
   private readonly seen = signal<Observation | null>(null);
   private readonly windows = signal<readonly WindowCandidate[]>([]);
@@ -27,12 +34,31 @@ export class SessionService {
   readonly observation = this.seen.asReadonly();
   readonly candidates = this.windows.asReadonly();
 
+  /// Polling lives here rather than in a screen because events are drained on
+  /// read: a screen that owns the timer stops draining the moment the user
+  /// navigates away, and the Activity timeline loses everything that happened
+  /// while they were elsewhere.
+  constructor() {
+    void this.tick();
+    setInterval(() => void this.tick(), POLL_MS);
+  }
+
+  private async tick(): Promise<void> {
+    try {
+      await this.refresh();
+      await this.refreshCandidates();
+    } catch {
+      // Outside the Tauri shell there is no bridge to talk to. Nothing can be
+      // done about it and saying so 120 times a minute helps nobody.
+    }
+  }
+
   /// Reading the state is what drives detection on the Rust side, so this has
   /// to keep being called rather than run once at startup.
   async refresh(): Promise<void> {
     this.current.set(await invoke<Session>("session_state"));
     await this.refreshPlugins();
-    const published = await invoke<SessionEvent[]>("session_events");
+    const published = await invoke<PublishedEvent[]>("session_events");
     if (published.length > 0) {
       const observed = published.filter((event) => event.event === "observed");
       const latest = observed[observed.length - 1];
@@ -40,7 +66,7 @@ export class SessionService {
         this.seen.set(latest.observation);
       }
       this.recent.update((existing) =>
-        [...published.reverse(), ...existing].slice(0, 200),
+        [...published.reverse(), ...existing].slice(0, MAX_EVENTS),
       );
     }
   }

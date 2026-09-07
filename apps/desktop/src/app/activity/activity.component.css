@@ -1,0 +1,131 @@
+main {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 26px 30px;
+  overflow-y: auto;
+}
+
+header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+header .who h1 {
+  font-size: 17px;
+}
+
+header .status {
+  margin: 6px 0 0;
+  color: var(--muted);
+  max-width: 60ch;
+}
+
+.filters {
+  display: flex;
+  gap: 6px;
+}
+
+.filters button {
+  padding: 6px 12px;
+}
+
+.filters button.on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.note {
+  margin: 0;
+  padding: 9px 12px;
+  border-left: 2px solid var(--gold);
+  background: var(--panel);
+  color: var(--text);
+}
+
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.timeline li {
+  display: grid;
+  grid-template-columns: 6.5em minmax(0, 12em) minmax(0, 14em) minmax(0, 1fr);
+  gap: 14px;
+  align-items: baseline;
+  padding: 7px 12px;
+  border-left: 2px solid var(--rule);
+}
+
+.timeline li:nth-child(odd) {
+  background: var(--panel);
+}
+
+.at {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.intent {
+  color: var(--bright);
+}
+
+.what,
+.detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+li[data-grade="proposed"] {
+  border-left-color: var(--line);
+}
+
+li[data-grade="proposed"] .what {
+  color: var(--text);
+}
+
+li[data-grade="allowed"] {
+  border-left-color: var(--accent);
+}
+
+li[data-grade="allowed"] .what {
+  color: var(--accent);
+}
+
+li[data-grade="refused"] {
+  border-left-color: var(--gold);
+}
+
+li[data-grade="refused"] .what {
+  color: var(--gold);
+}
+
+li[data-grade="failed"] {
+  border-left-color: var(--danger);
+}
+
+li[data-grade="failed"] .what {
+  color: var(--danger);
+}
+
+li[data-grade="context"] .what,
+li[data-grade="context"] .intent {
+  color: var(--muted);
+}
+
+.muted {
+  margin: 0;
+  color: var(--muted);
+}
