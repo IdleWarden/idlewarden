@@ -15,23 +15,23 @@ pub fn png_to_gray(bytes: &[u8]) -> Result<Gray, VisionError> {
 
     let mut reader = decoder
         .read_info()
-        .map_err(|error| VisionError::Ocr(format!("template is not a readable png: {error}")))?;
+        .map_err(|error| VisionError::Asset(format!("template is not a readable png: {error}")))?;
 
     let info = reader.info();
     let (width, height) = (info.width, info.height);
     if u64::from(width) * u64::from(height) > MAX_PIXELS {
-        return Err(VisionError::Ocr(format!(
+        return Err(VisionError::Asset(format!(
             "template declares {width}x{height}, which is beyond anything a game UI needs"
         )));
     }
 
     let size = reader
         .output_buffer_size()
-        .ok_or_else(|| VisionError::Ocr("template declares an unusable size".to_owned()))?;
+        .ok_or_else(|| VisionError::Asset("template declares an unusable size".to_owned()))?;
     let mut buffer = vec![0u8; size];
     let frame = reader
         .next_frame(&mut buffer)
-        .map_err(|error| VisionError::Ocr(format!("template could not be decoded: {error}")))?;
+        .map_err(|error| VisionError::Asset(format!("template could not be decoded: {error}")))?;
 
     let channels = match frame.color_type {
         png::ColorType::Grayscale => 1,
@@ -39,7 +39,7 @@ pub fn png_to_gray(bytes: &[u8]) -> Result<Gray, VisionError> {
         png::ColorType::Rgb => 3,
         png::ColorType::Rgba => 4,
         other => {
-            return Err(VisionError::Ocr(format!(
+            return Err(VisionError::Asset(format!(
                 "template uses an unsupported colour type: {other:?}"
             )))
         }
@@ -56,8 +56,9 @@ pub fn png_to_gray(bytes: &[u8]) -> Result<Gray, VisionError> {
         })
         .collect();
 
-    Gray::new(width, height, pixels)
-        .ok_or_else(|| VisionError::Ocr("decoded template does not match its own size".to_owned()))
+    Gray::new(width, height, pixels).ok_or_else(|| {
+        VisionError::Asset("decoded template does not match its own size".to_owned())
+    })
 }
 
 #[cfg(test)]
@@ -121,7 +122,7 @@ mod tests {
     fn something_that_is_not_a_png_is_refused() {
         let error = png_to_gray(b"certainly not a png").expect_err("refused");
 
-        assert!(matches!(error, VisionError::Ocr(message) if message.contains("readable png")));
+        assert!(matches!(error, VisionError::Asset(message) if message.contains("readable png")));
     }
 
     #[test]
@@ -130,7 +131,7 @@ mod tests {
 
         let error = png_to_gray(&png[..png.len() / 2]).expect_err("refused");
 
-        assert!(matches!(error, VisionError::Ocr(_)));
+        assert!(matches!(error, VisionError::Asset(_)));
     }
 
     fn crc32(bytes: &[u8]) -> u32 {
@@ -159,7 +160,7 @@ mod tests {
         let error = png_to_gray(&png).expect_err("refused");
 
         assert!(
-            matches!(error, VisionError::Ocr(message) if message.contains("beyond anything")),
+            matches!(error, VisionError::Asset(message) if message.contains("beyond anything")),
             "an untrusted asset must not be able to ask for a 6 GB allocation"
         );
     }
