@@ -9,8 +9,8 @@ use idlewarden_capture::CaptureBackend;
 use idlewarden_capture::WindowsCapture;
 use idlewarden_core::detector::{Candidate, DesktopWindows};
 use idlewarden_core::{
-    load_all, Command, Detector, Event, Governor, Parts, PluginBundle, Refusal, Runner, Session,
-    SessionService, SessionState, DEFAULT_TICK,
+    load_all, Command, Detector, Event, Governor, GovernorConfig, Parts, PluginBundle, Refusal,
+    Runner, Session, SessionService, SessionState, DEFAULT_TICK,
 };
 #[cfg(windows)]
 use idlewarden_input::{DryRunBackend, Humanisation, SendInputBackend};
@@ -262,7 +262,24 @@ impl Inner {
             }
         };
 
-        self.service = Some(SessionService::spawn(
+        self.service = Some(self.spawn(bundle, capture, input, governor));
+        Ok(())
+    }
+
+    /// Puts a runner on its own thread for this bundle.
+    ///
+    /// Split from [`Inner::start`] because acquiring backends and assembling a
+    /// session are different jobs with very different testability: the first
+    /// needs a real game window, the second is the glue #31 is about and can be
+    /// driven with any backend.
+    fn spawn(
+        &self,
+        bundle: &PluginBundle,
+        capture: Box<dyn CaptureBackend>,
+        input: Box<dyn InputBackend>,
+        governor: GovernorConfig,
+    ) -> SessionService {
+        SessionService::spawn(
             Runner::new(Parts {
                 capture,
                 perceiver: bundle.perceiver(),
@@ -274,8 +291,7 @@ impl Inner {
                 session: self.session.clone(),
             }),
             DEFAULT_TICK,
-        ));
-        Ok(())
+        )
     }
 }
 
@@ -413,12 +429,347 @@ pub fn engage_kill_switch(handle: State<'_, SessionHandle>) -> Session {
 mod tests {
     use super::*;
 
+    use idlewarden_capture::{CaptureError, Frame, GameWindow, Size, WindowHandle};
+    use idlewarden_core::PluginId;
+    use idlewarden_core::WindowSource;
+    use idlewarden_input::DryRunBackend;
+    use std::sync::Arc;
+
+    const WINDOW: WindowHandle = WindowHandle(4242);
+
+    /// The desktop as the test hands it over. `DesktopWindows` is the real one;
+    /// this exists so the glue can be driven on any machine, which is the same
+    /// seam `Detector` already documents.
+    struct Fixed(Vec<GameWindow>);
+
+    impl WindowSource for Fixed {
+        fn windows(&mut self) -> Vec<GameWindow> {
+            self.0.clone()
+        }
+    }
+
+    /// A capture backend that hands out one prepared frame for ever.
+    ///
+    /// Not a blank frame: the pixel the plugin probes is lit, so perception,
+    /// the tree and the Governor all do real work on it. A blank frame would
+    /// make the loop turn while proving nothing, which is exactly what #31
+    /// warned against.
+    struct Painted {
+        frame: Arc<Frame>,
+        served: u64,
+    }
+
+    impl Painted {
+        fn new(reward_ready: bool) -> Self {
+            let (width, height) = (200u32, 200u32);
+            let mut bgra = vec![20u8; (width * height * 4) as usize];
+            for pixel in bgra.chunks_exact_mut(4) {
+                pixel[3] = 255;
+            }
+
+            if reward_ready {
+                // The example rules probe a gold pixel at 0.49..0.51 x
+                // 0.71..0.73 to decide a reward is collectable.
+                for y in (0.71 * height as f64) as u32..(0.74 * height as f64) as u32 {
+                    for x in (0.49 * width as f64) as u32..(0.52 * width as f64) as u32 {
+                        let index = ((y * width + x) * 4) as usize;
+                        bgra[index] = 62;
+                        bgra[index + 1] = 185;
+                        bgra[index + 2] = 232;
+                    }
+                }
+            }
+
+            Painted {
+                frame: Arc::new(Frame {
+                    id: 1,
+                    captured_at_ms: 0,
+                    size: Size { width, height },
+                    bgra,
+                }),
+                served: 0,
+            }
+        }
+    }
+
+    impl CaptureBackend for Painted {
+        fn next_frame(&mut self) -> Result<Arc<Frame>, CaptureError> {
+            self.served += 1;
+            Ok(Arc::clone(&self.frame))
+        }
+
+        fn window(&self) -> WindowHandle {
+            WINDOW
+        }
+    }
+
+    const RULES: &str = r#"{
+      "signals": [
+        {
+          "id": "ui.reward_ready",
+          "extractor": {
+            "method": "color_probe",
+            "roi": { "x": 0.49, "y": 0.71, "w": 0.02, "h": 0.02 },
+            "rgb": [232, 185, 62],
+            "tolerance": 24
+          }
+        }
+      ],
+      "intents": [
+        {
+          "name": "collect_reward",
+          "when": [{ "op": "is_true", "signal": "ui.reward_ready" }],
+          "commands": [{ "op": "click", "at": { "x": 0.5, "y": 0.72 }, "button": "left" }],
+          "post_condition": [{ "op": "is_false", "signal": "ui.reward_ready" }],
+          "min_confidence": 0.5
+        }
+      ]
+    }"#;
+
+    const MANIFEST: &str = r#"{
+      "id": "dev.idlewarden.test-game",
+      "name": "Test Game",
+      "version": "0.0.0",
+      "api_version": "^0.1",
+      "game": { "executable": "TestGame.exe", "window_title": "Test Game" },
+      "signals": [{ "id": "ui.reward_ready", "value_type": "bool" }],
+      "intents": ["collect_reward"],
+      "capabilities": ["capture", "input.mouse"]
+    }"#;
+
+    fn plugin_root(name: &str) -> PathBuf {
+        let root = std::env::temp_dir().join(format!("idlewarden-{name}-{}", std::process::id()));
+        let plugin = root.join("plugins").join("test-game");
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&plugin).expect("the fixture plugin could be created");
+        std::fs::write(plugin.join("plugin.json"), MANIFEST).expect("manifest written");
+        std::fs::write(plugin.join("rules.json"), RULES).expect("rules written");
+        root
+    }
+
+    /// A handle whose detector reports one window, matched by the fixture
+    /// plugin, so `start` has a game to bind to.
+    fn ready(name: &str) -> Inner {
+        let handle = SessionHandle::new(plugin_root(name));
+        let mut inner = handle.0.into_inner().expect("session lock");
+
+        let matchers = inner
+            .plugins
+            .iter()
+            .map(|bundle| (bundle.id.clone(), bundle.matcher.clone()))
+            .collect();
+        inner.detector = Detector::new(
+            Box::new(Fixed(vec![GameWindow {
+                handle: WINDOW,
+                title: "Test Game".to_owned(),
+                executable: "TestGame.exe".to_owned(),
+                steam_appid: None,
+            }])),
+            matchers,
+        );
+        assert!(
+            !inner.plugins.is_empty(),
+            "the fixture plugin did not load: {:?}",
+            inner
+                .events
+                .iter()
+                .map(|published| format!("{:?}", published.event))
+                .collect::<Vec<_>>()
+        );
+        inner.events.clear();
+        inner
+    }
+
+    /// Runs the session for a while, collecting everything it publishes, the
+    /// way the UI's poll does.
+    fn drain_for(inner: &mut Inner, ticks: u32) -> Vec<Event> {
+        let mut seen = Vec::new();
+        for _ in 0..ticks {
+            std::thread::sleep(DEFAULT_TICK);
+            inner.refresh();
+            seen.extend(
+                std::mem::take(&mut inner.events)
+                    .into_iter()
+                    .map(|p| p.event),
+            );
+        }
+        seen
+    }
+
+    fn names(events: &[Event]) -> Vec<&'static str> {
+        events
+            .iter()
+            .map(|event| match event {
+                Event::GameDetected { .. } => "game_detected",
+                Event::GameLost => "game_lost",
+                Event::PluginLoaded { .. } => "plugin_loaded",
+                Event::PluginFailed { .. } => "plugin_failed",
+                Event::Observed { .. } => "observed",
+                Event::IntentProposed { .. } => "intent_proposed",
+                Event::IntentRejected { .. } => "intent_rejected",
+                Event::ActionStarted { .. } => "action_started",
+                Event::ActionFinished { .. } => "action_finished",
+                Event::AgentPaused { .. } => "agent_paused",
+                Event::AgentResumed => "agent_resumed",
+                Event::KillSwitch => "kill_switch",
+                Event::Error { .. } => "error",
+            })
+            .collect()
+    }
+
+    fn start_with(inner: &mut Inner, capture: Painted, governor: GovernorConfig) {
+        inner.refresh();
+        assert_eq!(
+            inner.session.state,
+            SessionState::Ready,
+            "detection has to bind a window before Start means anything"
+        );
+
+        inner
+            .session
+            .apply(&Command::Start {
+                plugin: PluginId("dev.idlewarden.test-game".to_owned()),
+                profile: "default".to_owned(),
+            })
+            .expect("a ready session starts");
+
+        let bundle = inner.plugins.first().expect("the fixture plugin loaded");
+        let service = inner.spawn(bundle, Box::new(capture), Box::new(DryRunBackend), governor);
+        inner.service = Some(service);
+    }
+
     fn inner() -> Inner {
         let empty = std::env::temp_dir().join("idlewarden-no-plugins-here");
         let handle = SessionHandle::new(empty);
         let mut inner = handle.0.into_inner().expect("session lock");
         inner.events.clear();
         inner
+    }
+
+    #[test]
+    fn pressing_start_runs_a_real_session_and_the_events_reach_the_caller() {
+        let mut inner = ready("runs");
+        start_with(&mut inner, Painted::new(true), GovernorConfig::default());
+
+        let published = drain_for(&mut inner, 6);
+        let seen = names(&published);
+
+        assert!(
+            seen.contains(&"observed"),
+            "no observation means the loop is not perceiving anything: {seen:?}"
+        );
+        assert!(
+            seen.contains(&"intent_proposed"),
+            "the tree never chose an intent, so nothing was decided: {seen:?}"
+        );
+        assert!(
+            seen.contains(&"action_finished"),
+            "the intent never became an action: {seen:?}"
+        );
+        assert_eq!(inner.session.state, SessionState::Running);
+        assert!(
+            inner.session.actions_taken > 0,
+            "the projection the UI renders has to move with the runner"
+        );
+    }
+
+    #[test]
+    fn a_screen_with_nothing_to_do_proposes_nothing() {
+        let mut inner = ready("idle");
+        start_with(&mut inner, Painted::new(false), GovernorConfig::default());
+
+        let seen = names(&drain_for(&mut inner, 5));
+
+        assert!(
+            seen.contains(&"observed"),
+            "perception still runs, it just has nothing to act on: {seen:?}"
+        );
+        assert!(
+            !seen.contains(&"intent_proposed"),
+            "acting on an unlit reward would be acting on a ghost: {seen:?}"
+        );
+    }
+
+    #[test]
+    fn a_governor_refusal_reaches_the_user_rather_than_looking_like_silence() {
+        let mut inner = ready("refused");
+        start_with(
+            &mut inner,
+            Painted::new(true),
+            GovernorConfig {
+                allowed_intents: Some(Vec::new()),
+                ..GovernorConfig::default()
+            },
+        );
+
+        let published = drain_for(&mut inner, 5);
+        let seen = names(&published);
+
+        assert!(
+            seen.contains(&"intent_rejected"),
+            "a refused agent looks exactly like an idle one unless it says so: {seen:?}"
+        );
+        assert!(
+            !seen.contains(&"action_finished"),
+            "the Governor refused it, so nothing may have run: {seen:?}"
+        );
+
+        let reason = published.iter().find_map(|event| match event {
+            Event::IntentRejected { reason, .. } => Some(reason.clone()),
+            _ => None,
+        });
+        assert!(
+            reason.is_some_and(|reason| reason.contains("collect_reward")),
+            "the reason has to name what was refused"
+        );
+    }
+
+    #[test]
+    fn stop_shuts_the_thread_down_and_leaves_nothing_running() {
+        let mut inner = ready("stop");
+        start_with(&mut inner, Painted::new(true), GovernorConfig::default());
+        drain_for(&mut inner, 2);
+
+        inner
+            .session
+            .apply(&Command::Stop)
+            .expect("a running session stops");
+        inner.service = None;
+
+        let before = inner.session.actions_taken;
+        let after_stop = names(&drain_for(&mut inner, 3));
+
+        assert!(inner.service.is_none());
+        assert_eq!(
+            inner.session.actions_taken, before,
+            "a stopped session must not still be acting"
+        );
+        assert!(
+            !after_stop.contains(&"action_finished"),
+            "the thread outlived Stop: {after_stop:?}"
+        );
+    }
+
+    #[test]
+    fn the_kill_switch_halts_the_session_and_drops_the_thread() {
+        let mut inner = ready("kill");
+        start_with(&mut inner, Painted::new(true), GovernorConfig::default());
+        drain_for(&mut inner, 2);
+
+        inner.kill.engage();
+        inner.session.state = SessionState::Halted;
+        inner.service = None;
+        inner.publish([Event::KillSwitch]);
+
+        let before = inner.session.actions_taken;
+        let after = names(&drain_for(&mut inner, 3));
+
+        assert_eq!(inner.session.state, SessionState::Halted);
+        assert_eq!(
+            inner.session.actions_taken, before,
+            "the kill switch has to stop the work, not just the label"
+        );
+        assert!(after.iter().all(|name| *name != "action_finished"));
     }
 
     #[test]
