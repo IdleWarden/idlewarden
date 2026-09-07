@@ -24,6 +24,9 @@ pub use bundle::{load_all, BundleError, PluginBundle};
 pub use detector::{Detector, WindowSource};
 pub use event::{Command, Event};
 pub use governor::{Governor, GovernorConfig, Verdict};
+/// Re-exported because it appears in [`Command`] and [`Session`]: naming a
+/// plugin should not force a dependency on `idlewarden-plugin-api`.
+pub use idlewarden_plugin_api::PluginId;
 pub use recipe::{Recipe, RecipeActuator};
 pub use rules::{IntentRule, PluginRules, RulesError};
 pub use runner::{Actuator, Parts, Runner};
