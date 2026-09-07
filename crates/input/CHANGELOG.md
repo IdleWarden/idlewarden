@@ -4,6 +4,12 @@ All notable changes to `input` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.7] - 2026-09-07
+
+### Bug Fixes
+
+- fix: expose capture and input primitives so the Linux check builds (#39)
+
 ## [26.9.4] - 2026-09-04
 
 ### Features

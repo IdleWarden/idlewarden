@@ -4,6 +4,20 @@ All notable changes to `desktop` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.7] - 2026-09-07
+
+### Features
+
+- feat(desktop): add the Logs screen, keeping tracing fields structured (#36)
+- feat(desktop): add the Activity screen, with Governor refusals as first-class rows (#35)
+- feat(desktop): add the Detect screen, showing which windows a plugin claims (#34)
+- feat(desktop): lay the app out around the watched game
+- feat(desktop): show what the session publishes and expose the kill switch
+
+### Bug Fixes
+
+- fix(desktop): keep the detector available off Windows
+
 ## [26.9.5] - 2026-09-05
 
 ### Bug Fixes

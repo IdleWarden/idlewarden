@@ -4,6 +4,16 @@ All notable changes to `core` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.7] - 2026-09-07
+
+### Features
+
+- feat(desktop): add the Detect screen, showing which windows a plugin claims (#34)
+
+### Bug Fixes
+
+- fix(desktop): keep the detector available off Windows
+
 ## [26.9.5] - 2026-09-05
 
 ### Features
