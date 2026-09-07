@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-use idlewarden_capture::{detect, Detection, GameWindow, WindowHandle};
+use idlewarden_capture::{detect, matches, Detection, GameWindow, WindowHandle};
 use idlewarden_plugin_api::{GameMatcher, PluginId};
 
 use crate::{Event, Session, SessionState};
@@ -10,11 +10,26 @@ pub trait WindowSource: Send {
     fn windows(&mut self) -> Vec<GameWindow>;
 }
 
+/// One window the last poll looked at, and every plugin that claims it.
+///
+/// `plugins` is a list rather than an option on purpose: two plugins claiming
+/// the same window is why a session refuses to start, and the Detect screen
+/// exists to make that visible instead of leaving it in the logs.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Candidate {
+    pub window: GameWindow,
+    pub plugins: Vec<PluginId>,
+}
+
 /// Moves a session between `Searching` and `Ready` as the game comes and goes.
 pub struct Detector {
     source: Box<dyn WindowSource>,
     plugins: Vec<(PluginId, GameMatcher)>,
     current: Option<WindowHandle>,
+    /// What the last poll enumerated. Kept so the UI can show the same list
+    /// detection ruled on, rather than enumerating the desktop a second time
+    /// and describing a different moment.
+    seen: Vec<GameWindow>,
 }
 
 impl Detector {
@@ -23,7 +38,25 @@ impl Detector {
             source,
             plugins,
             current: None,
+            seen: Vec::new(),
         }
+    }
+
+    /// Every window the last [`Detector::poll`] considered, each with the
+    /// plugins claiming it. Empty until the first poll.
+    pub fn candidates(&self) -> Vec<Candidate> {
+        self.seen
+            .iter()
+            .map(|window| Candidate {
+                window: window.clone(),
+                plugins: self
+                    .plugins
+                    .iter()
+                    .filter(|(_, matcher)| matches(matcher, window))
+                    .map(|(id, _)| id.clone())
+                    .collect(),
+            })
+            .collect()
     }
 
     /// The window the session is currently bound to, which is what a capture
@@ -37,14 +70,16 @@ impl Detector {
             return Vec::new();
         }
 
-        let windows = self.source.windows();
-        match detect(&self.plugins, &windows) {
+        self.seen = self.source.windows();
+        let windows = &self.seen;
+        match detect(&self.plugins, windows) {
             Detection::Found { plugin, window } => {
                 if self.current == Some(window) {
                     return Vec::new();
                 }
                 self.current = Some(window);
-                let window_title = windows
+                let window_title = self
+                    .seen
                     .iter()
                     .find(|candidate| candidate.handle == window)
                     .map(|candidate| candidate.title.clone())
@@ -236,6 +271,86 @@ mod tests {
             "a second plugin appearing must not tear down a running session"
         );
         assert_eq!(detector.window(), Some(WindowHandle(7)));
+    }
+
+    #[test]
+    fn candidates_are_empty_before_the_first_poll() {
+        let detector = detector(
+            vec![window(7, "Idle Quest", "game.exe")],
+            &[("quest", "game.exe")],
+        );
+
+        assert!(
+            detector.candidates().is_empty(),
+            "nothing has been enumerated yet, so claiming otherwise would be a guess"
+        );
+    }
+
+    #[test]
+    fn every_enumerated_window_is_reported_with_the_plugins_claiming_it() {
+        let mut session = Session::default();
+        let mut detector = detector(
+            vec![
+                window(7, "Idle Quest", "game.exe"),
+                window(8, "Notepad", "notepad.exe"),
+            ],
+            &[("quest", "game.exe")],
+        );
+        detector.poll(&mut session);
+
+        let candidates = detector.candidates();
+
+        assert_eq!(
+            candidates.len(),
+            2,
+            "unmatched windows must still be listed"
+        );
+        assert_eq!(
+            candidates[0].plugins,
+            vec![PluginId("quest".to_owned())],
+            "the matching window names its plugin"
+        );
+        assert!(
+            candidates[1].plugins.is_empty(),
+            "a window no plugin claims is what answers `why is nothing happening`"
+        );
+    }
+
+    #[test]
+    fn a_window_two_plugins_claim_reports_both() {
+        let mut session = Session::default();
+        let mut detector = detector(
+            vec![window(7, "Idle Quest", "game.exe")],
+            &[("quest", "game.exe"), ("clone", "game.exe")],
+        );
+        detector.poll(&mut session);
+
+        let candidates = detector.candidates();
+
+        assert_eq!(
+            candidates[0].plugins,
+            vec![PluginId("quest".to_owned()), PluginId("clone".to_owned())],
+            "the ambiguity that refused to start the session has to be visible"
+        );
+        assert_eq!(session.state, SessionState::Searching);
+    }
+
+    #[test]
+    fn candidates_follow_the_desktop_when_a_window_closes() {
+        let mut session = Session::default();
+        let mut detector = detector(
+            vec![window(7, "Idle Quest", "game.exe")],
+            &[("quest", "game.exe")],
+        );
+        detector.poll(&mut session);
+
+        detector.source = Box::new(Fixed(Vec::new()));
+        detector.poll(&mut session);
+
+        assert!(
+            detector.candidates().is_empty(),
+            "a closed window must not linger on the Detect screen"
+        );
     }
 
     #[test]

@@ -8,6 +8,7 @@ import {
   Refused,
   Session,
   SessionEvent,
+  WindowCandidate,
 } from "./session.model";
 
 @Injectable({ providedIn: "root" })
@@ -17,12 +18,14 @@ export class SessionService {
   private readonly recent = signal<readonly SessionEvent[]>([]);
   private readonly known = signal<readonly PluginSummary[]>([]);
   private readonly seen = signal<Observation | null>(null);
+  private readonly windows = signal<readonly WindowCandidate[]>([]);
 
   readonly session = this.current.asReadonly();
   readonly refusal = this.lastRefusal.asReadonly();
   readonly events = this.recent.asReadonly();
   readonly plugins = this.known.asReadonly();
   readonly observation = this.seen.asReadonly();
+  readonly candidates = this.windows.asReadonly();
 
   /// Reading the state is what drives detection on the Rust side, so this has
   /// to keep being called rather than run once at startup.
@@ -40,6 +43,10 @@ export class SessionService {
         [...published.reverse(), ...existing].slice(0, 200),
       );
     }
+  }
+
+  async refreshCandidates(): Promise<void> {
+    this.windows.set(await invoke<WindowCandidate[]>("window_candidates"));
   }
 
   async refreshPlugins(): Promise<void> {

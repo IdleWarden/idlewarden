@@ -110,3 +110,29 @@ aside .label {
   padding: 18px 18px 0;
   border-top: 2px solid var(--line);
 }
+
+aside nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+aside nav a {
+  padding: 7px 10px;
+  color: var(--muted);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+aside nav a:hover {
+  color: var(--text);
+}
+
+aside nav a.active {
+  color: var(--accent);
+  border-left-color: var(--accent);
+  background: var(--rule);
+}
