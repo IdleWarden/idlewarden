@@ -4,7 +4,7 @@
 ///
 /// Unknown names return `None` rather than a default, because pressing the
 /// wrong key in a game is worse than pressing none.
-pub(crate) fn virtual_key(name: &str) -> Option<u16> {
+pub fn virtual_key(name: &str) -> Option<u16> {
     let name = name.trim().to_ascii_lowercase();
 
     if name.len() == 1 {

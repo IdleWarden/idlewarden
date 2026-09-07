@@ -24,7 +24,7 @@ mod steam;
 mod wgc;
 
 pub use detect::{detect, matches, Detection, GameWindow};
-pub use frame::{Frame, Size};
+pub use frame::{pack_rows, Frame, Size};
 pub use null::NullBackend;
 
 #[cfg(windows)]

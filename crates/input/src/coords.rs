@@ -4,7 +4,7 @@ use idlewarden_plugin_api::Point;
 /// A rectangle in screen pixels. Origin can be negative: a monitor placed left
 /// of the primary one starts at a negative x.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct Rect {
+pub struct Rect {
     pub left: i32,
     pub top: i32,
     pub width: i32,
@@ -13,7 +13,7 @@ pub(crate) struct Rect {
 
 /// Window-relative `0.0..=1.0` to screen pixels, converted as late as possible
 /// so that moving or resizing the window costs nothing upstream (ADR-0007).
-pub(crate) fn to_screen(point: Point, client: Rect) -> Option<(i32, i32)> {
+pub fn to_screen(point: Point, client: Rect) -> Option<(i32, i32)> {
     if client.width <= 0 || client.height <= 0 {
         return None;
     }
@@ -28,7 +28,7 @@ pub(crate) fn to_screen(point: Point, client: Rect) -> Option<(i32, i32)> {
 /// Screen pixels to the `0..=65535` space `SendInput` expects for absolute
 /// motion, normalised over the whole virtual desktop rather than the primary
 /// monitor.
-pub(crate) fn to_absolute(x: i32, y: i32, desktop: Rect) -> Option<(i32, i32)> {
+pub fn to_absolute(x: i32, y: i32, desktop: Rect) -> Option<(i32, i32)> {
     if desktop.width <= 1 || desktop.height <= 1 {
         return None;
     }

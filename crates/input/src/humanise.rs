@@ -5,12 +5,12 @@ use crate::Humanisation;
 ///
 /// Seeded and deterministic on purpose: the point is that consecutive delays
 /// differ, and that property is only testable if the sequence can be replayed.
-pub(crate) struct Jitter {
+pub struct Jitter {
     state: u64,
 }
 
 impl Jitter {
-    pub(crate) fn new(seed: u64) -> Self {
+    pub fn new(seed: u64) -> Self {
         Jitter {
             state: if seed == 0 { 0x9E3779B97F4A7C15 } else { seed },
         }
@@ -25,7 +25,7 @@ impl Jitter {
         x
     }
 
-    pub(crate) fn delay_ms(&mut self, humanisation: Humanisation) -> u64 {
+    pub fn delay_ms(&mut self, humanisation: Humanisation) -> u64 {
         let (low, high) = if humanisation.min_delay_ms <= humanisation.max_delay_ms {
             (humanisation.min_delay_ms, humanisation.max_delay_ms)
         } else {

@@ -12,6 +12,10 @@ mod coords;
 mod humanise;
 mod keys;
 
+pub use coords::{to_absolute, to_screen, Rect};
+pub use humanise::Jitter;
+pub use keys::virtual_key;
+
 #[cfg(windows)]
 mod sendinput;
 
