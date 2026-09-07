@@ -4,10 +4,11 @@ use std::collections::HashMap;
 use idlewarden_capture::Frame;
 use idlewarden_plugin_api::{Confidence, Value};
 
+use crate::digits::{read as read_digits, Reading};
 use crate::gray::Gray;
 use crate::ncc::{best_match_multi_scale, SCALES};
 use crate::probe::colour_fraction;
-use crate::{Anchor, Extracted, Extractor, Perceiver, Roi, SignalRule, VisionError};
+use crate::{Anchor, Extracted, Extractor, NumericKind, Perceiver, Roi, SignalRule, VisionError};
 
 /// How far registration is allowed to move the layout before we call the anchor
 /// misidentified rather than displaced.
@@ -36,7 +37,7 @@ impl RuleSet {
     fn template(&self, name: &str) -> Result<&Gray, VisionError> {
         self.templates
             .get(name)
-            .ok_or_else(|| VisionError::AnchorLost(name.to_owned()))
+            .ok_or_else(|| VisionError::Asset(format!("template `{name}` was not loaded")))
     }
 
     /// Locate every anchor and average how far each has moved. The result
@@ -122,11 +123,27 @@ impl RuleSet {
                 .ok_or(VisionError::RegionOutOfBounds(roi))?;
                 (Value::Bool(fraction >= 0.5), Confidence::new(fraction))
             }
-            Extractor::Ocr { .. } => {
-                return Err(VisionError::Ocr(format!(
-                    "signal `{}` needs OCR, which is not implemented",
-                    rule.id.0
-                )))
+            Extractor::Digits {
+                roi,
+                glyphs,
+                min_score,
+                value_type,
+            } => {
+                let roi = roi.translated(offset.0, offset.1);
+                let area = pixels(&roi, gray.width, gray.height)
+                    .ok_or(VisionError::RegionOutOfBounds(roi))?;
+                let haystack = gray
+                    .crop(area.0, area.1, area.2, area.3)
+                    .ok_or(VisionError::RegionOutOfBounds(roi))?;
+
+                let mut alphabet = Vec::with_capacity(glyphs.len());
+                for (character, asset) in glyphs {
+                    let glyph = single_char(character)?;
+                    alphabet.push((glyph, self.template(asset)?.clone()));
+                }
+
+                let reading = read_digits(&haystack, &alphabet, *min_score);
+                parse(&reading, *value_type)
             }
         };
 
@@ -141,13 +158,53 @@ impl RuleSet {
 impl Perceiver for RuleSet {
     fn perceive(&mut self, frame: &Frame) -> Result<Vec<Extracted>, VisionError> {
         let gray = Gray::from_bgra(frame.size.width, frame.size.height, &frame.bgra)
-            .ok_or_else(|| VisionError::Ocr("frame buffer does not match its size".to_owned()))?;
+            .ok_or_else(|| VisionError::Frame("buffer does not match its size".to_owned()))?;
         let offset = self.offset(&gray)?;
 
         self.rules
             .iter()
             .map(|rule| self.extract(rule, frame, &gray, offset))
             .collect()
+    }
+}
+
+/// A glyph key names one character. A longer key is an authoring mistake that
+/// would otherwise silently match nothing.
+fn single_char(key: &str) -> Result<char, VisionError> {
+    let mut chars = key.chars();
+    match (chars.next(), chars.next()) {
+        (Some(glyph), None) => Ok(glyph),
+        _ => Err(VisionError::Asset(format!(
+            "glyph key `{key}` is not a single character"
+        ))),
+    }
+}
+
+/// Turns a reading into a value, or into zero confidence.
+///
+/// A number that does not parse is reported as unreadable rather than as a
+/// default: the Governor's confidence floor is what stops the agent, and a
+/// plausible zero at full confidence would walk straight past it.
+fn parse(reading: &Reading, kind: NumericKind) -> (Value, Confidence) {
+    let unreadable = |zero: Value| (zero, Confidence::new(0.0));
+
+    match kind {
+        NumericKind::Int => match reading.text.parse::<i64>() {
+            Ok(number) => (Value::Int(number), Confidence::new(reading.confidence)),
+            Err(_) => unreadable(Value::Int(0)),
+        },
+        NumericKind::Float => match reading.text.parse::<f64>() {
+            Ok(number) if number.is_finite() => {
+                (Value::Float(number), Confidence::new(reading.confidence))
+            }
+            _ => unreadable(Value::Float(0.0)),
+        },
+        NumericKind::Ratio => match reading.text.parse::<f64>() {
+            Ok(number) if (0.0..=1.0).contains(&number) => {
+                (Value::Ratio(number), Confidence::new(reading.confidence))
+            }
+            _ => unreadable(Value::Ratio(0.0)),
+        },
     }
 }
 
@@ -259,6 +316,144 @@ mod tests {
 
     fn templates(mark: Gray) -> HashMap<String, Gray> {
         HashMap::from([("logo".to_owned(), mark)])
+    }
+
+    fn digit(rows: [&str; 5]) -> Gray {
+        let mut pixels = Vec::with_capacity(15);
+        for row in rows {
+            for cell in row.chars() {
+                pixels.push(if cell == '#' { 20 } else { 235 });
+            }
+        }
+        Gray::new(3, 5, pixels).expect("a 3x5 glyph")
+    }
+
+    fn four() -> Gray {
+        digit(["#.#", "#.#", "###", "..#", "..#"])
+    }
+
+    fn seven() -> Gray {
+        digit(["###", "..#", ".#.", ".#.", ".#."])
+    }
+
+    /// Paints a light plate at `left, top` and stamps the glyphs onto it with a
+    /// one-pixel gap, the way a game draws a readout.
+    fn stamp_readout(bgra: &mut [u8], left: u32, top: u32, glyphs: &[&Gray]) {
+        let width: u32 = glyphs.iter().map(|g| g.width + 1).sum::<u32>() + 1;
+        for y in top..top + 7 {
+            for x in left..left + width {
+                let index = ((y as usize) * (W as usize) + x as usize) * 4;
+                bgra[index] = 235;
+                bgra[index + 1] = 235;
+                bgra[index + 2] = 235;
+            }
+        }
+
+        let mut cursor = left + 1;
+        for glyph in glyphs {
+            stamp_mark(bgra, cursor, top + 1, glyph);
+            cursor += glyph.width + 1;
+        }
+    }
+
+    fn digits_rule(value_type: NumericKind, min_score: f64) -> SignalRule {
+        let mut glyphs = std::collections::BTreeMap::new();
+        glyphs.insert("4".to_owned(), "four.png".to_owned());
+        glyphs.insert("7".to_owned(), "seven.png".to_owned());
+
+        SignalRule {
+            id: SignalId("resource.gold".to_owned()),
+            extractor: Extractor::Digits {
+                roi: Roi {
+                    x: 0.0,
+                    y: 0.0,
+                    w: 0.2,
+                    h: 0.1,
+                },
+                glyphs,
+                min_score,
+                value_type,
+            },
+        }
+    }
+
+    fn digit_templates() -> HashMap<String, Gray> {
+        HashMap::from([
+            ("four.png".to_owned(), four()),
+            ("seven.png".to_owned(), seven()),
+        ])
+    }
+
+    #[test]
+    fn a_numeric_readout_becomes_an_int_with_the_weakest_glyphs_confidence() {
+        let mut bgra = blank();
+        stamp_readout(&mut bgra, 2, 2, &[&seven(), &four(), &seven()]);
+
+        let mut rules = RuleSet::new(
+            Vec::new(),
+            vec![digits_rule(NumericKind::Int, 0.8)],
+            digit_templates(),
+        );
+        let extracted = rules.perceive(&frame(bgra)).expect("no anchors to lose");
+
+        assert_eq!(extracted[0].value, Value::Int(747));
+        assert!(
+            extracted[0].confidence.get() > 0.9,
+            "a clean readout should be near-certain, was {}",
+            extracted[0].confidence.get()
+        );
+    }
+
+    #[test]
+    fn a_region_with_no_numerals_reports_no_confidence_rather_than_zero_gold() {
+        let mut rules = RuleSet::new(
+            Vec::new(),
+            vec![digits_rule(NumericKind::Int, 0.8)],
+            digit_templates(),
+        );
+
+        let extracted = rules.perceive(&frame(blank())).expect("no anchors to lose");
+
+        assert_eq!(extracted[0].value, Value::Int(0));
+        assert_eq!(
+            extracted[0].confidence.get(),
+            0.0,
+            "a confident zero would walk straight past the Governor's floor"
+        );
+    }
+
+    #[test]
+    fn a_reading_outside_zero_to_one_is_not_a_ratio() {
+        let mut bgra = blank();
+        stamp_readout(&mut bgra, 2, 2, &[&seven(), &four()]);
+
+        let mut rules = RuleSet::new(
+            Vec::new(),
+            vec![digits_rule(NumericKind::Ratio, 0.8)],
+            digit_templates(),
+        );
+        let extracted = rules.perceive(&frame(bgra)).expect("no anchors to lose");
+
+        assert_eq!(
+            extracted[0].confidence.get(),
+            0.0,
+            "74 is not a fraction, and clamping it to 1.0 would be a guess"
+        );
+    }
+
+    #[test]
+    fn a_glyph_the_bundle_did_not_load_is_a_structural_failure_not_a_low_score() {
+        let mut rules = RuleSet::new(
+            Vec::new(),
+            vec![digits_rule(NumericKind::Int, 0.8)],
+            HashMap::from([("four.png".to_owned(), four())]),
+        );
+
+        let error = rules
+            .perceive(&frame(blank()))
+            .expect_err("seven.png is missing");
+
+        assert!(matches!(error, VisionError::Asset(message) if message.contains("seven.png")));
     }
 
     #[test]
@@ -393,31 +588,6 @@ mod tests {
             weak < strong,
             "a partly covered button must read less confidently: {weak} vs {strong}"
         );
-    }
-
-    #[test]
-    fn an_ocr_rule_says_so_rather_than_inventing_a_number() {
-        let mut rules = RuleSet::new(
-            Vec::new(),
-            vec![SignalRule {
-                id: SignalId("gold".to_owned()),
-                extractor: Extractor::Ocr {
-                    roi: Roi {
-                        x: 0.1,
-                        y: 0.1,
-                        w: 0.2,
-                        h: 0.1,
-                    },
-                },
-            }],
-            HashMap::new(),
-        );
-
-        let error = rules
-            .perceive(&frame(blank()))
-            .expect_err("ocr is not implemented");
-
-        assert!(matches!(error, VisionError::Ocr(message) if message.contains("gold")));
     }
 
     #[test]

@@ -92,6 +92,50 @@ fn correlate(
     (dot / (norm * needle_norm)).clamp(0.0, 1.0)
 }
 
+/// Every position where `needle` correlates at or above `min_score`.
+///
+/// [`best_match`] answers "is this here", which is all a boolean signal needs.
+/// Reading a number needs "where is each glyph", because the answer is several
+/// matches whose left-to-right order carries the meaning.
+pub fn matches_above(haystack: &Gray, needle: &Gray, min_score: f64) -> Vec<Found> {
+    if needle.width == 0
+        || needle.height == 0
+        || needle.width > haystack.width
+        || needle.height > haystack.height
+    {
+        return Vec::new();
+    }
+
+    let count = (needle.width as usize) * (needle.height as usize);
+    let needle_mean = needle.pixels.iter().map(|&p| p as f64).sum::<f64>() / count as f64;
+    let needle_dev: Vec<f64> = needle
+        .pixels
+        .iter()
+        .map(|&p| p as f64 - needle_mean)
+        .collect();
+    let needle_norm = needle_dev.iter().map(|d| d * d).sum::<f64>().sqrt();
+    if needle_norm == 0.0 {
+        return Vec::new();
+    }
+
+    let mut found = Vec::new();
+    for top in 0..=haystack.height - needle.height {
+        for left in 0..=haystack.width - needle.width {
+            let score = correlate(haystack, needle, &needle_dev, needle_norm, left, top, count);
+            if score >= min_score {
+                found.push(Found {
+                    x: left,
+                    y: top,
+                    width: needle.width,
+                    height: needle.height,
+                    score,
+                });
+            }
+        }
+    }
+    found
+}
+
 /// Best match across [`SCALES`], so the same template survives a window resize.
 pub fn best_match_multi_scale(haystack: &Gray, needle: &Gray, scales: &[f64]) -> Option<Found> {
     let mut best: Option<Found> = None;
