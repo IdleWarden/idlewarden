@@ -21,6 +21,7 @@ export class AppComponent {
     { path: "/detection", label: "Détection" },
     { path: "/activite", label: "Activité" },
     { path: "/journaux", label: "Journaux" },
+    { path: "/profils", label: "Profils" },
   ];
 
   stateOf(plugin: PluginSummary): string {
