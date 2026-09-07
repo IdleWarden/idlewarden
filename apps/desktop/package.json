@@ -6,6 +6,7 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "watch": "ng build --watch --configuration development",
     "tauri": "tauri",
     "format": "prettier --write .",

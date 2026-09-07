@@ -19,33 +19,51 @@ export type Command =
 export type RefusalKind =
   "no_game_ready" | "halted" | "not_running" | "not_paused" | "running_dry_run_change";
 
+export interface Refusal {
+  refusal: RefusalKind;
+}
+
 export interface Refused {
-  refusal: { refusal: RefusalKind };
+  refusal: Refusal;
   message: string;
 }
 
-/// Mirrors `idlewarden_core::Event`. Hand-copied like the rest of this file,
-/// which is what #18 is about.
+export type SignalValue =
+  | { type: "bool"; value: boolean }
+  | { type: "int"; value: number }
+  | { type: "float"; value: number }
+  | { type: "ratio"; value: number }
+  | { type: "text"; value: string }
+  | { type: "point"; value: { x: number; y: number } }
+  | { type: "rect"; value: { x: number; y: number; w: number; h: number } }
+  | { type: "enum"; value: string };
+
+export interface Intent {
+  name: string;
+  params: Record<string, SignalValue>;
+}
+
+export type ActionOutcome =
+  | { outcome: "succeeded" }
+  | { outcome: "failed"; reason: string }
+  | { outcome: "rejected"; reason: string }
+  | { outcome: "aborted" }
+  | { outcome: "timed_out"; after_ms: number };
+
 export type SessionEvent =
   | { event: "game_detected"; plugin: string; window_title: string }
   | { event: "game_lost" }
   | { event: "plugin_loaded"; plugin: string; version: string }
   | { event: "plugin_failed"; plugin: string; reason: string }
   | { event: "observed"; observation: Observation }
-  | { event: "intent_proposed"; intent: { name: string } }
-  | { event: "intent_rejected"; intent: { name: string }; reason: string }
-  | { event: "action_started"; intent: { name: string } }
-  | { event: "action_finished"; intent: { name: string }; outcome: unknown }
+  | { event: "intent_proposed"; intent: Intent }
+  | { event: "intent_rejected"; intent: Intent; reason: string }
+  | { event: "action_started"; intent: Intent }
+  | { event: "action_finished"; intent: Intent; outcome: ActionOutcome }
   | { event: "agent_paused"; reason: string }
   | { event: "agent_resumed" }
   | { event: "kill_switch" }
   | { event: "error"; message: string };
-
-/// `idlewarden_plugin_api::Value`, tagged externally by serde.
-export interface SignalValue {
-  type: "bool" | "int" | "float" | "ratio" | "text" | "point" | "rect";
-  value: unknown;
-}
 
 export interface Signal {
   id: string;
