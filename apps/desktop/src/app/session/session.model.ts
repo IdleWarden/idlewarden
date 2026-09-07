@@ -65,6 +65,10 @@ export type SessionEvent =
   | { event: "kill_switch" }
   | { event: "error"; message: string };
 
+/// A `SessionEvent` as the desktop hands it over: the Core's own payload plus
+/// the wall-clock moment the app observed it.
+export type PublishedEvent = SessionEvent & { at_ms: number };
+
 export interface Signal {
   id: string;
   value: SignalValue;

@@ -1,16 +1,14 @@
-import { Component, OnDestroy, OnInit, computed, inject } from "@angular/core";
+import { Component, computed, inject } from "@angular/core";
 
 import { WindowCandidate } from "../session/session.model";
 import { SessionService } from "../session/session.service";
-
-const POLL_MS = 1000;
 
 @Component({
   selector: "app-detect",
   templateUrl: "./detect.component.html",
   styleUrl: "./detect.component.css",
 })
-export class DetectComponent implements OnInit, OnDestroy {
+export class DetectComponent {
   private readonly sessions = inject(SessionService);
 
   readonly candidates = this.sessions.candidates;
@@ -20,19 +18,6 @@ export class DetectComponent implements OnInit, OnDestroy {
   readonly unclaimed = computed(() =>
     this.candidates().filter((candidate) => candidate.plugins.length === 0),
   );
-
-  private timer: ReturnType<typeof setInterval> | null = null;
-
-  ngOnInit(): void {
-    void this.sessions.refreshCandidates();
-    this.timer = setInterval(() => void this.sessions.refreshCandidates(), POLL_MS);
-  }
-
-  ngOnDestroy(): void {
-    if (this.timer !== null) {
-      clearInterval(this.timer);
-    }
-  }
 
   verdict(candidate: WindowCandidate): string {
     if (candidate.plugins.length === 0) {

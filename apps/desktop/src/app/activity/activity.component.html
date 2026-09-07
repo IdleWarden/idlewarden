@@ -1,0 +1,46 @@
+<main>
+  <header>
+    <div class="who">
+      <h1>Activité</h1>
+      <p class="status">
+        Ce que l'agent a proposé, ce que le Gouverneur en a fait, et comment ça s'est
+        terminé.
+      </p>
+    </div>
+    <div class="filters">
+      @for (choice of filters; track choice.key) {
+        <button
+          type="button"
+          [class.on]="filter() === choice.key"
+          (click)="setFilter(choice.key)"
+        >
+          {{ choice.label }}
+        </button>
+      }
+    </div>
+  </header>
+
+  @if (refusalCount() > 0) {
+    <p class="note">
+      {{ refusalCount() }} intention(s) refusée(s). Une veille qui ne fait rien n'est
+      pas forcément une veille inactive.
+    </p>
+  }
+
+  @if (shown().length === 0) {
+    <p class="muted">
+      Rien à afficher. Les événements arrivent dès qu'une veille démarre.
+    </p>
+  } @else {
+    <ol class="timeline">
+      @for (entry of shown(); track $index) {
+        <li [attr.data-grade]="entry.grade">
+          <span class="at">{{ clock(entry.at_ms) }}</span>
+          <span class="intent">{{ entry.intent ?? "—" }}</span>
+          <span class="what">{{ entry.what }}</span>
+          <span class="detail">{{ entry.detail ?? "" }}</span>
+        </li>
+      }
+    </ol>
+  }
+</main>
