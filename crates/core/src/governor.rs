@@ -30,8 +30,12 @@ pub struct GovernorConfig {
     pub max_observation_age_ms: u64,
     /// Wall-clock ceiling for one session.
     pub max_session_minutes: u32,
-    /// Intents the active profile is allowed to emit. Empty means "all".
-    pub allowed_intents: Vec<String>,
+    /// Intents the active profile may emit. `None` means the profile does not
+    /// restrict them; `Some(list)` means exactly those, and an empty list means
+    /// none. It is an `Option` rather than a bare `Vec` because "the user
+    /// switched every intent off" and "the user set no restriction" are
+    /// opposite instructions, and an empty vector cannot tell them apart.
+    pub allowed_intents: Option<Vec<String>>,
 }
 
 impl Default for GovernorConfig {
@@ -41,7 +45,7 @@ impl Default for GovernorConfig {
             min_confidence: 0.75,
             max_observation_age_ms: 2_000,
             max_session_minutes: 480,
-            allowed_intents: Vec::new(),
+            allowed_intents: None,
         }
     }
 }
@@ -94,12 +98,12 @@ impl Governor {
             };
         }
 
-        if !self.config.allowed_intents.is_empty()
-            && !self.config.allowed_intents.contains(&intent.name)
-        {
-            return Verdict::Reject {
-                reason: format!("intent `{}` is not allowed by this profile", intent.name),
-            };
+        if let Some(allowed) = &self.config.allowed_intents {
+            if !allowed.contains(&intent.name) {
+                return Verdict::Reject {
+                    reason: format!("intent `{}` is not allowed by this profile", intent.name),
+                };
+            }
         }
 
         self.recent.retain(|t| now_ms.saturating_sub(*t) < 60_000);
@@ -180,9 +184,25 @@ mod tests {
     }
 
     #[test]
+    fn an_empty_allow_list_rejects_every_intent() {
+        let cfg = GovernorConfig {
+            allowed_intents: Some(Vec::new()),
+            ..GovernorConfig::default()
+        };
+        let mut governor = Governor::new(cfg, 0);
+
+        let verdict = governor.review(&Intent::new("collect_reward"), &obs(1.0, 0), 0);
+
+        assert!(
+            matches!(verdict, Verdict::Reject { .. }),
+            "a profile with nothing allowed must not be read as allowing everything"
+        );
+    }
+
+    #[test]
     fn rejects_intents_outside_the_profile() {
         let cfg = GovernorConfig {
-            allowed_intents: vec!["buy_upgrade".into()],
+            allowed_intents: Some(vec!["buy_upgrade".into()]),
             ..Default::default()
         };
         let mut g = Governor::new(cfg, 0);

@@ -86,6 +86,16 @@ export interface IntentSummary {
   enabled: boolean;
 }
 
+/// The Governor limits one plugin runs under. `disabled_intents` is a deny
+/// list: an intent the plugin gains later is enabled by default.
+export interface Profile {
+  max_actions_per_minute: number;
+  min_confidence: number;
+  max_observation_age_ms: number;
+  max_session_minutes: number;
+  disabled_intents: string[];
+}
+
 export type LogLevel = "ERROR" | "WARN" | "INFO" | "DEBUG" | "TRACE";
 
 /// One `tracing` event. `fields` keeps the structured values the Core emitted

@@ -6,18 +6,18 @@
 //! web view. No decision about a session is taken here.
 
 mod logs;
+mod profiles;
 mod session;
 mod updates;
 
 #[cfg(test)]
 mod tests;
 
-fn plugin_root(app: &tauri::AppHandle) -> std::path::PathBuf {
+fn data_dir(app: &tauri::AppHandle) -> std::path::PathBuf {
     use tauri::Manager;
     app.path()
         .app_data_dir()
-        .map(|dir| dir.join("plugins"))
-        .unwrap_or_else(|_| std::path::PathBuf::from("plugins"))
+        .unwrap_or_else(|_| std::path::PathBuf::from("."))
 }
 
 pub fn run() {
@@ -37,7 +37,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(move |app| {
             app.manage(updates::Updates::new(app.handle()));
-            app.manage(session::SessionHandle::new(plugin_root(app.handle())));
+            app.manage(session::SessionHandle::new(data_dir(app.handle())));
             app.manage(Arc::clone(&buffered));
             Ok(())
         })
@@ -50,6 +50,8 @@ pub fn run() {
             session::window_candidates,
             session::set_intent_enabled,
             logs::drain_logs,
+            session::profile,
+            session::set_profile,
             updates::update_settings,
             updates::set_update_channel,
             updates::check_for_update,

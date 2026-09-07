@@ -261,7 +261,7 @@ fn a_session_that_cannot_act_still_observes() {
 #[test]
 fn a_rejected_intent_is_published_with_its_reason_and_costs_no_action() {
     let mut build = Build::new();
-    build.config.allowed_intents = vec!["something_else".to_owned()];
+    build.config.allowed_intents = Some(vec!["something_else".to_owned()]);
     let (mut runner, _kill) = build.build();
 
     runner.tick(1000);
