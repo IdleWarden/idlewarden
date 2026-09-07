@@ -47,6 +47,10 @@ pub enum RulesError {
     Invalid(String),
     #[error("intent `{0}` declares no post-condition, so nothing could confirm it")]
     Unverifiable(String),
+    #[error("signal `{0}` reads a {1} but declares no decimal separator glyph, so it would read 1.5 as 15")]
+    Unseparated(String, String),
+    #[error("signal `{0}` maps glyph key `{1}`, which is not a single character")]
+    BadGlyphKey(String, String),
 }
 
 impl PluginRules {
@@ -59,6 +63,38 @@ impl PluginRules {
                 return Err(RulesError::Unverifiable(intent.name.clone()));
             }
         }
+
+        for signal in &rules.signals {
+            if let idlewarden_vision::Extractor::Digits {
+                glyphs, value_type, ..
+            } = &signal.extractor
+            {
+                for key in glyphs.keys() {
+                    if key.chars().count() != 1 {
+                        return Err(RulesError::BadGlyphKey(signal.id.0.clone(), key.clone()));
+                    }
+                }
+
+                // A fractional readout whose separator has no template reads
+                // `1.5` as `15`: a wrong number that parses, at full
+                // confidence. Refusing it at load is the only place that can
+                // be caught, because nothing downstream can tell the two apart.
+                let fractional = matches!(
+                    value_type,
+                    idlewarden_vision::NumericKind::Float | idlewarden_vision::NumericKind::Ratio
+                );
+                if fractional && !glyphs.keys().any(|key| key == "." || key == ",") {
+                    return Err(RulesError::Unseparated(
+                        signal.id.0.clone(),
+                        match value_type {
+                            idlewarden_vision::NumericKind::Ratio => "ratio".to_owned(),
+                            _ => "float".to_owned(),
+                        },
+                    ));
+                }
+            }
+        }
+
         Ok(rules)
     }
 
@@ -107,16 +143,15 @@ impl PluginRules {
             .anchors
             .iter()
             .map(|anchor| anchor.template.clone())
-            .chain(
-                self.signals
-                    .iter()
-                    .filter_map(|rule| match &rule.extractor {
-                        idlewarden_vision::Extractor::TemplateMatch { template, .. } => {
-                            Some(template.clone())
-                        }
-                        _ => None,
-                    }),
-            )
+            .chain(self.signals.iter().flat_map(|rule| match &rule.extractor {
+                idlewarden_vision::Extractor::TemplateMatch { template, .. } => {
+                    vec![template.clone()]
+                }
+                idlewarden_vision::Extractor::Digits { glyphs, .. } => {
+                    glyphs.values().cloned().collect()
+                }
+                idlewarden_vision::Extractor::ColorProbe { .. } => Vec::new(),
+            }))
             .collect();
         names.sort();
         names.dedup();
@@ -178,6 +213,75 @@ mod tests {
   ]
 }
 "#;
+
+    fn digits_rules(value_type: &str, glyphs: &str) -> String {
+        format!(
+            r#"{{
+              "signals": [
+                {{
+                  "id": "resource.gold",
+                  "extractor": {{
+                    "method": "digits",
+                    "roi": {{ "x": 0.1, "y": 0.1, "w": 0.2, "h": 0.05 }},
+                    "glyphs": {glyphs},
+                    "min_score": 0.85,
+                    "value_type": "{value_type}"
+                  }}
+                }}
+              ]
+            }}"#
+        )
+    }
+
+    #[test]
+    fn a_fractional_readout_without_a_separator_glyph_is_refused_at_load() {
+        let json = digits_rules("float", r#"{"0": "d0.png", "1": "d1.png"}"#);
+
+        let error = PluginRules::parse(&json).expect_err("this reads 1.5 as 15");
+
+        assert!(
+            matches!(error, RulesError::Unseparated(id, kind) if id == "resource.gold" && kind == "float"),
+            "a wrong number that parses is the failure this guards against"
+        );
+    }
+
+    #[test]
+    fn an_integer_readout_needs_no_separator() {
+        let json = digits_rules("int", r#"{"0": "d0.png", "1": "d1.png"}"#);
+
+        assert!(PluginRules::parse(&json).is_ok());
+    }
+
+    #[test]
+    fn a_fractional_readout_with_a_separator_glyph_is_accepted() {
+        let json = digits_rules("ratio", r#"{"0": "d0.png", ".": "dot.png"}"#);
+
+        assert!(PluginRules::parse(&json).is_ok());
+    }
+
+    #[test]
+    fn a_glyph_key_of_more_than_one_character_is_refused() {
+        let json = digits_rules("int", r#"{"10": "d10.png"}"#);
+
+        let error = PluginRules::parse(&json).expect_err("a key must be one character");
+
+        assert!(
+            matches!(error, RulesError::BadGlyphKey(_, key) if key == "10"),
+            "a multi-character key matches nothing and would read as silence"
+        );
+    }
+
+    #[test]
+    fn glyph_assets_are_collected_so_the_bundle_loads_them() {
+        let json = digits_rules("int", r#"{"0": "assets/d0.png", "1": "assets/d1.png"}"#);
+        let rules = PluginRules::parse(&json).expect("valid");
+
+        assert_eq!(
+            rules.templates(),
+            vec!["assets/d0.png".to_owned(), "assets/d1.png".to_owned()],
+            "a glyph nobody loads makes the readout silently unreadable"
+        );
+    }
 
     #[test]
     fn a_declared_file_parses_into_every_half_of_the_pipeline() {
