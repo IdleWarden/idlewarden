@@ -164,3 +164,28 @@ input:focus {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.canvas.picking {
+  cursor: cell;
+}
+
+.click-mark {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border: 2px solid var(--gold);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.click-mark span {
+  position: absolute;
+  left: 16px;
+  top: -4px;
+  padding: 1px 5px;
+  font-size: 10px;
+  white-space: nowrap;
+  color: var(--ink);
+  background: var(--gold);
+}

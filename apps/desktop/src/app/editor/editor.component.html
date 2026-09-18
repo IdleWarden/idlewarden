@@ -32,6 +32,7 @@
     <div class="workspace">
       <div
         class="canvas"
+        [class.picking]="picking() !== null"
         (pointerdown)="press($event)"
         (pointermove)="drag($event)"
         (pointerup)="release($event)"
@@ -48,6 +49,17 @@
           >
             <span>{{ region.name }}</span>
           </div>
+        }
+        @for (intent of intents(); track $index) {
+          @if (intent.click; as click) {
+            <div
+              class="click-mark"
+              [style.left]="percent(click.x)"
+              [style.top]="percent(click.y)"
+            >
+              <span>{{ intent.name }}</span>
+            </div>
+          }
         }
         @if (pending(); as area) {
           <div
@@ -101,6 +113,12 @@
           <p class="muted">Tire un rectangle sur la capture pour ajouter une région.</p>
         }
 
+        <app-intent-list
+          [(intents)]="intents"
+          [(picking)]="picking"
+          [signals]="signalNames()"
+        />
+
         <button type="button" class="save" [disabled]="!ready()" (click)="save()">
           Écrire le plugin
         </button>
@@ -109,7 +127,8 @@
         }
         <p class="muted footnote">
           Le plugin n'est gardé que s'il reconnaît la capture sur laquelle il a été
-          dessiné. Il décrit ce qu'il faut regarder, pas ce qu'il faut faire.
+          dessiné. Chaque intention doit dire ce qui sera vrai après le clic, sinon rien
+          ne distingue un clic réussi d'un clic sans effet.
         </p>
       </aside>
     </div>
