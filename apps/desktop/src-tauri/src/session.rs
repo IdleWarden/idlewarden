@@ -264,12 +264,6 @@ impl Inner {
         Ok(())
     }
 
-    /// Puts a runner on its own thread for this bundle.
-    ///
-    /// Split from [`Inner::start`] because acquiring backends and assembling a
-    /// session are different jobs with very different testability: the first
-    /// needs a real game window, the second is the glue #31 is about and can be
-    /// driven with any backend.
     fn spawn(
         &self,
         bundle: &PluginBundle,
@@ -432,9 +426,6 @@ mod tests {
 
     const WINDOW: WindowHandle = WindowHandle(4242);
 
-    /// The desktop as the test hands it over. `DesktopWindows` is the real one;
-    /// this exists so the glue can be driven on any machine, which is the same
-    /// seam `Detector` already documents.
     struct Fixed(Vec<GameWindow>);
 
     impl WindowSource for Fixed {
@@ -443,12 +434,6 @@ mod tests {
         }
     }
 
-    /// A capture backend that hands out one prepared frame for ever.
-    ///
-    /// Not a blank frame: the pixel the plugin probes is lit, so perception,
-    /// the tree and the Governor all do real work on it. A blank frame would
-    /// make the loop turn while proving nothing, which is exactly what #31
-    /// warned against.
     struct Painted {
         frame: Arc<Frame>,
         served: u64,
@@ -463,8 +448,6 @@ mod tests {
             }
 
             if reward_ready {
-                // The example rules probe a gold pixel at 0.49..0.51 x
-                // 0.71..0.73 to decide a reward is collectable.
                 for y in (0.71 * height as f64) as u32..(0.74 * height as f64) as u32 {
                     for x in (0.49 * width as f64) as u32..(0.52 * width as f64) as u32 {
                         let index = ((y * width + x) * 4) as usize;
@@ -542,8 +525,6 @@ mod tests {
         root
     }
 
-    /// A handle whose detector reports one window, matched by the fixture
-    /// plugin, so `start` has a game to bind to.
     fn ready(name: &str) -> Inner {
         let handle = SessionHandle::new(plugin_root(name));
         let mut inner = handle.0.into_inner().expect("session lock");
@@ -575,8 +556,6 @@ mod tests {
         inner
     }
 
-    /// Runs the session for a while, collecting everything it publishes, the
-    /// way the UI's poll does.
     fn drain_for(inner: &mut Inner, ticks: u32) -> Vec<Event> {
         let mut seen = Vec::new();
         for _ in 0..ticks {
