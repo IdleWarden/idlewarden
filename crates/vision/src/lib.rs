@@ -7,14 +7,16 @@
 //! optionally re-registered against a stable anchor before matching.
 
 mod decode;
+mod digits;
 mod gray;
 mod ncc;
 mod perceiver;
 mod probe;
 
 pub use decode::png_to_gray;
+pub use digits::{read as read_digits, Reading};
 pub use gray::Gray;
-pub use ncc::{best_match, best_match_multi_scale, Found, SCALES};
+pub use ncc::{best_match, best_match_multi_scale, matches_above, Found, SCALES};
 pub use perceiver::RuleSet;
 pub use probe::colour_fraction;
 
@@ -28,8 +30,18 @@ pub enum VisionError {
     AnchorLost(String),
     #[error("region {0:?} falls outside the window")]
     RegionOutOfBounds(Roi),
-    #[error("ocr failed: {0}")]
-    Ocr(String),
+    #[error("asset could not be used: {0}")]
+    Asset(String),
+    #[error("frame could not be read: {0}")]
+    Frame(String),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NumericKind {
+    Int,
+    Float,
+    Ratio,
 }
 
 /// A region of interest in window-relative coordinates (`0.0..=1.0`).
@@ -96,8 +108,12 @@ pub enum Extractor {
         template: String,
         min_score: f64,
     },
-    /// Read text, then parse it as the declared value type.
-    Ocr { roi: Roi },
+    Digits {
+        roi: Roi,
+        glyphs: std::collections::BTreeMap<String, String>,
+        min_score: f64,
+        value_type: NumericKind,
+    },
     /// Presence of a colour within tolerance, cheapest and surprisingly
     /// effective for idle-game state (button enabled, resource full).
     ColorProbe {
