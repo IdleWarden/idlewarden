@@ -114,7 +114,7 @@ idlewarden/
 │   └── desktop/       ← Tauri v2 + Angular shell. An adapter, nothing more.
 ├── plugins/           ← first-party plugins, one folder per game
 ├── docs/adr/          ← why everything is the way it is
-└── .ferrflow          ← release config: crates semver, plugins calver-short
+└── .ferrflow          ← release config: calver-short-seq for every package
 ```
 
 The plugin registry lives in a separate repository:
@@ -172,11 +172,12 @@ convenience. See [`docs/adr/0012-hot-reload.md`](docs/adr/0012-hot-reload.md).
 
 ### Versioning
 
-Plugins use **calver-short** (`YY.M.PATCH`, e.g. `26.8.1`); the crates and
-`api_version` stay **semver**. A plugin version tracks the *game's* patches,
-which carry no compatibility meaning, semver there would be decoration
-pretending to be a contract. Releases are managed by FerrFlow from conventional
-commits. See [`docs/adr/0013-versioning.md`](docs/adr/0013-versioning.md).
+Every released unit uses **calver-short-seq** (`YY.M.SEQ`, e.g. `26.8.1`), where
+`SEQ` counts releases within the month. The crates, the desktop app and the
+plugins are released together as one product, so independent semver numbers
+would describe the release process rather than compatibility. Releases are
+managed by FerrFlow from conventional commits. See
+[`docs/adr/0015-calver-everywhere.md`](docs/adr/0015-calver-everywhere.md).
 
 ---
 

@@ -101,7 +101,7 @@ Drop the resulting `IdleWarden.Reference.dll` and `IdleWarden.Bridge.dll` into
 ## Versions
 
 Both projects are release units in the root `.ferrflow`, tagged `mod/bridge@v...`
-and `mod/reference@v...`, on the same calver-short scheme as everything else
+and `mod/reference@v...`, on the same calver-short-seq scheme as everything else
 ([ADR-0015](../docs/adr/0015-calver-everywhere.md)).
 
 FerrFlow writes `<Version>` in each `.csproj`, and that single value drives
