@@ -4,6 +4,12 @@ All notable changes to `core` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.19] - 2026-09-18
+
+### Features
+
+- feat(desktop): author intents in the region editor (#47)
+
 ## [26.9.18] - 2026-09-18
 
 ### Features
