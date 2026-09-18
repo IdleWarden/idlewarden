@@ -8,6 +8,7 @@
 
 mod decode;
 mod digits;
+mod encode;
 mod gray;
 mod ncc;
 mod perceiver;
@@ -15,6 +16,7 @@ mod probe;
 
 pub use decode::png_to_gray;
 pub use digits::{read as read_digits, Reading};
+pub use encode::png_from_bgra;
 pub use gray::Gray;
 pub use ncc::{best_match, best_match_multi_scale, matches_above, Found, SCALES};
 pub use perceiver::RuleSet;

@@ -10,6 +10,7 @@
 //!   `Command`. That discipline is what makes a future headless daemon a
 //!   refactor rather than a rewrite.
 
+pub mod authoring;
 pub mod bundle;
 pub mod detector;
 pub mod event;
