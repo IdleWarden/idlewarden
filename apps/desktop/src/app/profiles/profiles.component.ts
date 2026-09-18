@@ -84,8 +84,6 @@ export class ProfilesComponent {
 
   readonly profile = signal<Profile | null>(null);
 
-  /// The limits follow whichever plugin is selected, including the first time
-  /// detection names one.
   constructor() {
     effect(() => {
       const plugin = this.plugin();
@@ -119,8 +117,6 @@ export class ProfilesComponent {
     return this.profile()?.[limit.key] ?? 0;
   }
 
-  /// The Rust side clamps what it stores, so the answer it returns is the
-  /// truth, not the numbers that were typed.
   async save(): Promise<void> {
     const plugin = this.plugin();
     const edited = this.profile();

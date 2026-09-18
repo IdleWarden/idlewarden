@@ -86,8 +86,6 @@ export interface IntentSummary {
   enabled: boolean;
 }
 
-/// The Governor limits one plugin runs under. `disabled_intents` is a deny
-/// list: an intent the plugin gains later is enabled by default.
 export interface Profile {
   max_actions_per_minute: number;
   min_confidence: number;

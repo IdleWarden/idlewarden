@@ -30,11 +30,6 @@ pub struct GovernorConfig {
     pub max_observation_age_ms: u64,
     /// Wall-clock ceiling for one session.
     pub max_session_minutes: u32,
-    /// Intents the active profile may emit. `None` means the profile does not
-    /// restrict them; `Some(list)` means exactly those, and an empty list means
-    /// none. It is an `Option` rather than a bare `Vec` because "the user
-    /// switched every intent off" and "the user set no restriction" are
-    /// opposite instructions, and an empty vector cannot tell them apart.
     pub allowed_intents: Option<Vec<String>>,
 }
 

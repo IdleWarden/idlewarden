@@ -58,8 +58,6 @@ struct Inner {
     service: Option<SessionService>,
     events: Vec<Published>,
     kill: KillSwitch,
-    /// Per-game limits, on disk. The Governor is handed them when a session
-    /// starts; nothing here decides whether an action is allowed.
     profiles: Profiles,
 }
 
@@ -384,15 +382,12 @@ pub fn set_intent_enabled(
     inner.summaries()
 }
 
-/// The limits one plugin runs under. Defaults until the user saves something.
 #[tauri::command]
 pub fn profile(handle: State<'_, SessionHandle>, plugin: String) -> Profile {
     let inner = handle.0.lock().expect("session lock");
     inner.profiles.get(&plugin)
 }
 
-/// Stores the edited limits and returns what was actually kept, which is the
-/// clamped form rather than the raw input.
 #[tauri::command]
 pub fn set_profile(handle: State<'_, SessionHandle>, plugin: String, profile: Profile) -> Profile {
     let mut inner = handle.0.lock().expect("session lock");

@@ -1,10 +1,4 @@
 // SPDX-License-Identifier: MPL-2.0
-//! Per-game Governor limits, kept on disk (#17).
-//!
-//! The limits themselves live in `idlewarden_core::GovernorConfig` and are
-//! enforced there. Nothing in this file decides whether an action is allowed;
-//! it stores what the user asked for and hands it to the Governor at the start
-//! of a session.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -12,12 +6,6 @@ use std::path::{Path, PathBuf};
 use idlewarden_core::GovernorConfig;
 use serde::{Deserialize, Serialize};
 
-/// What the Profiles screen edits for one plugin.
-///
-/// `disabled_intents` is a deny list rather than the Governor's allow list
-/// because the set of intents belongs to the plugin: a plugin that gains an
-/// intent should have it enabled by default, not silently excluded because an
-/// allow list written months earlier never heard of it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Profile {
@@ -42,12 +30,6 @@ impl Default for Profile {
 }
 
 impl Profile {
-    /// Bounds every field to a range where the limit still means something.
-    ///
-    /// A confidence floor of 0 or a rate ceiling of 0 does not relax a limit,
-    /// it removes it, and a UI slip should not be able to do that quietly. The
-    /// Governor keeps making the decisions; this only refuses to store a
-    /// setting that would make them meaningless.
     pub fn clamped(mut self) -> Self {
         self.max_actions_per_minute = self.max_actions_per_minute.clamp(1, 600);
         self.min_confidence = if self.min_confidence.is_finite() {
@@ -62,8 +44,6 @@ impl Profile {
         self
     }
 
-    /// The Governor's own configuration, with the deny list resolved against
-    /// the intents this plugin actually declares.
     pub fn governor(&self, intents: &[String]) -> GovernorConfig {
         let allowed: Vec<String> = intents
             .iter()
@@ -94,7 +74,6 @@ impl Profile {
     }
 }
 
-/// Every plugin's profile, backed by one JSON file.
 #[derive(Debug)]
 pub struct Profiles {
     path: PathBuf,
@@ -102,9 +81,6 @@ pub struct Profiles {
 }
 
 impl Profiles {
-    /// A missing or unreadable file is not an error worth stopping for: it
-    /// means "no profile has been saved yet", and defaults are a correct answer
-    /// to that.
     pub fn load(path: &Path) -> Self {
         let entries = std::fs::read_to_string(path)
             .ok()
