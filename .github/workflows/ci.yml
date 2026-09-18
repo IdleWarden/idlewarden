@@ -69,6 +69,12 @@ jobs:
         run: pnpm typecheck
       - name: Build
         run: pnpm build
+      - name: The shell survives Tauri's CSP
+        run: |
+          if grep -nE '<style|on(load|error)=' dist/idlewarden-desktop/browser/index.html; then
+            echo "index.html carries inline styles or handlers: Tauri hashes them into style-src, which disables 'unsafe-inline' and blocks every component style"
+            exit 1
+          fi
 
   licence-headers:
     runs-on: ubuntu-latest
