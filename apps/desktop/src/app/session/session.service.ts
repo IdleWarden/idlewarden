@@ -6,6 +6,7 @@ import {
   LogRecord,
   Observation,
   PluginSummary,
+  Profile,
   PublishedEvent,
   Refused,
   Session,
@@ -90,6 +91,14 @@ export class SessionService {
 
   async refreshPlugins(): Promise<void> {
     this.known.set(await invoke<PluginSummary[]>("plugins"));
+  }
+
+  async profile(plugin: string): Promise<Profile> {
+    return await invoke<Profile>("profile", { plugin });
+  }
+
+  async saveProfile(plugin: string, profile: Profile): Promise<Profile> {
+    return await invoke<Profile>("set_profile", { plugin, profile });
   }
 
   async setIntentEnabled(

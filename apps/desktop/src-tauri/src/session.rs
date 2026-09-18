@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
 
-use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -10,14 +9,16 @@ use idlewarden_capture::CaptureBackend;
 use idlewarden_capture::WindowsCapture;
 use idlewarden_core::detector::{Candidate, DesktopWindows};
 use idlewarden_core::{
-    load_all, Command, Detector, Event, Governor, GovernorConfig, Parts, PluginBundle, Refusal,
-    Runner, Session, SessionService, SessionState, DEFAULT_TICK,
+    load_all, Command, Detector, Event, Governor, Parts, PluginBundle, Refusal, Runner, Session,
+    SessionService, SessionState, DEFAULT_TICK,
 };
 #[cfg(windows)]
 use idlewarden_input::{DryRunBackend, Humanisation, SendInputBackend};
 use idlewarden_input::{InputBackend, KillSwitch};
 use serde::Serialize;
 use tauri::State;
+
+use crate::profiles::{Profile, Profiles};
 
 type Backends = (Box<dyn CaptureBackend>, Box<dyn InputBackend>);
 
@@ -57,9 +58,7 @@ struct Inner {
     service: Option<SessionService>,
     events: Vec<Published>,
     kill: KillSwitch,
-    /// Intents the user switched off, keyed `plugin::intent`. The Governor is
-    /// told about them when a session starts.
-    disabled: HashSet<String>,
+    profiles: Profiles,
 }
 
 /// One plugin as the sidebar and the automations list need it.
@@ -101,7 +100,9 @@ pub struct IntentSummary {
 }
 
 impl SessionHandle {
-    pub fn new(plugin_root: PathBuf) -> Self {
+    pub fn new(data_dir: PathBuf) -> Self {
+        let plugin_root = data_dir.join("plugins");
+        let profiles = Profiles::load(&data_dir.join("profiles.json"));
         let mut plugins = Vec::new();
         let mut events = Vec::new();
 
@@ -138,7 +139,7 @@ impl SessionHandle {
             service: None,
             events,
             kill: KillSwitch::new(),
-            disabled: HashSet::new(),
+            profiles,
         }))
     }
 }
@@ -202,17 +203,12 @@ impl Inner {
         Err("capture and input are only implemented on Windows".to_owned())
     }
 
-    fn key(plugin: &str, intent: &str) -> String {
-        format!("{plugin}::{intent}")
-    }
-
-    fn allowed(&self, bundle: &PluginBundle) -> Vec<String> {
+    fn declared(bundle: &PluginBundle) -> Vec<String> {
         bundle
             .rules
             .intents
             .iter()
             .map(|intent| intent.name.clone())
-            .filter(|name| !self.disabled.contains(&Self::key(&bundle.id.0, name)))
             .collect()
     }
 
@@ -222,17 +218,18 @@ impl Inner {
             .map(|bundle| PluginSummary {
                 id: bundle.id.0.clone(),
                 detected: self.session.plugin.as_ref() == Some(&bundle.id),
-                intents: bundle
-                    .rules
-                    .intents
-                    .iter()
-                    .map(|intent| IntentSummary {
-                        name: intent.name.clone(),
-                        enabled: !self
-                            .disabled
-                            .contains(&Self::key(&bundle.id.0, &intent.name)),
-                    })
-                    .collect(),
+                intents: {
+                    let profile = self.profiles.get(&bundle.id.0);
+                    bundle
+                        .rules
+                        .intents
+                        .iter()
+                        .map(|intent| IntentSummary {
+                            name: intent.name.clone(),
+                            enabled: profile.is_enabled(&intent.name),
+                        })
+                        .collect()
+                },
             })
             .collect()
     }
@@ -251,7 +248,8 @@ impl Inner {
             return Err(Refusal::NoGameReady);
         };
 
-        let allowed = self.allowed(bundle);
+        let profile = self.profiles.get(&bundle.id.0);
+        let governor = profile.governor(&Self::declared(bundle));
 
         let (capture, input) = match self.backends(window) {
             Ok(backends) => backends,
@@ -270,13 +268,7 @@ impl Inner {
                 actuator: Box::new(bundle.actuator()),
                 input,
                 kill: self.kill.clone(),
-                governor: Governor::new(
-                    GovernorConfig {
-                        allowed_intents: allowed,
-                        ..GovernorConfig::default()
-                    },
-                    0,
-                ),
+                governor: Governor::new(governor, 0),
                 session: self.session.clone(),
             }),
             DEFAULT_TICK,
@@ -384,13 +376,22 @@ pub fn set_intent_enabled(
     enabled: bool,
 ) -> Vec<PluginSummary> {
     let mut inner = handle.0.lock().expect("session lock");
-    let key = Inner::key(&plugin, &intent);
-    if enabled {
-        inner.disabled.remove(&key);
-    } else {
-        inner.disabled.insert(key);
-    }
+    inner
+        .profiles
+        .update(&plugin, |profile| profile.set_enabled(&intent, enabled));
     inner.summaries()
+}
+
+#[tauri::command]
+pub fn profile(handle: State<'_, SessionHandle>, plugin: String) -> Profile {
+    let inner = handle.0.lock().expect("session lock");
+    inner.profiles.get(&plugin)
+}
+
+#[tauri::command]
+pub fn set_profile(handle: State<'_, SessionHandle>, plugin: String, profile: Profile) -> Profile {
+    let mut inner = handle.0.lock().expect("session lock");
+    inner.profiles.set(&plugin, profile)
 }
 
 #[tauri::command]

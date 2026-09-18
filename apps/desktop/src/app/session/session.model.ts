@@ -86,6 +86,14 @@ export interface IntentSummary {
   enabled: boolean;
 }
 
+export interface Profile {
+  max_actions_per_minute: number;
+  min_confidence: number;
+  max_observation_age_ms: number;
+  max_session_minutes: number;
+  disabled_intents: string[];
+}
+
 export type LogLevel = "ERROR" | "WARN" | "INFO" | "DEBUG" | "TRACE";
 
 /// One `tracing` event. `fields` keeps the structured values the Core emitted

@@ -1,0 +1,86 @@
+<main>
+  <header>
+    <div class="who">
+      <h1>Profils</h1>
+      <p class="status">
+        Les limites que le Gouverneur applique, par jeu. Cet écran les modifie, il ne
+        rejoue aucune des vérifications.
+      </p>
+    </div>
+  </header>
+
+  @if (plugins().length === 0) {
+    <p class="muted">Aucun plugin installé, donc rien à régler.</p>
+  } @else {
+    <div class="picker">
+      @for (entry of plugins(); track entry.id) {
+        <button
+          type="button"
+          [class.on]="plugin() === entry.id"
+          (click)="choose(entry.id)"
+        >
+          {{ entry.id }}
+        </button>
+      }
+    </div>
+
+    @if (profile(); as current) {
+      <section class="limits">
+        @for (limit of limits; track limit.key) {
+          <article>
+            <label [attr.for]="limit.key">{{ limit.label }}</label>
+            <div class="row">
+              <input
+                type="range"
+                [id]="limit.key"
+                [min]="limit.min"
+                [max]="limit.max"
+                [step]="limit.step"
+                [value]="value(limit)"
+                (input)="edit(limit.key, $any($event.target).value)"
+              />
+              <span class="reading">{{ value(limit) }} {{ limit.unit }}</span>
+            </div>
+            <p class="hint">{{ limit.hint }}</p>
+          </article>
+        }
+      </section>
+
+      <section class="intents">
+        <p class="label">Automatisations autorisées</p>
+        @for (intent of intents(); track intent.name) {
+          <div class="automation">
+            <span class="title">{{ intent.name }}</span>
+            <button
+              type="button"
+              class="toggle"
+              role="switch"
+              [attr.aria-checked]="intent.enabled"
+              [attr.aria-label]="intent.name"
+              (click)="toggleIntent(intent.name, !intent.enabled)"
+            >
+              <span class="knob"></span>
+            </button>
+          </div>
+        } @empty {
+          <p class="muted">Ce plugin ne déclare aucune automatisation.</p>
+        }
+        <p class="hint">
+          Les bascules sont enregistrées tout de suite. Une veille déjà lancée n'est pas
+          interrompue.
+        </p>
+      </section>
+
+      <div class="actions">
+        <button type="button" (click)="save()">Enregistrer les limites</button>
+        @if (saved()) {
+          <span class="note">
+            Enregistré. Les valeurs affichées sont celles réellement retenues.
+          </span>
+        }
+      </div>
+    } @else {
+      <p class="muted">Lecture du profil…</p>
+    }
+  }
+</main>
