@@ -1,10 +1,10 @@
 # ADR-0015: calver-short everywhere, including the contract
 
-**Status:** Accepted · **Date:** 2026-08-25 · **Supersedes:** [ADR-0013](0013-versioning.md)
+**Status:** Accepted · **Date:** 2026-08-25 · **Supersedes:** [ADR-0013](0013-versioning.md) · **Amended:** 2026-09-18, see [Which FerrFlow strategy](#which-ferrflow-strategy)
 
 ## Decision
 
-Every released unit uses **calver-short** (`YY.M.PATCH`, e.g. `26.8.1`). No
+Every released unit uses **calver-short-seq** (`YY.M.SEQ`, e.g. `26.8.1`). No
 exceptions: crates, the desktop app, first-party plugins, the registry, the
 cloud repository. `versioning` is set once on the workspace and no package
 overrides it.
@@ -47,13 +47,33 @@ of them decided here:
 
 ## What still works unchanged
 
-`calver-short` is `^(\d{2})\.(\d{1,2})\.(\d{1,2})$`: three numeric components, no
+`calver-short-seq` is `^(\d{2})\.(\d{1,2})\.(\d+)$`: three numeric components, no
 leading zeros. That is also valid semver and it sorts correctly
 (`26.8.1 < 26.9.0 < 27.1.0`), so `semver::Version` in the host, the registry
 schema patterns and update comparison need no special case.
 
 The existing `@v0.1.0` tags are below `26.8.0`, so the first calendar release
 moves forward without a collision.
+
+## Which FerrFlow strategy
+
+This decision always described a counter within the month: `YY.M.PATCH`, and
+"a patch release in a new month is `26.9.0`". The configuration said
+`calver-short`, which in FerrFlow is `YY.M.D`, the day of the month. The two
+agree on the first release of a day and disagree on every one after it: a
+second release on the same day computes the version that already exists, and
+FerrFlow publishes nothing. That happened on 2026-09-18, when `core` and
+`desktop` had releasable commits and stayed at `26.9.18`.
+
+`calver-short-seq` is the strategy this ADR meant: `YY.M` from the calendar and
+a counter for the releases within that month, reset when the month rolls.
+`idlewarden-cloud` already used it; every repository now does.
+
+Switching needs no migration. Every existing version is `YY.M.D` with `D` at
+most 31, and the counter continues from it, so `26.9.18` is followed by
+`26.9.19` whatever the date, and versions keep increasing. The counter has no
+upper bound, so the registry's manifest schema accepts any number of digits in
+the last component.
 
 ## Consequences
 
