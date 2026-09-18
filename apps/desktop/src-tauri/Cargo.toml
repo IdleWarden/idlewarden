@@ -20,6 +20,7 @@ tauri-build = { version = "2", features = [] }
 idlewarden-capture.workspace = true
 idlewarden-core.workspace = true
 idlewarden-input.workspace = true
+idlewarden-vision.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true

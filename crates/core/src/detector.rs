@@ -44,6 +44,11 @@ impl Detector {
 
     /// Every window the last [`Detector::poll`] considered, each with the
     /// plugins claiming it. Empty until the first poll.
+    pub fn set_plugins(&mut self, plugins: Vec<(PluginId, GameMatcher)>) {
+        self.plugins = plugins;
+        self.current = None;
+    }
+
     pub fn candidates(&self) -> Vec<Candidate> {
         self.seen
             .iter()
@@ -350,6 +355,39 @@ mod tests {
         assert!(
             detector.candidates().is_empty(),
             "a closed window must not linger on the Detect screen"
+        );
+    }
+
+    #[test]
+    fn a_plugin_added_later_claims_a_window_that_was_unclaimed() {
+        let mut session = Session::default();
+        let mut detector = detector(vec![window(7, "Drawn Game", "drawn.exe")], &[]);
+        detector.poll(&mut session);
+        assert_eq!(session.state, SessionState::Searching);
+
+        detector.set_plugins(vec![(PluginId("drawn".to_owned()), matcher("drawn.exe"))]);
+        let events = detector.poll(&mut session);
+
+        assert_eq!(session.state, SessionState::Ready);
+        assert!(matches!(events.as_slice(), [Event::GameDetected { .. }]));
+    }
+
+    #[test]
+    fn replacing_the_plugins_drops_a_binding_the_old_set_made() {
+        let mut session = Session::default();
+        let mut detector = detector(
+            vec![window(7, "Idle Quest", "game.exe")],
+            &[("quest", "game.exe")],
+        );
+        detector.poll(&mut session);
+
+        detector.set_plugins(vec![(PluginId("rewrite".to_owned()), matcher("game.exe"))]);
+        detector.poll(&mut session);
+
+        assert_eq!(
+            session.plugin,
+            Some(PluginId("rewrite".to_owned())),
+            "the window must be re-attributed, not kept on a plugin that no longer claims it"
         );
     }
 

@@ -5,6 +5,7 @@
 //! `idlewarden_core::Command` and hands `idlewarden_core` types back to the
 //! web view. No decision about a session is taken here.
 
+mod editor;
 mod logs;
 mod profiles;
 mod session;
@@ -39,6 +40,7 @@ pub fn run() {
             app.manage(updates::Updates::new(app.handle()));
             app.manage(session::SessionHandle::new(data_dir(app.handle())));
             app.manage(Arc::clone(&buffered));
+            app.manage(editor::Editor::default());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -50,6 +52,8 @@ pub fn run() {
             session::window_candidates,
             session::set_intent_enabled,
             logs::drain_logs,
+            editor::capture_frame,
+            editor::save_plugin,
             session::profile,
             session::set_profile,
             updates::update_settings,

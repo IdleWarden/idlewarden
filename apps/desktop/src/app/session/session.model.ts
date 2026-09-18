@@ -106,7 +106,36 @@ export interface LogRecord {
   fields: Record<string, unknown>;
 }
 
+export interface Roi {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export type RegionKind = "anchor" | "color_probe" | "template_match";
+
+export interface Region {
+  name: string;
+  kind: RegionKind;
+  area: Roi;
+}
+
+export interface GameMatcher {
+  steam_appid?: number;
+  executable?: string;
+  window_title?: string;
+}
+
+export interface Draft {
+  id: string;
+  name: string;
+  game: GameMatcher;
+  regions: Region[];
+}
+
 export interface WindowCandidate {
+  handle: number;
   title: string;
   executable: string;
   steam_appid: number | null;

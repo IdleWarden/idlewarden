@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import {
   Command,
+  Draft,
   LogRecord,
   Observation,
   PluginSummary,
@@ -87,6 +88,16 @@ export class SessionService {
         [...drained.reverse(), ...existing].slice(0, MAX_EVENTS),
       );
     }
+  }
+
+  async captureFrame(handle: number): Promise<ArrayBuffer> {
+    return await invoke<ArrayBuffer>("capture_frame", { window: handle });
+  }
+
+  async savePlugin(draft: Draft): Promise<string> {
+    const written = await invoke<string>("save_plugin", { draft });
+    await this.refreshPlugins();
+    return written;
   }
 
   async refreshPlugins(): Promise<void> {
