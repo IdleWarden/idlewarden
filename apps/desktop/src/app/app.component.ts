@@ -22,6 +22,7 @@ export class AppComponent {
     { path: "/activite", label: "Activité" },
     { path: "/journaux", label: "Journaux" },
     { path: "/profils", label: "Profils" },
+    { path: "/editeur", label: "Éditeur" },
   ];
 
   stateOf(plugin: PluginSummary): string {

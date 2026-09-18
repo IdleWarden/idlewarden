@@ -1,0 +1,122 @@
+<main>
+  <header>
+    <div class="who">
+      <h1>Éditeur de régions</h1>
+      <p class="status">
+        Pas de plugin pour ton jeu ? Capture l'écran, dessine ce que le Gardien doit
+        regarder, et l'application écrit le plugin pour toi.
+      </p>
+    </div>
+  </header>
+
+  <section class="source">
+    <label for="window">Fenêtre</label>
+    <select id="window" (change)="choose($any($event.target).value)">
+      <option value="">choisir une fenêtre</option>
+      @for (candidate of windows(); track candidate.handle) {
+        <option [value]="candidate.handle">
+          {{ candidate.title }} · {{ candidate.executable }}
+        </option>
+      }
+    </select>
+    <button
+      type="button"
+      [disabled]="chosen() === null || capturing()"
+      (click)="capture()"
+    >
+      {{ capturing() ? "Capture…" : "Capturer l'écran" }}
+    </button>
+  </section>
+
+  @if (image(); as src) {
+    <div class="workspace">
+      <div
+        class="canvas"
+        (pointerdown)="press($event)"
+        (pointermove)="drag($event)"
+        (pointerup)="release($event)"
+      >
+        <img [src]="src" alt="Capture de la fenêtre du jeu" draggable="false" />
+        @for (region of regions(); track $index) {
+          <div
+            class="region"
+            [attr.data-kind]="region.kind"
+            [style.left]="percent(region.area.x)"
+            [style.top]="percent(region.area.y)"
+            [style.width]="percent(region.area.w)"
+            [style.height]="percent(region.area.h)"
+          >
+            <span>{{ region.name }}</span>
+          </div>
+        }
+        @if (pending(); as area) {
+          <div
+            class="region pending"
+            [style.left]="percent(area.x)"
+            [style.top]="percent(area.y)"
+            [style.width]="percent(area.w)"
+            [style.height]="percent(area.h)"
+          ></div>
+        }
+      </div>
+
+      <aside class="panel">
+        <p class="label">Plugin</p>
+        <label>
+          Identifiant
+          <input [value]="id()" (input)="id.set($any($event.target).value)" />
+        </label>
+        <label>
+          Nom
+          <input [value]="name()" (input)="name.set($any($event.target).value)" />
+        </label>
+        <label>
+          Exécutable
+          <input
+            [value]="executable()"
+            (input)="executable.set($any($event.target).value)"
+          />
+        </label>
+
+        <p class="label">Régions · {{ regions().length }}</p>
+        @for (region of regions(); track $index; let index = $index) {
+          <div class="row" [attr.data-kind]="region.kind">
+            <input
+              [value]="region.name"
+              (change)="rename(index, $any($event.target).value)"
+              aria-label="nom de la région"
+            />
+            <select
+              [value]="region.kind"
+              (change)="retype(index, $any($event.target).value)"
+              aria-label="type de la région"
+            >
+              @for (kind of kinds; track kind.key) {
+                <option [value]="kind.key">{{ kind.label }}</option>
+              }
+            </select>
+            <button type="button" class="remove" (click)="remove(index)">×</button>
+          </div>
+        } @empty {
+          <p class="muted">Tire un rectangle sur la capture pour ajouter une région.</p>
+        }
+
+        <button type="button" class="save" [disabled]="!ready()" (click)="save()">
+          Écrire le plugin
+        </button>
+        @if (outcome(); as result) {
+          <p class="outcome" [class.error]="!result.ok">{{ result.message }}</p>
+        }
+        <p class="muted footnote">
+          Le plugin n'est gardé que s'il reconnaît la capture sur laquelle il a été
+          dessiné. Il décrit ce qu'il faut regarder, pas ce qu'il faut faire.
+        </p>
+      </aside>
+    </div>
+  } @else {
+    <p class="muted">
+      Choisis la fenêtre du jeu et capture-la. Le jeu doit être en fenêtré ou en plein
+      écran fenêtré.
+    </p>
+  }
+</main>

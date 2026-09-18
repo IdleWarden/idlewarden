@@ -1567,6 +1567,7 @@ dependencies = [
  "idlewarden-capture",
  "idlewarden-core",
  "idlewarden-input",
+ "idlewarden-vision",
  "serde",
  "serde_json",
  "tauri",

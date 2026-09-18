@@ -5,8 +5,10 @@ use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use idlewarden_capture::CaptureBackend;
+use idlewarden_capture::Frame;
 #[cfg(windows)]
 use idlewarden_capture::WindowsCapture;
+use idlewarden_core::authoring::{self, AuthoringError, Draft};
 use idlewarden_core::detector::{Candidate, DesktopWindows};
 use idlewarden_core::{
     load_all, Command, Detector, Event, Governor, GovernorConfig, Parts, PluginBundle, Refusal,
@@ -50,6 +52,7 @@ fn now_ms() -> u64 {
 pub struct SessionHandle(Mutex<Inner>);
 
 struct Inner {
+    plugin_root: PathBuf,
     plugins: Vec<PluginBundle>,
     detector: Detector,
     /// A projection of what the runner reports, not the source of truth. While
@@ -72,6 +75,7 @@ pub struct PluginSummary {
 /// One window detection looked at, as the Detect screen renders it.
 #[derive(Debug, Serialize)]
 pub struct WindowCandidate {
+    pub handle: isize,
     pub title: String,
     pub executable: String,
     pub steam_appid: Option<u32>,
@@ -81,6 +85,7 @@ pub struct WindowCandidate {
 impl From<Candidate> for WindowCandidate {
     fn from(candidate: Candidate) -> Self {
         WindowCandidate {
+            handle: candidate.window.handle.0,
             title: candidate.window.title,
             executable: candidate.window.executable,
             steam_appid: candidate.window.steam_appid,
@@ -101,12 +106,34 @@ pub struct IntentSummary {
 
 impl SessionHandle {
     pub fn new(data_dir: PathBuf) -> Self {
-        let plugin_root = data_dir.join("plugins");
-        let profiles = Profiles::load(&data_dir.join("profiles.json"));
+        let mut inner = Inner {
+            plugin_root: data_dir.join("plugins"),
+            plugins: Vec::new(),
+            detector: Detector::new(Box::new(DesktopWindows), Vec::new()),
+            session: Session::default(),
+            service: None,
+            events: Vec::new(),
+            kill: KillSwitch::new(),
+            profiles: Profiles::load(&data_dir.join("profiles.json")),
+        };
+        inner.load_plugins();
+        SessionHandle(Mutex::new(inner))
+    }
+
+    pub fn author(&self, draft: &Draft, frame: &Frame) -> Result<PathBuf, AuthoringError> {
+        let mut inner = self.0.lock().expect("session lock");
+        let written = authoring::write(draft, frame, &inner.plugin_root)?;
+        inner.load_plugins();
+        Ok(written)
+    }
+}
+
+impl Inner {
+    fn load_plugins(&mut self) {
         let mut plugins = Vec::new();
         let mut events = Vec::new();
 
-        for (path, loaded) in load_all(&plugin_root) {
+        for (path, loaded) in load_all(&self.plugin_root) {
             match loaded {
                 Ok(bundle) => {
                     events.push(Event::PluginLoaded {
@@ -121,30 +148,16 @@ impl SessionHandle {
             }
         }
 
-        let matchers = plugins
-            .iter()
-            .map(|bundle| (bundle.id.clone(), bundle.matcher.clone()))
-            .collect();
-
-        let at_ms = now_ms();
-        let events = events
-            .into_iter()
-            .map(|event| Published { at_ms, event })
-            .collect();
-
-        SessionHandle(Mutex::new(Inner {
-            plugins,
-            detector: Detector::new(Box::new(DesktopWindows), matchers),
-            session: Session::default(),
-            service: None,
-            events,
-            kill: KillSwitch::new(),
-            profiles,
-        }))
+        self.detector.set_plugins(
+            plugins
+                .iter()
+                .map(|bundle| (bundle.id.clone(), bundle.matcher.clone()))
+                .collect(),
+        );
+        self.plugins = plugins;
+        self.publish(events);
     }
-}
 
-impl Inner {
     /// Detection while idle, published events while running. Called before
     /// anything reads the session, so the UI never sees a stale state.
     fn publish(&mut self, events: impl IntoIterator<Item = Event>) {
@@ -419,6 +432,7 @@ mod tests {
     use super::*;
 
     use idlewarden_capture::{CaptureError, Frame, GameWindow, Size, WindowHandle};
+    use idlewarden_core::authoring::RegionKind;
     use idlewarden_core::PluginId;
     use idlewarden_core::WindowSource;
     use idlewarden_input::DryRunBackend;
@@ -744,6 +758,81 @@ mod tests {
             "the kill switch has to stop the work, not just the label"
         );
         assert!(after.iter().all(|name| *name != "action_finished"));
+    }
+
+    fn drawn(id: &str, kind: idlewarden_core::authoring::RegionKind) -> Draft {
+        use idlewarden_core::authoring::Region;
+        use idlewarden_core::GameMatcher;
+        use idlewarden_vision::Roi;
+
+        Draft {
+            id: PluginId(id.to_owned()),
+            name: "Drawn".to_owned(),
+            game: GameMatcher {
+                executable: Some("TestGame.exe".to_owned()),
+                ..Default::default()
+            },
+            regions: vec![Region {
+                name: "ui.reward_ready".to_owned(),
+                kind,
+                area: Roi {
+                    x: 0.495,
+                    y: 0.715,
+                    w: 0.02,
+                    h: 0.02,
+                },
+            }],
+        }
+    }
+
+    #[test]
+    fn a_plugin_written_by_the_editor_is_loaded_without_a_restart() {
+        let data = std::env::temp_dir().join(format!("idlewarden-author-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&data);
+        let handle = SessionHandle::new(data);
+
+        handle
+            .author(
+                &drawn("local.drawn", RegionKind::ColorProbe),
+                &Painted::new(true).frame,
+            )
+            .expect("a region over the gold patch recognises itself");
+
+        let inner = handle.0.into_inner().expect("session lock");
+        assert!(
+            inner
+                .plugins
+                .iter()
+                .any(|bundle| bundle.id.0 == "local.drawn"),
+            "L0 is only real if the plugin runs as soon as it is drawn"
+        );
+        assert!(inner.events.iter().any(|published| matches!(
+            &published.event,
+            Event::PluginLoaded { plugin, .. } if plugin.0 == "local.drawn"
+        )));
+    }
+
+    #[test]
+    fn a_draft_the_editor_refuses_leaves_the_loaded_plugins_alone() {
+        let handle = SessionHandle(Mutex::new(ready("refused-draft")));
+
+        let error = handle
+            .author(
+                &drawn("local.drawn", RegionKind::TemplateMatch),
+                &Painted::new(false).frame,
+            )
+            .expect_err("a flat patch has no texture to match, not even against itself");
+
+        assert!(matches!(error, AuthoringError::Unrecognised(..)));
+        let loaded: Vec<String> = handle
+            .0
+            .into_inner()
+            .expect("session lock")
+            .plugins
+            .iter()
+            .map(|bundle| bundle.id.0.clone())
+            .collect();
+        assert_eq!(loaded, vec!["dev.idlewarden.test-game".to_owned()]);
     }
 
     #[test]
