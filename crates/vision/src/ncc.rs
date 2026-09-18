@@ -92,11 +92,6 @@ fn correlate(
     (dot / (norm * needle_norm)).clamp(0.0, 1.0)
 }
 
-/// Every position where `needle` correlates at or above `min_score`.
-///
-/// [`best_match`] answers "is this here", which is all a boolean signal needs.
-/// Reading a number needs "where is each glyph", because the answer is several
-/// matches whose left-to-right order carries the meaning.
 pub fn matches_above(haystack: &Gray, needle: &Gray, min_score: f64) -> Vec<Found> {
     if needle.width == 0
         || needle.height == 0

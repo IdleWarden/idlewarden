@@ -75,10 +75,6 @@ impl PluginRules {
                     }
                 }
 
-                // A fractional readout whose separator has no template reads
-                // `1.5` as `15`: a wrong number that parses, at full
-                // confidence. Refusing it at load is the only place that can
-                // be caught, because nothing downstream can tell the two apart.
                 let fractional = matches!(
                     value_type,
                     idlewarden_vision::NumericKind::Float | idlewarden_vision::NumericKind::Ratio

@@ -1,37 +1,16 @@
 // SPDX-License-Identifier: MPL-2.0
-//! Reading numerals from a fixed game font (#32).
-//!
-//! This is not OCR and does not pretend to be. Idle-game readouts are numerals
-//! drawn in one font on a flat background, which is the case template matching
-//! already handles: a plugin ships a crop of each glyph and the same normalised
-//! cross-correlation that finds a button finds a `7`. ADR-0006 records why that
-//! trade beat shipping an ML runtime.
-//!
-//! The failure mode worth designing against is a *plausible* wrong number, so
-//! the confidence returned is the weakest glyph in the reading rather than an
-//! average: one badly-matched digit is enough to make the whole number wrong,
-//! and averaging would hide it behind its neighbours.
 
 use crate::gray::Gray;
 use crate::ncc::{matches_above, Found, SCALES};
 
-/// What a numeric region says, and how sure the weakest glyph in it is.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Reading {
     pub text: String,
     pub confidence: f64,
 }
 
-/// Two glyphs may not claim the same place. Above this share of the narrower
-/// one's width, the lower-scoring match is dropped.
 const MAX_OVERLAP: f64 = 0.4;
 
-/// How far off the line a glyph may sit, as a share of the line's height.
-///
-/// Every numeral in one readout shares a baseline and a size. Without this, a
-/// glyph-sized patch of background elsewhere in the region joins the number and
-/// `747` reads as `7477`: a wrong number, at full confidence, which is the
-/// outcome this whole module exists to avoid.
 const MAX_BASELINE_DRIFT: f64 = 0.34;
 
 struct Candidate {
@@ -39,18 +18,6 @@ struct Candidate {
     found: Found,
 }
 
-/// Reads the glyphs present in `haystack`, left to right.
-///
-/// A readout is drawn at one size, so each scale in [`SCALES`] is read on its
-/// own and the fullest reading wins. Letting matches from different scales
-/// compete directly does not work: they tie at the top, and an accidental
-/// two-pixel match at the wrong scale then decides the whole line.
-///
-/// Reading every scale is also what makes a resized window degrade the reading
-/// instead of breaking it.
-///
-/// A region where nothing matches reads as empty with zero confidence. It never
-/// guesses.
 pub fn read(haystack: &Gray, glyphs: &[(char, Gray)], min_score: f64) -> Reading {
     SCALES
         .iter()
@@ -122,8 +89,6 @@ fn read_at(haystack: &Gray, glyphs: &[(char, Gray)], min_score: f64, scale: f64)
     }
 }
 
-/// The strongest match defines the line. A glyph sitting above or below it
-/// belongs to something else, not to this number.
 fn on_the_same_line(line: &Found, other: &Found) -> bool {
     if line.height != other.height {
         return false;
@@ -147,8 +112,6 @@ fn overlaps(a: &Found, b: &Found) -> bool {
 mod tests {
     use super::*;
 
-    /// A glyph is a 3x5 block of ink on a light ground, distinct enough that a
-    /// wrong one cannot score as well as the right one.
     fn glyph(rows: [&str; 5]) -> Gray {
         let mut pixels = Vec::with_capacity(15);
         for row in rows {
@@ -175,8 +138,6 @@ mod tests {
         vec![('1', one()), ('2', two()), ('.', dot())]
     }
 
-    /// Lays glyphs out left to right with one blank column between them, on a
-    /// light ground, the way a readout is drawn.
     fn line(glyphs: &[&Gray]) -> Gray {
         let height = 5;
         let width = glyphs.iter().map(|g| g.width + 1).sum::<u32>() + 1;
@@ -294,8 +255,6 @@ mod tests {
             for x in 0..readout.width {
                 wider[(y * width + x) as usize] = readout.at(x, y);
             }
-            // A patch of textured background to the right of the readout, the
-            // sort of thing a game draws next to a counter.
             for x in readout.width..width {
                 wider[(y * width + x) as usize] = (((x * 37 + y * 11) % 200) + 30) as u8;
             }

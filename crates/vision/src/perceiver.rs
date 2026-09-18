@@ -168,8 +168,6 @@ impl Perceiver for RuleSet {
     }
 }
 
-/// A glyph key names one character. A longer key is an authoring mistake that
-/// would otherwise silently match nothing.
 fn single_char(key: &str) -> Result<char, VisionError> {
     let mut chars = key.chars();
     match (chars.next(), chars.next()) {
@@ -180,11 +178,6 @@ fn single_char(key: &str) -> Result<char, VisionError> {
     }
 }
 
-/// Turns a reading into a value, or into zero confidence.
-///
-/// A number that does not parse is reported as unreadable rather than as a
-/// default: the Governor's confidence floor is what stops the agent, and a
-/// plausible zero at full confidence would walk straight past it.
 fn parse(reading: &Reading, kind: NumericKind) -> (Value, Confidence) {
     let unreadable = |zero: Value| (zero, Confidence::new(0.0));
 
@@ -336,8 +329,6 @@ mod tests {
         digit(["###", "..#", ".#.", ".#.", ".#."])
     }
 
-    /// Paints a light plate at `left, top` and stamps the glyphs onto it with a
-    /// one-pixel gap, the way a game draws a readout.
     fn stamp_readout(bgra: &mut [u8], left: u32, top: u32, glyphs: &[&Gray]) {
         let width: u32 = glyphs.iter().map(|g| g.width + 1).sum::<u32>() + 1;
         for y in top..top + 7 {

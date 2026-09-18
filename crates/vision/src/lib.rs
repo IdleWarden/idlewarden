@@ -36,16 +36,11 @@ pub enum VisionError {
     Frame(String),
 }
 
-/// What a numeric readout parses into. Declared by the rule rather than
-/// inferred, so a readout that suddenly looks like a different kind of number
-/// fails to parse instead of quietly changing type under the agent.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum NumericKind {
     Int,
     Float,
-    /// A `0.0..=1.0` fraction. Values outside that range are a misread, not a
-    /// number to clamp and act on.
     Ratio,
 }
 
@@ -113,13 +108,8 @@ pub enum Extractor {
         template: String,
         min_score: f64,
     },
-    /// Read a numeral drawn in the game's own font, one glyph template per
-    /// character, then parse it as the declared kind (#32). Not OCR: it reads
-    /// the characters the plugin supplied templates for, and nothing else.
     Digits {
         roi: Roi,
-        /// Character to template asset name. Every key is a single character;
-        /// a decimal separator is a glyph like any other.
         glyphs: std::collections::BTreeMap<String, String>,
         min_score: f64,
         value_type: NumericKind,
