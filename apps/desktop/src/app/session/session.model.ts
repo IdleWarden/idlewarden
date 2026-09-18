@@ -127,11 +127,27 @@ export interface GameMatcher {
   window_title?: string;
 }
 
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export type Condition =
+  { op: "is_true"; signal: string } | { op: "is_false"; signal: string };
+
+export interface IntentDraft {
+  name: string;
+  when: Condition[];
+  click: Point;
+  post_condition: Condition[];
+}
+
 export interface Draft {
   id: string;
   name: string;
   game: GameMatcher;
   regions: Region[];
+  intents: IntentDraft[];
 }
 
 export interface WindowCandidate {

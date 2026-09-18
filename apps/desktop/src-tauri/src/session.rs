@@ -782,6 +782,7 @@ mod tests {
                     h: 0.02,
                 },
             }],
+            intents: Vec::new(),
         }
     }
 

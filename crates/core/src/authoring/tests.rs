@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MPL-2.0
 use super::*;
 use crate::bundle::load_all;
+use idlewarden_agent::Condition;
 use idlewarden_capture::Size;
+use idlewarden_plugin_api::{InputCommand, MouseButton, Observation, Point, Signal};
 
 const W: u32 = 100;
 const H: u32 = 80;
@@ -97,6 +99,7 @@ fn draft(regions: Vec<Region>) -> Draft {
             ..Default::default()
         },
         regions,
+        intents: Vec::new(),
     }
 }
 
@@ -323,4 +326,230 @@ fn widening_a_search_area_keeps_its_centre_even_against_the_frame_edge() {
     );
     assert!(widened.is_within_unit_square());
     assert!(widened.h > at_edge.h, "the free axis still gets its margin");
+}
+
+fn is_true(signal: &str) -> Condition {
+    Condition::IsTrue {
+        signal: signal.to_owned(),
+    }
+}
+
+fn is_false(signal: &str) -> Condition {
+    Condition::IsFalse {
+        signal: signal.to_owned(),
+    }
+}
+
+fn collect() -> IntentDraft {
+    IntentDraft {
+        name: "collect_reward".to_owned(),
+        when: vec![is_true("ui.reward_ready")],
+        click: Point { x: 0.48, y: 0.68 },
+        post_condition: vec![is_false("ui.reward_ready")],
+    }
+}
+
+fn with_intents(intents: Vec<IntentDraft>) -> Draft {
+    Draft {
+        intents,
+        ..full_draft()
+    }
+}
+
+fn refused(draft: Draft, name: &str) -> AuthoringError {
+    let root = root(name);
+    let error = write(&draft, &game_screen(), &root).expect_err("the intent is refused");
+    assert_eq!(
+        std::fs::read_dir(&root).expect("readable").count(),
+        0,
+        "a refused intent must be caught before anything is written"
+    );
+    error
+}
+
+#[test]
+fn a_drawn_intent_fires_on_the_frame_that_shows_its_trigger() {
+    let root = root("intent-fires");
+    write(&with_intents(vec![collect()]), &game_screen(), &root).expect("written");
+
+    let (_, bundle) = load_all(&root).into_iter().next().expect("found");
+    let bundle = bundle.expect("loads");
+    let observation = Observation {
+        frame_id: 1,
+        captured_at_ms: 0,
+        signals: bundle
+            .perceiver()
+            .perceive(&game_screen())
+            .expect("perceived")
+            .into_iter()
+            .map(|extracted| Signal {
+                id: extracted.id,
+                value: extracted.value,
+                confidence: extracted.confidence,
+            })
+            .collect(),
+    };
+
+    let tick = bundle.tree().tick(&observation);
+
+    assert_eq!(
+        tick.intent.map(|intent| intent.name),
+        Some("collect_reward".to_owned()),
+        "the gold patch is lit, so the drawn intent has to be proposed"
+    );
+}
+
+#[test]
+fn a_drawn_intent_clicks_the_picked_point_and_asks_for_the_mouse() {
+    let root = root("intent-manifest");
+    let dir = write(&with_intents(vec![collect()]), &game_screen(), &root).expect("written");
+
+    let manifest: PluginManifest =
+        serde_json::from_str(&std::fs::read_to_string(dir.join("plugin.json")).expect("readable"))
+            .expect("parses");
+    assert_eq!(manifest.intents, vec!["collect_reward".to_owned()]);
+    assert!(
+        manifest.capabilities.contains(&Capability::InputMouse),
+        "a plugin that clicks has to say so, or the host refuses its input"
+    );
+
+    let rules = PluginRules::load(&dir.join("rules.json")).expect("valid rules");
+    assert_eq!(
+        rules.intents[0].commands[0],
+        InputCommand::Click {
+            at: Point { x: 0.48, y: 0.68 },
+            button: MouseButton::Left,
+        }
+    );
+}
+
+#[test]
+fn an_intent_with_no_trigger_is_refused() {
+    let mut always = collect();
+    always.when.clear();
+
+    assert!(matches!(
+        refused(with_intents(vec![always]), "no-trigger"),
+        AuthoringError::NoTrigger(name) if name == "collect_reward"
+    ));
+}
+
+#[test]
+fn an_intent_with_no_post_condition_is_refused() {
+    let mut unconfirmed = collect();
+    unconfirmed.post_condition.clear();
+
+    assert!(matches!(
+        refused(with_intents(vec![unconfirmed]), "no-post"),
+        AuthoringError::NoPostCondition(_)
+    ));
+}
+
+#[test]
+fn a_post_condition_that_was_already_true_before_is_refused() {
+    let mut circular = collect();
+    circular.post_condition = vec![is_true("ui.reward_ready")];
+
+    assert!(
+        matches!(
+            refused(with_intents(vec![circular]), "circular"),
+            AuthoringError::UnprovablePostCondition(_)
+        ),
+        "it would confirm a click that changed nothing"
+    );
+}
+
+#[test]
+fn a_post_condition_adding_to_the_trigger_still_counts_as_evidence() {
+    let root = root("adds-evidence");
+    let mut stronger = collect();
+    stronger.post_condition = vec![is_true("ui.reward_ready"), is_true("ui.menu_open")];
+
+    assert!(write(&with_intents(vec![stronger]), &game_screen(), &root).is_ok());
+}
+
+#[test]
+fn an_intent_on_a_signal_that_was_not_drawn_is_refused() {
+    let mut stray = collect();
+    stray.when = vec![is_true("ui.never_drawn")];
+
+    assert!(matches!(
+        refused(with_intents(vec![stray]), "unknown"),
+        AuthoringError::UnknownSignal(_, signal) if signal == "ui.never_drawn"
+    ));
+}
+
+#[test]
+fn an_anchor_is_not_a_signal_an_intent_can_test() {
+    let mut on_anchor = collect();
+    on_anchor.when = vec![is_true("logo")];
+
+    assert!(matches!(
+        refused(with_intents(vec![on_anchor]), "anchor"),
+        AuthoringError::UnknownSignal(_, signal) if signal == "logo"
+    ));
+}
+
+#[test]
+fn a_numeric_condition_on_a_drawn_signal_is_refused() {
+    let mut numeric = collect();
+    numeric.when = vec![Condition::AtLeast {
+        signal: "ui.reward_ready".to_owned(),
+        value: 3.0,
+    }];
+
+    assert!(matches!(
+        refused(with_intents(vec![numeric]), "numeric"),
+        AuthoringError::UnsupportedCondition(_, _)
+    ));
+}
+
+#[test]
+fn a_click_outside_the_window_is_refused() {
+    let mut beyond = collect();
+    beyond.click = Point { x: 1.2, y: 0.5 };
+
+    assert!(matches!(
+        refused(with_intents(vec![beyond]), "click-outside"),
+        AuthoringError::ClickOutside(_)
+    ));
+}
+
+#[test]
+fn two_intents_with_the_same_name_are_refused() {
+    assert!(matches!(
+        refused(with_intents(vec![collect(), collect()]), "twin-intents"),
+        AuthoringError::BadIntentName(_)
+    ));
+}
+
+#[test]
+fn the_payload_the_editor_sends_is_the_draft_the_core_expects() {
+    let sent = r#"{
+      "id": "local.demo",
+      "name": "Demo",
+      "game": { "executable": "Demo.exe" },
+      "regions": [
+        { "name": "ui.reward_ready", "kind": "color_probe",
+          "area": { "x": 0.47, "y": 0.7, "w": 0.09, "h": 0.075 } }
+      ],
+      "intents": [
+        { "name": "action-1",
+          "when": [{ "op": "is_true", "signal": "ui.reward_ready" }],
+          "click": { "x": 0.5, "y": 0.7200000000000001 },
+          "post_condition": [{ "op": "is_false", "signal": "ui.reward_ready" }] }
+      ]
+    }"#;
+
+    let draft: Draft = serde_json::from_str(sent).expect("the editor's payload deserialises");
+
+    assert_eq!(draft.intents[0].when, vec![is_true("ui.reward_ready")]);
+    assert_eq!(
+        draft.intents[0].post_condition,
+        vec![is_false("ui.reward_ready")]
+    );
+    assert!(
+        validate(&draft).is_ok(),
+        "and passes the same validation `write` runs"
+    );
 }

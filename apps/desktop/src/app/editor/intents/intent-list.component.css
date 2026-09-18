@@ -1,0 +1,78 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.intent {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--line);
+}
+
+.head,
+.condition {
+  display: grid;
+  gap: 6px;
+  align-items: center;
+}
+
+.head {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.condition {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 7em) auto;
+}
+
+.clause {
+  margin: 4px 0 0;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.click {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.click button.on {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.point {
+  font-size: 11px;
+  color: var(--accent);
+}
+
+select,
+input {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 2px solid var(--line);
+  padding: 5px 8px;
+  min-width: 0;
+}
+
+.remove {
+  padding: 4px 9px;
+}
+
+.add {
+  align-self: flex-start;
+  padding: 5px 10px;
+}
+
+.muted {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+}

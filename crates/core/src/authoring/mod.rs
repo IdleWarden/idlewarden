@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
+mod intents;
 mod regions;
 
 #[cfg(test)]
@@ -15,6 +16,8 @@ use idlewarden_plugin_api::{
 use idlewarden_vision::{png_from_bgra, Roi, SignalRule, VisionError};
 use semver::{Version, VersionReq};
 use serde::{Deserialize, Serialize};
+
+pub use intents::IntentDraft;
 
 use crate::bundle::PluginBundle;
 use crate::rules::PluginRules;
@@ -40,6 +43,8 @@ pub struct Draft {
     pub name: String,
     pub game: GameMatcher,
     pub regions: Vec<Region>,
+    #[serde(default)]
+    pub intents: Vec<IntentDraft>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -62,6 +67,20 @@ pub enum AuthoringError {
     Invalid(String),
     #[error("`{0}` does not recognise the frame it was drawn on: {1}")]
     Unrecognised(String, String),
+    #[error("intent names must be unique, lowercase and use only a-z, 0-9, `.`, `_` or `-`: `{0}` is not")]
+    BadIntentName(String),
+    #[error("intent `{0}` has no condition, so it would fire on every tick")]
+    NoTrigger(String),
+    #[error("intent `{0}` has no post-condition, so nothing could confirm it worked")]
+    NoPostCondition(String),
+    #[error("intent `{0}` tests `{1}` with a condition the editor cannot draw; drawn signals are true or false")]
+    UnsupportedCondition(String, String),
+    #[error("intent `{0}` tests `{1}`, which is not a signal drawn in this plugin")]
+    UnknownSignal(String, String),
+    #[error("intent `{0}` expects afterwards only what was already true before, so it cannot tell a click that worked from one that did nothing")]
+    UnprovablePostCondition(String),
+    #[error("intent `{0}` clicks outside the window")]
+    ClickOutside(String),
     #[error(transparent)]
     Vision(#[from] VisionError),
 }
@@ -128,18 +147,22 @@ fn validate(draft: &Draft) -> Result<(), AuthoringError> {
 
     let mut seen = HashSet::new();
     for region in &draft.regions {
-        let well_formed = !region.name.is_empty()
-            && region.name.chars().all(|c| {
-                c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, '.' | '_' | '-')
-            });
-        if !well_formed || !seen.insert(region.name.as_str()) {
+        if !well_formed(&region.name) || !seen.insert(region.name.as_str()) {
             return Err(AuthoringError::BadRegionName(region.name.clone()));
         }
         if !region.area.is_within_unit_square() {
             return Err(AuthoringError::OutOfFrame(region.name.clone()));
         }
     }
-    Ok(())
+
+    intents::validate(&draft.intents, &draft.regions)
+}
+
+fn well_formed(name: &str) -> bool {
+    !name.is_empty()
+        && name
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, '.' | '_' | '-'))
 }
 
 fn manifest(draft: &Draft, signals: &[SignalRule]) -> PluginManifest {
@@ -165,8 +188,16 @@ fn manifest(draft: &Draft, signals: &[SignalRule]) -> PluginManifest {
                 unit: None,
             })
             .collect(),
-        intents: Vec::new(),
-        capabilities: vec![Capability::Capture],
+        intents: draft
+            .intents
+            .iter()
+            .map(|intent| intent.name.clone())
+            .collect(),
+        capabilities: if draft.intents.is_empty() {
+            vec![Capability::Capture]
+        } else {
+            vec![Capability::Capture, Capability::InputMouse]
+        },
     }
 }
 
@@ -182,7 +213,7 @@ fn persist(draft: &Draft, built: &regions::Built, dir: &Path) -> Result<(), Auth
     let rules = PluginRules {
         anchors: built.anchors.clone(),
         signals: built.signals.clone(),
-        intents: Vec::new(),
+        intents: intents::rules(&draft.intents),
     };
     std::fs::write(dir.join("rules.json"), pretty(&rules)).map_err(io)?;
     std::fs::write(

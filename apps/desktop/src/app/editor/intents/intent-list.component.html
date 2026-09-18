@@ -1,0 +1,77 @@
+<p class="label">Intentions · {{ intents().length }}</p>
+
+@for (intent of intents(); track $index; let index = $index) {
+  <article class="intent">
+    <div class="head">
+      <input
+        [value]="intent.name"
+        (change)="rename(index, $any($event.target).value)"
+        aria-label="nom de l'intention"
+      />
+      <button type="button" class="remove" (click)="remove(index)">×</button>
+    </div>
+
+    @for (clause of clauses; track clause.key) {
+      <p class="clause">{{ clause.label }}</p>
+      @for (condition of intent[clause.key]; track $index; let at = $index) {
+        <div class="condition">
+          <select
+            [value]="condition.signal"
+            (change)="setSignal(index, clause.key, at, $any($event.target).value)"
+            aria-label="signal"
+          >
+            @for (signal of signals(); track signal) {
+              <option [value]="signal">{{ signal }}</option>
+            }
+          </select>
+          <select
+            [value]="condition.op"
+            (change)="setOp(index, clause.key, at, $any($event.target).value)"
+            aria-label="état attendu"
+          >
+            <option value="is_true">est vrai</option>
+            <option value="is_false">est faux</option>
+          </select>
+          <button
+            type="button"
+            class="remove"
+            (click)="removeCondition(index, clause.key, at)"
+          >
+            ×
+          </button>
+        </div>
+      }
+      <button
+        type="button"
+        class="add"
+        [disabled]="!canAddCondition()"
+        (click)="addCondition(index, clause.key)"
+      >
+        + condition
+      </button>
+
+      @if (clause.key === "when") {
+        <p class="clause">Cliquer</p>
+        <div class="click">
+          <button type="button" [class.on]="picking() === index" (click)="pick(index)">
+            {{ picking() === index ? "Clique sur la capture…" : "Choisir le point" }}
+          </button>
+          @if (intent.click; as point) {
+            <span class="point">{{ percent(point.x) }} · {{ percent(point.y) }}</span>
+          } @else {
+            <span class="muted">aucun point</span>
+          }
+        </div>
+      }
+    }
+  </article>
+}
+
+<button type="button" class="add" [disabled]="!canAddCondition()" (click)="add()">
+  + intention
+</button>
+@if (!canAddCondition()) {
+  <p class="muted">
+    Dessine d'abord une sonde ou un motif : une intention se déclenche sur un signal.
+  </p>
+}
