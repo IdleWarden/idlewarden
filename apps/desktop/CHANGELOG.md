@@ -4,6 +4,14 @@ All notable changes to `desktop` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.18] - 2026-09-18
+
+### Features
+
+- feat(desktop): add the region editor that writes a plugin from a captured frame (#45)
+- feat/prove the runner starts (#42)
+- feat(desktop): add the Profiles screen and persist per-game Governor limits (#37)
+
 ## [26.9.7] - 2026-09-07
 
 ### Features

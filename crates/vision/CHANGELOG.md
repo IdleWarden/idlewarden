@@ -4,6 +4,13 @@ All notable changes to `vision` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.18] - 2026-09-18
+
+### Features
+
+- feat(core): write a declarative plugin from regions drawn on a frame (#44)
+- feat(vision): read numeric readouts with digit templates instead of OCR (#41)
+
 ## [26.9.5] - 2026-09-05
 
 ### Features

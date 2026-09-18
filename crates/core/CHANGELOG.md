@@ -4,6 +4,16 @@ All notable changes to `core` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.18] - 2026-09-18
+
+### Features
+
+- feat(desktop): add the region editor that writes a plugin from a captured frame (#45)
+- feat(core): write a declarative plugin from regions drawn on a frame (#44)
+- feat(vision): read numeric readouts with digit templates instead of OCR (#41)
+- feat/prove the runner starts (#42)
+- feat(desktop): add the Profiles screen and persist per-game Governor limits (#37)
+
 ## [26.9.7] - 2026-09-07
 
 ### Features
