@@ -11,8 +11,8 @@ use idlewarden_capture::WindowsCapture;
 use idlewarden_core::authoring::{self, AuthoringError, Draft};
 use idlewarden_core::detector::{Candidate, DesktopWindows};
 use idlewarden_core::{
-    load_all, Command, Detector, Event, Governor, GovernorConfig, Parts, PluginBundle, Refusal,
-    Runner, Session, SessionService, SessionState, DEFAULT_TICK,
+    load_all, Command, Detector, Event, Governor, GovernorConfig, Link, Parts, PluginBundle,
+    Refusal, Runner, Session, SessionService, SessionState, DEFAULT_TICK,
 };
 #[cfg(windows)]
 use idlewarden_input::{DryRunBackend, Humanisation, SendInputBackend};
@@ -286,11 +286,13 @@ impl Inner {
     ) -> SessionService {
         SessionService::spawn(
             Runner::new(Parts {
-                capture,
-                perceiver: bundle.perceiver(),
+                link: Link::Perceived {
+                    capture,
+                    perceiver: bundle.perceiver(),
+                    input,
+                },
                 tree: bundle.tree(),
                 actuator: Box::new(bundle.actuator()),
-                input,
                 kill: self.kill.clone(),
                 governor: Governor::new(governor, 0),
                 session: self.session.clone(),

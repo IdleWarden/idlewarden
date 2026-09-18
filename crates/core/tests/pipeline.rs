@@ -16,8 +16,8 @@ use std::time::{Duration, Instant};
 use idlewarden_agent::{Node, Tick};
 use idlewarden_capture::{Frame, NullBackend, Size};
 use idlewarden_core::{
-    Actuator, Command, Event, Governor, GovernorConfig, Parts, Runner, Session, SessionService,
-    SessionState,
+    Actuator, Command, Event, Governor, GovernorConfig, Link, Parts, Runner, Session,
+    SessionService, SessionState,
 };
 use idlewarden_input::{DryRunBackend, KillSwitch};
 use idlewarden_plugin_api::{
@@ -66,14 +66,16 @@ impl Actuator for Hands {
 
 fn runner(planned: Arc<AtomicU32>, config: GovernorConfig) -> Runner {
     Runner::new(Parts {
-        capture: Box::new(NullBackend::new(Size {
-            width: 1280,
-            height: 720,
-        })),
-        perceiver: Box::new(Eyes),
+        link: Link::Perceived {
+            capture: Box::new(NullBackend::new(Size {
+                width: 1280,
+                height: 720,
+            })),
+            perceiver: Box::new(Eyes),
+            input: Box::new(DryRunBackend),
+        },
         tree: Box::new(Brain),
         actuator: Box::new(Hands { planned }),
-        input: Box::new(DryRunBackend),
         kill: KillSwitch::new(),
         governor: Governor::new(config, 0),
         session: Session {

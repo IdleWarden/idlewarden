@@ -10,11 +10,15 @@
 //! goes through the Governor (ADR-0009), and nothing is reported as having
 //! succeeded until it has been checked (ADR-0003).
 
+mod link;
+
 use idlewarden_agent::Node;
-use idlewarden_capture::{CaptureBackend, CaptureError};
-use idlewarden_input::{GuardedInput, InputBackend, InputError, KillSwitch};
-use idlewarden_plugin_api::{ActionOutcome, InputCommand, Intent, Observation, PluginId, Signal};
-use idlewarden_vision::Perceiver;
+use idlewarden_bridge::BridgeError;
+use idlewarden_input::{InputError, KillSwitch};
+use idlewarden_plugin_api::{ActionOutcome, InputCommand, Intent, Observation, PluginId};
+
+pub use link::Link;
+use link::{is_lost, Miss, Wired};
 
 use crate::event::Event;
 use crate::governor::{Governor, Verdict};
@@ -34,11 +38,9 @@ pub trait Actuator: Send {
 }
 
 pub struct Runner {
-    capture: Box<dyn CaptureBackend>,
-    perceiver: Box<dyn Perceiver>,
+    link: Wired,
     tree: Box<dyn Node>,
     actuator: Box<dyn Actuator>,
-    input: GuardedInput<Box<dyn InputBackend>>,
     kill: KillSwitch,
     governor: Governor,
     session: Session,
@@ -49,11 +51,9 @@ pub struct Runner {
 }
 
 pub struct Parts {
-    pub capture: Box<dyn CaptureBackend>,
-    pub perceiver: Box<dyn Perceiver>,
+    pub link: Link,
     pub tree: Box<dyn Node>,
     pub actuator: Box<dyn Actuator>,
-    pub input: Box<dyn InputBackend>,
     pub kill: KillSwitch,
     pub governor: Governor,
     pub session: Session,
@@ -62,11 +62,9 @@ pub struct Parts {
 impl Runner {
     pub fn new(parts: Parts) -> Self {
         Runner {
-            capture: parts.capture,
-            perceiver: parts.perceiver,
+            link: Wired::new(parts.link, &parts.kill),
             tree: parts.tree,
             actuator: parts.actuator,
-            input: GuardedInput::new(parts.input, parts.kill.clone()),
             kill: parts.kill,
             governor: parts.governor,
             session: parts.session,
@@ -155,40 +153,22 @@ impl Runner {
     }
 
     fn observe(&mut self, now_ms: u64) -> Option<Observation> {
-        let frame = match self.capture.next_frame() {
-            Ok(frame) => frame,
-            // The window going away is a state change, not a failure: the
-            // session drops back to searching and waits for it to return.
-            Err(CaptureError::WindowNotFound) => {
+        match self.link.sense(now_ms) {
+            Ok(observation) => Some(observation),
+            Err(Miss::WindowGone) => {
                 self.game_lost();
-                return None;
+                None
             }
-            Err(error) => {
-                self.halt(error.to_string());
-                return None;
+            Err(Miss::Broken(reason)) => {
+                self.halt(reason);
+                None
             }
-        };
-
-        match self.perceiver.perceive(&frame) {
-            Ok(extracted) => Some(Observation {
-                frame_id: frame.id,
-                captured_at_ms: now_ms,
-                signals: extracted
-                    .into_iter()
-                    .map(|e| Signal {
-                        id: e.id,
-                        value: e.value,
-                        confidence: e.confidence,
-                    })
-                    .collect(),
-            }),
-            // Perception failing structurally costs this tick, not the session.
-            // A degraded read is the Governor's business through the confidence
-            // floor, not an error.
-            Err(error) => {
-                self.emit(Event::Error {
-                    message: error.to_string(),
-                });
+            Err(Miss::Unreadable(message)) => {
+                self.emit(Event::Error { message });
+                None
+            }
+            Err(Miss::BridgeLost(reason)) => {
+                self.pause_for(reason);
                 None
             }
         }
@@ -203,6 +183,68 @@ impl Runner {
     }
 
     fn act(&mut self, intent: Intent) {
+        if matches!(self.link, Wired::Bridged(_)) {
+            self.act_through_bridge(intent);
+        } else {
+            self.act_through_input(intent);
+        }
+    }
+
+    fn act_through_bridge(&mut self, intent: Intent) {
+        if self.kill.is_engaged() {
+            self.emit(Event::KillSwitch);
+            self.halt("the kill switch was engaged".to_owned());
+            self.emit(Event::ActionFinished {
+                intent,
+                outcome: ActionOutcome::Aborted,
+            });
+            return;
+        }
+
+        self.emit(Event::ActionStarted {
+            intent: intent.clone(),
+        });
+
+        if self.session.dry_run {
+            tracing::info!(
+                intent = intent.name.as_str(),
+                "dry-run: not sending to the mod"
+            );
+            self.session.actions_taken += 1;
+            self.in_flight = Some(intent);
+            return;
+        }
+
+        let Wired::Bridged(bridge) = &mut self.link else {
+            return;
+        };
+        match bridge.act(&intent) {
+            Ok(ActionOutcome::Succeeded) => {
+                self.session.actions_taken += 1;
+                self.in_flight = Some(intent);
+            }
+            Ok(outcome) => self.emit(Event::ActionFinished { intent, outcome }),
+            Err(error) if is_lost(&error) => {
+                self.emit(Event::ActionFinished {
+                    intent,
+                    outcome: ActionOutcome::Aborted,
+                });
+                self.pause_for(error.to_string());
+            }
+            Err(BridgeError::Refused(reason)) => self.emit(Event::ActionFinished {
+                intent,
+                outcome: ActionOutcome::Rejected { reason },
+            }),
+            Err(error) => self.emit(Event::ActionFinished {
+                intent,
+                outcome: ActionOutcome::Rejected {
+                    reason: error.to_string(),
+                },
+            }),
+        }
+    }
+
+    fn act_through_input(&mut self, intent: Intent) {
         let commands = self.actuator.plan(&intent);
         if commands.is_empty() {
             self.emit(Event::ActionFinished {
@@ -218,8 +260,11 @@ impl Runner {
             intent: intent.clone(),
         });
 
+        let Wired::Perceived { input, .. } = &mut self.link else {
+            return;
+        };
         for command in &commands {
-            match self.input.execute(command) {
+            match input.execute(command) {
                 Ok(()) => {}
                 Err(InputError::KillSwitchEngaged) => {
                     self.emit(Event::KillSwitch);
@@ -247,6 +292,18 @@ impl Runner {
         // against the next observation, which is the only thing that can say
         // whether the world actually changed.
         self.in_flight = Some(intent);
+    }
+
+    fn pause_for(&mut self, reason: String) {
+        let already = self.session.state == SessionState::Paused
+            && self.session.last_reason.as_deref() == Some(reason.as_str());
+        if already {
+            return;
+        }
+        self.session.pause(reason.clone());
+        self.tree.reset();
+        self.in_flight = None;
+        self.emit(Event::AgentPaused { reason });
     }
 
     fn halt(&mut self, reason: String) {
