@@ -45,7 +45,7 @@ pub fn is_valid_endpoint_name(name: &str) -> bool {
 
 #[cfg(windows)]
 pub fn endpoint_path(name: &str) -> String {
-    format!(r"\.\pipe\idlewarden.{name}")
+    format!(r"\\.\pipe\idlewarden.{name}")
 }
 
 #[cfg(unix)]

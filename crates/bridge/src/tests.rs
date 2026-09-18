@@ -195,3 +195,63 @@ fn the_line_transport_frames_one_message_per_line() {
 
     assert_eq!(String::from_utf8(written).unwrap(), "ping\npong\nagain\n");
 }
+
+#[cfg(windows)]
+#[test]
+fn an_endpoint_lives_in_the_pipe_namespace_the_mod_serves_from() {
+    assert_eq!(
+        crate::transport::endpoint_path("reference"),
+        r"\\.\pipe\idlewarden.reference",
+        "the C# server opens NamedPipeServerStream(\"idlewarden.\" + name)"
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn a_client_reaches_a_real_named_pipe_and_completes_the_handshake() {
+    use std::io::{BufRead, BufReader, Write};
+    use std::os::windows::io::FromRawHandle;
+
+    use windows::core::HSTRING;
+    use windows::Win32::Storage::FileSystem::PIPE_ACCESS_DUPLEX;
+    use windows::Win32::System::Pipes::{
+        ConnectNamedPipe, CreateNamedPipeW, PIPE_READMODE_BYTE, PIPE_TYPE_BYTE, PIPE_WAIT,
+    };
+
+    let name = format!("bridge-test-{}", std::process::id());
+    let path = crate::transport::endpoint_path(&name);
+    let server = unsafe {
+        CreateNamedPipeW(
+            &HSTRING::from(path.as_str()),
+            PIPE_ACCESS_DUPLEX,
+            PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
+            1,
+            4096,
+            4096,
+            0,
+            None,
+        )
+    };
+    assert!(!server.is_invalid(), "the test pipe could not be created");
+    let raw = server.0 as usize;
+
+    let mod_side = std::thread::spawn(move || {
+        let handle = windows::Win32::Foundation::HANDLE(raw as *mut std::ffi::c_void);
+        let _ = unsafe { ConnectNamedPipe(handle, None) };
+        let pipe = unsafe { std::fs::File::from_raw_handle(raw as *mut std::ffi::c_void) };
+        let mut reader = BufReader::new(pipe.try_clone().expect("pipe clones"));
+        let mut writer = pipe;
+
+        let mut request = String::new();
+        reader.read_line(&mut request).expect("the hello arrives");
+        writeln!(writer, "{}", hello()).expect("the hello is answered");
+        writer.flush().expect("flushed");
+        request
+    });
+
+    let bridge = connect(&name).expect("the client finds the pipe the server created");
+    let received = mod_side.join().expect("the mod side finishes");
+
+    assert_eq!(bridge.plugin().as_str(), "dev.example.game");
+    assert!(received.contains("\"request\":\"hello\""));
+}
