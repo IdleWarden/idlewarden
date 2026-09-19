@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use idlewarden_bridge::{Bridge, BridgeError};
 use idlewarden_capture::CaptureBackend;
 use idlewarden_capture::Frame;
 #[cfg(windows)]
@@ -70,6 +71,8 @@ pub struct PluginSummary {
     pub id: String,
     pub detected: bool,
     pub intents: Vec<IntentSummary>,
+    pub bridge: Option<String>,
+    pub bridge_granted: bool,
 }
 
 /// One window detection looked at, as the Detect screen renders it.
@@ -228,12 +231,12 @@ impl Inner {
     fn summaries(&self) -> Vec<PluginSummary> {
         self.plugins
             .iter()
-            .map(|bundle| PluginSummary {
-                id: bundle.id.0.clone(),
-                detected: self.session.plugin.as_ref() == Some(&bundle.id),
-                intents: {
-                    let profile = self.profiles.get(&bundle.id.0);
-                    bundle
+            .map(|bundle| {
+                let profile = self.profiles.get(&bundle.id.0);
+                PluginSummary {
+                    id: bundle.id.0.clone(),
+                    detected: self.session.plugin.as_ref() == Some(&bundle.id),
+                    intents: bundle
                         .rules
                         .intents
                         .iter()
@@ -241,8 +244,10 @@ impl Inner {
                             name: intent.name.clone(),
                             enabled: profile.is_enabled(&intent.name),
                         })
-                        .collect()
-                },
+                        .collect(),
+                    bridge: bundle.bridge.clone(),
+                    bridge_granted: profile.bridge_granted,
+                }
             })
             .collect()
     }
@@ -264,33 +269,33 @@ impl Inner {
         let profile = self.profiles.get(&bundle.id.0);
         let governor = profile.governor(&Self::declared(bundle));
 
-        let (capture, input) = match self.backends(window) {
-            Ok(backends) => backends,
-            Err(reason) => {
-                self.session.pause(reason.clone());
-                self.publish([Event::Error { message: reason }]);
-                return Ok(());
+        let link = match bundle.bridge.as_deref() {
+            Some(name) if profile.bridge_granted => {
+                bridged(bundle, idlewarden_bridge::connect(name))
             }
-        };
-
-        self.service = Some(self.spawn(bundle, capture, input, governor));
-        Ok(())
-    }
-
-    fn spawn(
-        &self,
-        bundle: &PluginBundle,
-        capture: Box<dyn CaptureBackend>,
-        input: Box<dyn InputBackend>,
-        governor: GovernorConfig,
-    ) -> SessionService {
-        SessionService::spawn(
-            Runner::new(Parts {
-                link: Link::Perceived {
+            _ => self
+                .backends(window)
+                .map(|(capture, input)| Link::Perceived {
                     capture,
                     perceiver: bundle.perceiver(),
                     input,
-                },
+                }),
+        };
+
+        match link {
+            Ok(link) => self.service = Some(self.spawn(bundle, link, governor)),
+            Err(reason) => {
+                self.session.pause(reason.clone());
+                self.publish([Event::Error { message: reason }]);
+            }
+        }
+        Ok(())
+    }
+
+    fn spawn(&self, bundle: &PluginBundle, link: Link, governor: GovernorConfig) -> SessionService {
+        SessionService::spawn(
+            Runner::new(Parts {
+                link,
                 tree: bundle.tree(),
                 actuator: Box::new(bundle.actuator()),
                 kill: self.kill.clone(),
@@ -300,6 +305,18 @@ impl Inner {
             DEFAULT_TICK,
         )
     }
+}
+
+fn bridged(bundle: &PluginBundle, connected: Result<Bridge, BridgeError>) -> Result<Link, String> {
+    let bridge = connected.map_err(|error| format!("the mod did not answer: {error}"))?;
+    if bridge.plugin() != &bundle.id {
+        return Err(format!(
+            "the mod on this endpoint speaks for `{}`, not `{}`",
+            bridge.plugin().0,
+            bundle.id.0
+        ));
+    }
+    Ok(Link::Bridged(bridge))
 }
 
 /// The runner owns the session; this mirrors what it publishes so the UI has
@@ -414,9 +431,27 @@ pub fn profile(handle: State<'_, SessionHandle>, plugin: String) -> Profile {
 }
 
 #[tauri::command]
-pub fn set_profile(handle: State<'_, SessionHandle>, plugin: String, profile: Profile) -> Profile {
+pub fn set_profile(
+    handle: State<'_, SessionHandle>,
+    plugin: String,
+    mut profile: Profile,
+) -> Profile {
     let mut inner = handle.0.lock().expect("session lock");
+    profile.bridge_granted = inner.profiles.get(&plugin).bridge_granted;
     inner.profiles.set(&plugin, profile)
+}
+
+#[tauri::command]
+pub fn set_bridge_granted(
+    handle: State<'_, SessionHandle>,
+    plugin: String,
+    granted: bool,
+) -> Vec<PluginSummary> {
+    let mut inner = handle.0.lock().expect("session lock");
+    inner
+        .profiles
+        .update(&plugin, |profile| profile.bridge_granted = granted);
+    inner.summaries()
 }
 
 #[tauri::command]
@@ -531,18 +566,22 @@ mod tests {
       "capabilities": ["capture", "input.mouse"]
     }"#;
 
-    fn plugin_root(name: &str) -> PathBuf {
+    fn plugin_root(name: &str, manifest: &str, rules: &str) -> PathBuf {
         let root = std::env::temp_dir().join(format!("idlewarden-{name}-{}", std::process::id()));
         let plugin = root.join("plugins").join("test-game");
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(&plugin).expect("the fixture plugin could be created");
-        std::fs::write(plugin.join("plugin.json"), MANIFEST).expect("manifest written");
-        std::fs::write(plugin.join("rules.json"), RULES).expect("rules written");
+        std::fs::write(plugin.join("plugin.json"), manifest).expect("manifest written");
+        std::fs::write(plugin.join("rules.json"), rules).expect("rules written");
         root
     }
 
     fn ready(name: &str) -> Inner {
-        let handle = SessionHandle::new(plugin_root(name));
+        ready_with(name, MANIFEST, RULES)
+    }
+
+    fn ready_with(name: &str, manifest: &str, rules: &str) -> Inner {
+        let handle = SessionHandle::new(plugin_root(name, manifest, rules));
         let mut inner = handle.0.into_inner().expect("session lock");
 
         let matchers = inner
@@ -624,7 +663,12 @@ mod tests {
             .expect("a ready session starts");
 
         let bundle = inner.plugins.first().expect("the fixture plugin loaded");
-        let service = inner.spawn(bundle, Box::new(capture), Box::new(DryRunBackend), governor);
+        let link = Link::Perceived {
+            capture: Box::new(capture),
+            perceiver: bundle.perceiver(),
+            input: Box::new(DryRunBackend),
+        };
+        let service = inner.spawn(bundle, link, governor);
         inner.service = Some(service);
     }
 
@@ -883,5 +927,193 @@ mod tests {
 
         assert_eq!(drained.len(), 2);
         assert!(inner.events.is_empty());
+    }
+
+    mod bridged {
+        use std::sync::{Arc, Mutex};
+
+        use idlewarden_bridge::transport::Transport;
+        use idlewarden_plugin_api::ActionOutcome;
+        use serde_json::json;
+
+        use super::*;
+
+        const REFERENCE_RULES: &str = r#"{
+          "intents": [
+            {
+              "name": "buy_upgrade",
+              "when": [{ "op": "at_least", "signal": "resource.cookies", "value": 100 }],
+              "params": { "tier": { "type": "int", "value": 1 } },
+              "post_condition": [{ "op": "at_most", "signal": "resource.cookies", "value": 99 }],
+              "min_confidence": 0.9
+            }
+          ]
+        }"#;
+
+        fn manifest(endpoint: &str) -> String {
+            MANIFEST.replace(
+                r#""input.mouse""#,
+                &format!(r#""input.mouse", "bridge:{endpoint}""#),
+            )
+        }
+
+        struct ReferenceMod {
+            speaks_for: &'static str,
+            cookies: Arc<Mutex<i64>>,
+        }
+
+        impl Transport for ReferenceMod {
+            fn round_trip(&mut self, request: &str) -> Result<String, BridgeError> {
+                let request: serde_json::Value = serde_json::from_str(request).unwrap();
+                let mut cookies = self.cookies.lock().unwrap();
+                let response = match request["request"].as_str().unwrap() {
+                    "hello" => json!({
+                        "response": "hello",
+                        "plugin": self.speaks_for,
+                        "api_version": "^0.1",
+                    }),
+                    "observe" => {
+                        *cookies += 1;
+                        json!({
+                            "response": "observed",
+                            "signals": [{
+                                "id": "resource.cookies",
+                                "value": { "type": "int", "value": *cookies },
+                            }],
+                        })
+                    }
+                    "act" => {
+                        let price = request["intent"]["params"]["tier"]["value"]
+                            .as_i64()
+                            .unwrap()
+                            * 100;
+                        let outcome = if *cookies < price {
+                            json!({ "outcome": "failed", "reason": "not affordable" })
+                        } else {
+                            *cookies -= price;
+                            json!({ "outcome": "succeeded" })
+                        };
+                        json!({ "response": "acted", "outcome": outcome })
+                    }
+                    other => panic!("unexpected request {other}"),
+                };
+                Ok(response.to_string())
+            }
+        }
+
+        fn reference(speaks_for: &'static str, cookies: i64) -> (Bridge, Arc<Mutex<i64>>) {
+            let cookies = Arc::new(Mutex::new(cookies));
+            let bridge = Bridge::open(Box::new(ReferenceMod {
+                speaks_for,
+                cookies: Arc::clone(&cookies),
+            }))
+            .expect("handshake");
+            (bridge, cookies)
+        }
+
+        fn endpoint(tag: &str) -> String {
+            format!("absent-{tag}-{}", std::process::id())
+        }
+
+        fn start(inner: &mut Inner) {
+            inner.refresh();
+            inner
+                .start(&Command::Start {
+                    plugin: PluginId("dev.idlewarden.test-game".to_owned()),
+                    profile: "default".to_owned(),
+                })
+                .expect("a ready session accepts Start");
+        }
+
+        #[test]
+        fn a_bridge_the_user_granted_is_tried_and_its_absence_pauses_the_session() {
+            let name = endpoint("granted");
+            let mut inner = ready_with("bridge-granted", &manifest(&name), REFERENCE_RULES);
+            inner
+                .profiles
+                .update("dev.idlewarden.test-game", |profile| {
+                    profile.bridge_granted = true
+                });
+
+            start(&mut inner);
+
+            assert!(inner.service.is_none());
+            assert_eq!(inner.session.state, SessionState::Paused);
+            let reason = inner.session.last_reason.clone().unwrap_or_default();
+            assert!(
+                reason.starts_with("the mod did not answer") && reason.contains(&name),
+                "the user has to learn the mod is missing, and which one: {reason}"
+            );
+        }
+
+        #[test]
+        fn a_bridge_the_user_never_granted_is_not_even_attempted() {
+            let name = endpoint("refused");
+            let mut inner = ready_with("bridge-refused", &manifest(&name), REFERENCE_RULES);
+
+            start(&mut inner);
+
+            let reason = inner.session.last_reason.clone().unwrap_or_default();
+            assert!(
+                !reason.contains(&name),
+                "declaring a bridge must not be enough to open it: {reason}"
+            );
+        }
+
+        #[test]
+        fn a_mod_that_speaks_for_another_plugin_is_refused() {
+            let inner = ready_with("bridge-imposter", &manifest("reference"), REFERENCE_RULES);
+            let bundle = inner.plugins.first().expect("the fixture plugin loaded");
+
+            let refused = bridged(bundle, Ok(reference("dev.someone.else", 0).0))
+                .err()
+                .expect("an imposter is refused");
+
+            assert!(refused.contains("dev.someone.else"), "{refused}");
+        }
+
+        #[test]
+        fn the_reference_mod_drives_a_session_end_to_end() {
+            let mut inner = ready_with("bridge-e2e", &manifest("reference"), REFERENCE_RULES);
+            inner.refresh();
+            inner
+                .session
+                .apply(&Command::SetDryRun { enabled: false })
+                .expect("dry run can change before a session starts");
+            inner
+                .session
+                .apply(&Command::Start {
+                    plugin: PluginId("dev.idlewarden.test-game".to_owned()),
+                    profile: "default".to_owned(),
+                })
+                .expect("a ready session starts");
+
+            let (bridge, cookies) = reference("dev.idlewarden.test-game", 150);
+            let bundle = inner.plugins.first().expect("the fixture plugin loaded");
+            let link = bridged(bundle, Ok(bridge)).expect("the mod speaks for this plugin");
+            inner.service = Some(inner.spawn(bundle, link, GovernorConfig::default()));
+
+            let published = drain_for(&mut inner, 6);
+
+            let succeeded = published.iter().any(|event| {
+                matches!(
+                    event,
+                    Event::ActionFinished {
+                        intent,
+                        outcome: ActionOutcome::Succeeded,
+                    } if intent.name == "buy_upgrade"
+                )
+            });
+            assert!(
+                succeeded,
+                "the purchase has to be confirmed by the next observation: {:?}",
+                names(&published)
+            );
+            assert!(
+                *cookies.lock().unwrap() < 100,
+                "the mod has to have actually spent the cookies"
+            );
+            assert_eq!(inner.session.state, SessionState::Running);
+        }
     }
 }

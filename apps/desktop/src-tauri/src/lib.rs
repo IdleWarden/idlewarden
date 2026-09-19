@@ -56,6 +56,7 @@ pub fn run() {
             editor::save_plugin,
             session::profile,
             session::set_profile,
+            session::set_bridge_granted,
             updates::update_settings,
             updates::set_update_channel,
             updates::check_for_update,

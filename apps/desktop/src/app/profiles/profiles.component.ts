@@ -78,9 +78,11 @@ export class ProfilesComponent {
     return known.find((entry) => entry.detected)?.id ?? known[0]?.id ?? null;
   });
 
-  readonly intents = computed(
-    () => this.plugins().find((entry) => entry.id === this.plugin())?.intents ?? [],
+  readonly summary = computed(
+    () => this.plugins().find((entry) => entry.id === this.plugin()) ?? null,
   );
+
+  readonly intents = computed(() => this.summary()?.intents ?? []);
 
   readonly profile = signal<Profile | null>(null);
 
@@ -125,6 +127,14 @@ export class ProfilesComponent {
     }
     this.profile.set(await this.sessions.saveProfile(plugin, edited));
     this.saved.set(true);
+  }
+
+  grantBridge(granted: boolean): void {
+    const plugin = this.plugin();
+    if (plugin === null) {
+      return;
+    }
+    void this.sessions.setBridgeGranted(plugin, granted);
   }
 
   toggleIntent(intent: string, enabled: boolean): void {
