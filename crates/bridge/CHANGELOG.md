@@ -4,6 +4,12 @@ All notable changes to `bridge` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.1] - 2026-09-19
+
+### Bug Fixes
+
+- fix(bridge): connect to the pipe namespace the mod actually serves from (#50)
+
 ## [26.8.27] - 2026-08-27
 
 ### Breaking Changes
