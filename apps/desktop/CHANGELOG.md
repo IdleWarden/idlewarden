@@ -4,6 +4,12 @@ All notable changes to `desktop` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.21] - 2026-09-19
+
+### Bug Fixes
+
+- fix(desktop): let the webview reach Tauri's IPC protocol so captures render (#54)
+
 ## [26.9.20] - 2026-09-19
 
 ### Features
