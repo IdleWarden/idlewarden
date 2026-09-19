@@ -1,0 +1,20 @@
+[package]
+name = "idlewarden-mod-install"
+description = "Fetch-and-install for the mod a bridge plugin needs: registry lookup, loader directories, checksum-first extraction (ADR-0014)."
+version = "26.9.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+idlewarden-plugin-api.workspace = true
+semver.workspace = true
+serde.workspace = true
+sha2 = "0.10"
+thiserror.workspace = true
+zip = { version = "4", default-features = false, features = ["deflate"] }
+
+[dev-dependencies]
+serde_json.workspace = true
