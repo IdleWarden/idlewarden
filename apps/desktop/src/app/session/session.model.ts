@@ -92,6 +92,7 @@ export interface Profile {
   max_observation_age_ms: number;
   max_session_minutes: number;
   disabled_intents: string[];
+  bridge_granted: boolean;
 }
 
 export type LogLevel = "ERROR" | "WARN" | "INFO" | "DEBUG" | "TRACE";
@@ -162,4 +163,6 @@ export interface PluginSummary {
   id: string;
   detected: boolean;
   intents: IntentSummary[];
+  bridge: string | null;
+  bridge_granted: boolean;
 }

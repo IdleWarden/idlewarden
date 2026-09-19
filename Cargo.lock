@@ -1566,9 +1566,11 @@ dependencies = [
 name = "idlewarden-desktop"
 version = "26.9.19"
 dependencies = [
+ "idlewarden-bridge",
  "idlewarden-capture",
  "idlewarden-core",
  "idlewarden-input",
+ "idlewarden-plugin-api",
  "idlewarden-vision",
  "serde",
  "serde_json",

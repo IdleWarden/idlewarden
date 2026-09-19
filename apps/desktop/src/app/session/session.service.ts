@@ -126,6 +126,12 @@ export class SessionService {
     );
   }
 
+  async setBridgeGranted(plugin: string, granted: boolean): Promise<void> {
+    this.known.set(
+      await invoke<PluginSummary[]>("set_bridge_granted", { plugin, granted }),
+    );
+  }
+
   async engageKillSwitch(): Promise<void> {
     this.current.set(await invoke<Session>("engage_kill_switch"));
   }

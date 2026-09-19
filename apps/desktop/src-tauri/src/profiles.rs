@@ -14,6 +14,7 @@ pub struct Profile {
     pub max_observation_age_ms: u64,
     pub max_session_minutes: u32,
     pub disabled_intents: Vec<String>,
+    pub bridge_granted: bool,
 }
 
 impl Default for Profile {
@@ -25,6 +26,7 @@ impl Default for Profile {
             max_observation_age_ms: governor.max_observation_age_ms,
             max_session_minutes: governor.max_session_minutes,
             disabled_intents: Vec::new(),
+            bridge_granted: false,
         }
     }
 }
@@ -168,6 +170,21 @@ mod tests {
         assert_eq!(profile.max_actions_per_minute, 4);
         assert_eq!(profile.min_confidence, 0.9);
         assert_eq!(profile.disabled_intents, vec!["buy_upgrade".to_owned()]);
+    }
+
+    #[test]
+    fn a_profile_saved_before_bridges_existed_does_not_grant_one() {
+        let path = temp("pre-bridge");
+        std::fs::write(&path, r#"{ "quest": { "max_actions_per_minute": 4 } }"#)
+            .expect("the fixture could be written");
+
+        let profile = Profiles::load(&path).get("quest");
+
+        assert_eq!(profile.max_actions_per_minute, 4);
+        assert!(
+            !profile.bridge_granted,
+            "a bridge is never granted silently, not even by an old file"
+        );
     }
 
     #[test]

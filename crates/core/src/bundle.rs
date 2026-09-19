@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use idlewarden_agent::Node;
-use idlewarden_plugin_api::{GameMatcher, PluginId, PluginManifest};
+use idlewarden_plugin_api::{Capability, GameMatcher, PluginId, PluginManifest};
 use idlewarden_vision::{png_to_gray, Gray, Perceiver, RuleSet};
 
 use crate::recipe::RecipeActuator;
@@ -26,6 +26,7 @@ pub struct PluginBundle {
     pub id: PluginId,
     pub matcher: GameMatcher,
     pub rules: PluginRules,
+    pub bridge: Option<String>,
     templates: HashMap<String, Gray>,
 }
 
@@ -48,10 +49,19 @@ impl PluginBundle {
             templates.insert(name, gray);
         }
 
+        let bridge = manifest
+            .capabilities
+            .into_iter()
+            .find_map(|capability| match capability {
+                Capability::Bridge { name } => Some(name),
+                _ => None,
+            });
+
         Ok(PluginBundle {
             id: manifest.id,
             matcher: manifest.game,
             rules,
+            bridge,
             templates,
         })
     }
@@ -130,6 +140,30 @@ mod tests {
             2,
             "the actuator must know how to carry out a declared intent"
         );
+    }
+
+    #[test]
+    fn a_plugin_that_captures_the_screen_declares_no_bridge() {
+        let bundle = PluginBundle::load(&examples().join("example-game")).expect("loads");
+
+        assert_eq!(bundle.bridge, None);
+    }
+
+    #[test]
+    fn a_bridge_capability_in_the_manifest_names_the_endpoint() {
+        let root = std::env::temp_dir().join(format!("idlewarden-bridged-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).expect("temp dir");
+        let manifest = std::fs::read_to_string(examples().join("example-game/plugin.json"))
+            .expect("manifest")
+            .replace(r#""input.mouse""#, r#""input.mouse", "bridge:reference""#);
+        std::fs::write(root.join("plugin.json"), manifest).expect("manifest");
+        std::fs::write(root.join("rules.json"), "{}").expect("rules");
+
+        let bundle = PluginBundle::load(&root);
+        let _ = std::fs::remove_dir_all(&root);
+
+        assert_eq!(bundle.expect("loads").bridge.as_deref(), Some("reference"));
     }
 
     #[test]

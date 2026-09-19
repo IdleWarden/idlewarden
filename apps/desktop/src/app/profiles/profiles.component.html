@@ -46,6 +46,32 @@
         }
       </section>
 
+      @if (summary()?.bridge; as bridge) {
+        <section class="bridge">
+          <div class="automation">
+            <span class="title"
+              >Passer par le mod <code>{{ bridge }}</code></span
+            >
+            <button
+              type="button"
+              class="toggle"
+              role="switch"
+              [attr.aria-checked]="summary()?.bridge_granted"
+              aria-label="Autoriser le mod"
+              (click)="grantBridge(!summary()?.bridge_granted)"
+            >
+              <span class="knob"></span>
+            </button>
+          </div>
+          <p class="hint">
+            Ce plugin sait lire le jeu à travers un mod que vous avez installé
+            vous-même. Autorisé, la veille interroge le mod au lieu de capturer l'écran
+            et lui confie les actions. Le mod tourne dans le jeu, IdleWarden ne peut pas
+            vérifier ce qu'il fait : ne l'autorisez que si vous lui faites confiance.
+          </p>
+        </section>
+      }
+
       <section class="intents">
         <p class="label">Automatisations autorisées</p>
         @for (intent of intents(); track intent.name) {
