@@ -28,7 +28,7 @@ pub use frame::{pack_rows, Frame, Size};
 pub use null::NullBackend;
 
 #[cfg(windows)]
-pub use enumerate::windows as enumerate_windows;
+pub use enumerate::{game_directory, windows as enumerate_windows};
 #[cfg(windows)]
 pub use wgc::WindowsCapture;
 

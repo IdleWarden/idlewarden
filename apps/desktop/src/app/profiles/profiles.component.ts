@@ -1,6 +1,6 @@
 import { Component, computed, effect, inject, signal } from "@angular/core";
 
-import { Profile } from "../session/session.model";
+import { InstalledMod, ModRefused, Profile } from "../session/session.model";
 import { SessionService } from "../session/session.service";
 
 interface Limit {
@@ -85,6 +85,10 @@ export class ProfilesComponent {
   readonly intents = computed(() => this.summary()?.intents ?? []);
 
   readonly profile = signal<Profile | null>(null);
+  readonly installing = signal(false);
+  readonly installed = signal<InstalledMod | null>(null);
+  readonly refusal = signal<ModRefused | null>(null);
+  readonly gameFolder = signal("");
 
   constructor() {
     effect(() => {
@@ -100,6 +104,9 @@ export class ProfilesComponent {
   choose(plugin: string): void {
     this.chosen.set(plugin);
     this.saved.set(false);
+    this.installed.set(null);
+    this.refusal.set(null);
+    this.gameFolder.set("");
   }
 
   edit(key: Limit["key"], raw: string): void {
@@ -135,6 +142,26 @@ export class ProfilesComponent {
       return;
     }
     void this.sessions.setBridgeGranted(plugin, granted);
+  }
+
+  async installMod(): Promise<void> {
+    const plugin = this.plugin();
+    if (plugin === null || this.installing()) {
+      return;
+    }
+    const folder = this.gameFolder().trim();
+    this.installing.set(true);
+    this.installed.set(null);
+    this.refusal.set(null);
+    try {
+      this.installed.set(
+        await this.sessions.installMod(plugin, folder === "" ? null : folder),
+      );
+    } catch (error) {
+      this.refusal.set(error as ModRefused);
+    } finally {
+      this.installing.set(false);
+    }
   }
 
   toggleIntent(intent: string, enabled: boolean): void {

@@ -69,6 +69,39 @@
             et lui confie les actions. Le mod tourne dans le jeu, IdleWarden ne peut pas
             vérifier ce qu'il fait : ne l'autorisez que si vous lui faites confiance.
           </p>
+          @if (summary()?.bridge_granted) {
+            <div class="install">
+              <button type="button" [disabled]="installing()" (click)="installMod()">
+                {{ installing() ? "Installation…" : "Installer le mod" }}
+              </button>
+              @if (installed(); as done) {
+                <p class="note">
+                  {{ done.name }} {{ done.version }} est installé dans
+                  <code>{{ done.path }}</code
+                  >. Relancez le jeu pour qu'il le charge.
+                </p>
+              }
+              @if (refusal(); as refused) {
+                <p class="error">{{ refused.message }}</p>
+                @if (refused.why === "game_unknown") {
+                  <label for="game-folder">Dossier du jeu</label>
+                  <input
+                    id="game-folder"
+                    type="text"
+                    spellcheck="false"
+                    [value]="gameFolder()"
+                    (input)="gameFolder.set($any($event.target).value)"
+                  />
+                }
+              }
+            </div>
+            <p class="hint">
+              Le mod est téléchargé depuis l'adresse que donne le registre, et son
+              empreinte sha256 est vérifiée avant que quoi que ce soit soit écrit. Rien
+              ne s'installe sans ce clic. Le chargeur de mods du jeu (BepInEx,
+              MelonLoader ou Reloaded-II) doit déjà être installé.
+            </p>
+          }
         </section>
       }
 

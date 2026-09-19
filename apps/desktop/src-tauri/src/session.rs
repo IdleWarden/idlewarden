@@ -7,6 +7,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use idlewarden_bridge::{Bridge, BridgeError};
 use idlewarden_capture::CaptureBackend;
 use idlewarden_capture::Frame;
+use idlewarden_capture::WindowHandle;
 #[cfg(windows)]
 use idlewarden_capture::WindowsCapture;
 use idlewarden_core::authoring::{self, AuthoringError, Draft};
@@ -101,6 +102,13 @@ impl From<Candidate> for WindowCandidate {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct ModRequest {
+    pub bridge: Option<String>,
+    pub granted: bool,
+    pub window: Option<WindowHandle>,
+}
+
 #[derive(Debug, Serialize)]
 pub struct IntentSummary {
     pub name: String,
@@ -121,6 +129,17 @@ impl SessionHandle {
         };
         inner.load_plugins();
         SessionHandle(Mutex::new(inner))
+    }
+
+    pub fn mod_request(&self, plugin: &str) -> Option<ModRequest> {
+        let inner = self.0.lock().expect("session lock");
+        let bundle = inner.plugins.iter().find(|bundle| bundle.id.0 == plugin)?;
+        let detected = inner.session.plugin.as_ref() == Some(&bundle.id);
+        Some(ModRequest {
+            bridge: bundle.bridge.clone(),
+            granted: inner.profiles.get(plugin).bridge_granted,
+            window: detected.then(|| inner.detector.window()).flatten(),
+        })
     }
 
     pub fn author(&self, draft: &Draft, frame: &Frame) -> Result<PathBuf, AuthoringError> {

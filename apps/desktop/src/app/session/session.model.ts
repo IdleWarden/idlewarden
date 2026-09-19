@@ -159,6 +159,20 @@ export interface WindowCandidate {
   plugins: string[];
 }
 
+export interface InstalledMod {
+  name: string;
+  version: string;
+  path: string;
+}
+
+export type ModRefusal =
+  "unknown_plugin" | "no_bridge" | "not_granted" | "game_unknown" | "failed";
+
+export interface ModRefused {
+  why: ModRefusal;
+  message: string;
+}
+
 export interface PluginSummary {
   id: string;
   detected: boolean;
