@@ -4,6 +4,12 @@ All notable changes to `desktop` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.22] - 2026-09-19
+
+### Features
+
+- feat(desktop): install a bridge plugin's mod from the registry in one click (#56)
+
 ## [26.9.21] - 2026-09-19
 
 ### Bug Fixes

@@ -1543,7 +1543,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-capture"
-version = "26.9.7"
+version = "26.9.8"
 dependencies = [
  "idlewarden-plugin-api",
  "thiserror 2.0.20",
@@ -1571,7 +1571,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-desktop"
-version = "26.9.21"
+version = "26.9.22"
 dependencies = [
  "idlewarden-bridge",
  "idlewarden-capture",
@@ -1604,7 +1604,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-mod-install"
-version = "26.9.0"
+version = "26.9.1"
 dependencies = [
  "idlewarden-plugin-api",
  "semver",

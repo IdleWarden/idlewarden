@@ -1,7 +1,7 @@
 [package]
 name = "idlewarden-mod-install"
 description = "Fetch-and-install for the mod a bridge plugin needs: registry lookup, loader directories, checksum-first extraction (ADR-0014)."
-version = "26.9.0"
+version = "26.9.1"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
