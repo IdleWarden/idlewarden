@@ -103,3 +103,26 @@ fn a_corrupt_settings_file_falls_back_to_stable_instead_of_failing() {
 
     assert_eq!(load_settings(&dir).channel, Channel::Stable);
 }
+
+#[test]
+fn the_csp_lets_the_webview_reach_the_ipc_protocol() {
+    let config: serde_json::Value =
+        serde_json::from_str(include_str!("../tauri.conf.json")).expect("tauri.conf.json parses");
+    let csp = config["app"]["security"]["csp"]
+        .as_str()
+        .expect("a CSP is set");
+
+    let connect = csp
+        .split(';')
+        .map(str::trim)
+        .find_map(|directive| directive.strip_prefix("connect-src "))
+        .unwrap_or_default();
+
+    assert!(
+        connect.split_whitespace().any(|source| source == "ipc:")
+            && connect
+                .split_whitespace()
+                .any(|source| source == "http://ipc.localhost"),
+        "without ipc in connect-src Tauri falls back to postMessage, and raw responses such as          a captured PNG arrive as a number array instead of bytes: {csp}"
+    );
+}
