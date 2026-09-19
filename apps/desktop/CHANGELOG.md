@@ -4,6 +4,13 @@ All notable changes to `desktop` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.20] - 2026-09-19
+
+### Features
+
+- feat(desktop): drive a session through a mod the user granted (#52)
+- feat(core): let a session observe and act through a mod bridge (#51)
+
 ## [26.9.19] - 2026-09-18
 
 ### Features
