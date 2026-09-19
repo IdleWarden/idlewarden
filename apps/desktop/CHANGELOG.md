@@ -4,6 +4,12 @@ All notable changes to `desktop` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.23] - 2026-09-19
+
+### Features
+
+- feat(desktop): read the registry index from a local file when IDLEWARDEN_REGISTRY_INDEX is set (#59)
+
 ## [26.9.22] - 2026-09-19
 
 ### Features
