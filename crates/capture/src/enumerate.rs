@@ -74,6 +74,12 @@ fn title(hwnd: HWND) -> Option<String> {
     Some(String::from_utf16_lossy(&buffer[..written as usize]))
 }
 
+pub fn game_directory(window: WindowHandle) -> Option<PathBuf> {
+    executable_path(HWND(window.0 as *mut _))?
+        .parent()
+        .map(Path::to_path_buf)
+}
+
 fn executable_path(hwnd: HWND) -> Option<PathBuf> {
     let mut pid = 0u32;
     unsafe { GetWindowThreadProcessId(hwnd, Some(&mut pid)) };

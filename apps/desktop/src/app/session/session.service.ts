@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import {
   Command,
   Draft,
+  InstalledMod,
   LogRecord,
   Observation,
   PluginSummary,
@@ -130,6 +131,10 @@ export class SessionService {
     this.known.set(
       await invoke<PluginSummary[]>("set_bridge_granted", { plugin, granted }),
     );
+  }
+
+  async installMod(plugin: string, game: string | null): Promise<InstalledMod> {
+    return await invoke<InstalledMod>("install_mod", { plugin, game });
   }
 
   async engageKillSwitch(): Promise<void> {
