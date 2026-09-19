@@ -1,0 +1,65 @@
+name: mod release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to package, e.g. mod/reference@v26.9.1"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      startsWith(github.event.release.tag_name, 'mod/reference@v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Build
+        working-directory: mods
+        run: dotnet build src/IdleWarden.Reference --configuration Release --output out
+
+      - name: Package the two assemblies BepInEx loads
+        id: package
+        working-directory: mods/out
+        run: |
+          set -euo pipefail
+          archive="IdleWarden.Reference-${TAG#mod/reference@v}.zip"
+          zip -X "$GITHUB_WORKSPACE/$archive" IdleWarden.Reference.dll IdleWarden.Bridge.dll
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: ${{ steps.package.outputs.archive }}
+
+      - name: Attach to the release
+        env:
+          ARCHIVE: ${{ steps.package.outputs.archive }}
+        run: |
+          set -euo pipefail
+          gh release upload "$TAG" "$ARCHIVE" --clobber
+          {
+            echo "### $ARCHIVE"
+            echo
+            echo "sha256 for the registry entry: \`$(sha256sum "$ARCHIVE" | cut -d' ' -f1)\`"
+          } >> "$GITHUB_STEP_SUMMARY"

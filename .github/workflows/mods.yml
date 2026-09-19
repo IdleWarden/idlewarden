@@ -24,7 +24,10 @@ jobs:
         run: dotnet test tests/IdleWarden.Bridge.Tests --configuration Release
 
       - name: Build the reference mod
-        run: dotnet build src/IdleWarden.Reference --configuration Release
+        run: dotnet build src/IdleWarden.Reference --configuration Release --output out
+
+      - name: The build holds the two files the release archive ships
+        run: test -f out/IdleWarden.Reference.dll && test -f out/IdleWarden.Bridge.dll
 
       - name: The plugin version comes from the project, never a literal
         run: |

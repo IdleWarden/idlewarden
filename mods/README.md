@@ -98,6 +98,12 @@ dotnet build src/IdleWarden.Reference --configuration Release
 Drop the resulting `IdleWarden.Reference.dll` and `IdleWarden.Bridge.dll` into
 `BepInEx/plugins/` in the game directory.
 
+Each `mod/reference@v...` release gets `IdleWarden.Reference-<version>.zip` with
+those two files and a build provenance attestation, and the run summary prints its
+`sha256`. That archive, its URL and that digest are what a registry entry under
+`mods/` names, and what the app downloads, verifies and unpacks into
+`BepInEx/plugins/<mod id>/` when the user clicks "Installer le mod".
+
 ## Versions
 
 Both projects are release units in the root `.ferrflow`, tagged `mod/bridge@v...`
