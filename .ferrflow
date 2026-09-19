@@ -117,6 +117,27 @@
       ]
     },
     {
+      "name": "mod-install",
+      "path": "crates/mod-install",
+      "changelog": "crates/mod-install/CHANGELOG.md",
+      "versionedFiles": [
+        {
+          "path": "crates/mod-install/Cargo.toml",
+          "format": "toml"
+        },
+        {
+          "path": "Cargo.toml",
+          "format": "txt",
+          "selector": "(?m)^idlewarden-mod\\-install\\s*=\\s*\\{[^}]*version = \"(.+?)\""
+        }
+      ],
+      "publishers": [
+        {
+          "kind": "cargo"
+        }
+      ]
+    },
+    {
       "name": "plugin-host",
       "path": "crates/plugin-host",
       "changelog": "crates/plugin-host/CHANGELOG.md",
