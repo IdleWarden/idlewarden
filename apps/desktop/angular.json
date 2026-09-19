@@ -32,6 +32,11 @@
                 "glob": "**/*",
                 "input": "src/assets",
                 "output": "assets"
+              },
+              {
+                "glob": "icon.ico",
+                "input": "src-tauri/icons",
+                "output": "."
               }
             ],
             "styles": ["src/styles.css"]
