@@ -28,6 +28,6 @@ pub use governor::{Governor, GovernorConfig, Verdict};
 pub use idlewarden_plugin_api::{GameMatcher, PluginId};
 pub use recipe::{Recipe, RecipeActuator};
 pub use rules::{IntentRule, PluginRules, RulesError};
-pub use runner::{Actuator, Parts, Runner};
+pub use runner::{Actuator, Link, Parts, Runner};
 pub use service::{SessionService, DEFAULT_TICK};
 pub use session::{Refusal, Session, SessionState};

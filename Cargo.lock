@@ -1549,6 +1549,7 @@ name = "idlewarden-core"
 version = "26.9.19"
 dependencies = [
  "idlewarden-agent",
+ "idlewarden-bridge",
  "idlewarden-capture",
  "idlewarden-input",
  "idlewarden-plugin-api",
