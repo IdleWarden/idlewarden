@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
 use idlewarden_capture::WindowHandle;
@@ -108,7 +109,8 @@ fn locate(_window: WindowHandle) -> Option<PathBuf> {
 }
 
 fn fetch_and_install(plugin: &PluginId, bridge: &str, game: &Path) -> Result<Installed, Refused> {
-    let index: Index = serde_json::from_slice(&download(REGISTRY_INDEX, LARGEST_INDEX)?)
+    let listing = registry_index(std::env::var_os("IDLEWARDEN_REGISTRY_INDEX"))?;
+    let index: Index = serde_json::from_slice(&listing)
         .map_err(|error| Refused::failed(format!("the registry index is unreadable: {error}")))?;
     let release = index.release_for(plugin, bridge).ok_or_else(|| {
         Refused::failed(format!(
@@ -144,6 +146,19 @@ fn fetch_and_install(plugin: &PluginId, bridge: &str, game: &Path) -> Result<Ins
         name: release.entry.name.clone(),
         version: release.version.version.to_string(),
         path: path.display().to_string(),
+    })
+}
+
+fn registry_index(local: Option<OsString>) -> Result<Vec<u8>, Refused> {
+    let Some(path) = local.map(PathBuf::from) else {
+        return download(REGISTRY_INDEX, LARGEST_INDEX);
+    };
+    tracing::warn!(path = %path.display(), "reading the registry index from a local file");
+    std::fs::read(&path).map_err(|error| {
+        Refused::failed(format!(
+            "cannot read the registry index at {}: {error}",
+            path.display()
+        ))
     })
 }
 
@@ -260,6 +275,29 @@ mod tests {
         .unwrap_err();
 
         assert_eq!(refused.why, Why::GameUnknown);
+    }
+
+    #[test]
+    fn a_local_index_is_read_from_disk_instead_of_the_registry() {
+        let path = folder("local-index").join("index.json");
+        std::fs::write(&path, br#"{"mods": []}"#).expect("index written");
+
+        let listing = registry_index(Some(path.into_os_string())).expect("reads the file");
+
+        assert_eq!(listing, br#"{"mods": []}"#);
+    }
+
+    #[test]
+    fn a_local_index_that_is_missing_says_where_it_looked() {
+        let path = folder("absent-index").join("index.json");
+
+        let refused = registry_index(Some(path.clone().into_os_string())).unwrap_err();
+
+        assert!(
+            refused.message.contains(&path.display().to_string()),
+            "{}",
+            refused.message
+        );
     }
 
     #[test]
