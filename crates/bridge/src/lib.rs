@@ -74,6 +74,23 @@ pub fn connect(name: &str) -> Result<Bridge, BridgeError> {
     Bridge::open(transport::connect(name)?)
 }
 
+/// The pipe first, because a mod that serves one is already listening and says
+/// no immediately. A page mod cannot serve anything, so it connects to us
+/// instead, and that side has to be waited for (ADR-0018).
+pub fn connect_or_listen(name: &str, wait: std::time::Duration) -> Result<Bridge, BridgeError> {
+    match connect(name) {
+        Ok(bridge) => Ok(bridge),
+        Err(BridgeError::InvalidEndpoint { endpoint }) => {
+            Err(BridgeError::InvalidEndpoint { endpoint })
+        }
+        Err(piped) => {
+            tracing::info!(%piped, "no pipe, waiting for a mod to connect over the socket");
+            let listener = websocket::bind(websocket::DEFAULT_PORT)?;
+            Bridge::open(websocket::accept(&listener, name, wait)?)
+        }
+    }
+}
+
 impl Bridge {
     /// Handshake first: a mod built against an incompatible contract is refused
     /// here rather than misbehaving on the first observation (ADR-0010).

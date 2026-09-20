@@ -9,6 +9,9 @@ pub enum Loader {
     Bepinex,
     Melonloader,
     ReloadedIi,
+    /// The game has a mod folder of its own, named by the entry: Cookie Clicker
+    /// loads `resources/app/mods/local/<id>/` (ADR-0018).
+    Game,
     Manual,
 }
 
@@ -34,11 +37,16 @@ pub enum LoaderError {
     ReloadedMissing,
     #[error("this mod is installed by hand, following its own instructions")]
     Manual,
+    #[error("`{0}` is not a mod folder inside the game")]
+    BadModsPath(String),
+    #[error("this mod needs the game's own mod folder, which the entry does not name")]
+    NoModsPath,
 }
 
 impl Loader {
     pub fn label(self) -> &'static str {
         match self {
+            Loader::Game => "the game's own loader",
             Loader::Bepinex => "BepInEx",
             Loader::Melonloader => "MelonLoader",
             Loader::ReloadedIi => "Reloaded-II",
@@ -50,6 +58,7 @@ impl Loader {
         self,
         game: &Path,
         reloaded_mods: Option<&Path>,
+        mods_path: Option<&str>,
         mod_id: &str,
     ) -> Result<Destination, LoaderError> {
         let missing = || LoaderError::Missing {
@@ -75,7 +84,31 @@ impl Loader {
                 .filter(|mods| mods.is_dir())
                 .map(|mods| Destination::Own(mods.join(mod_id)))
                 .ok_or(LoaderError::ReloadedMissing),
+            Loader::Game => {
+                let mods = mods_path.ok_or(LoaderError::NoModsPath)?;
+                if !is_inside_the_game(mods) {
+                    return Err(LoaderError::BadModsPath(mods.to_owned()));
+                }
+                let root = game.join(mods);
+                if !root.is_dir() {
+                    return Err(missing());
+                }
+                Ok(Destination::Own(root.join(mod_id)))
+            }
             Loader::Manual => Err(LoaderError::Manual),
         }
     }
+}
+
+/// A registry entry is read on every platform, so a path is judged by its text
+/// as well: `C:/Windows` and `..\..\system32` are relative and ordinary to a
+/// Linux `Path`, and are neither on the machine that would install the mod.
+fn is_inside_the_game(mods: &str) -> bool {
+    !mods.is_empty()
+        && !mods.contains(':')
+        && !mods.contains('\\')
+        && Path::new(mods).is_relative()
+        && Path::new(mods)
+            .components()
+            .all(|part| matches!(part, std::path::Component::Normal(_)))
 }

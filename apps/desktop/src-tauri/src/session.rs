@@ -14,7 +14,7 @@ use idlewarden_core::authoring::{self, AuthoringError, Draft};
 use idlewarden_core::detector::{Candidate, DesktopWindows};
 use idlewarden_core::{
     load_all, Command, Detector, Event, Governor, GovernorConfig, Link, Parts, PluginBundle,
-    Refusal, Runner, Session, SessionService, SessionState, DEFAULT_TICK,
+    PluginId, Refusal, Runner, Session, SessionService, SessionState, DEFAULT_TICK,
 };
 #[cfg(windows)]
 use idlewarden_input::{DryRunBackend, Humanisation, SendInputBackend};
@@ -100,6 +100,27 @@ impl From<Candidate> for WindowCandidate {
                 .collect(),
         }
     }
+}
+
+/// How long a page mod has to connect once a session starts. Long enough for a
+/// reconnect cycle, short enough that a missing mod is a pause and not a hang.
+const BRIDGE_WAIT: std::time::Duration = std::time::Duration::from_secs(12);
+
+pub struct Plan {
+    plugin: PluginId,
+    governor: GovernorConfig,
+    wanted: Wanted,
+}
+
+impl Plan {
+    fn split(self) -> (PluginId, GovernorConfig, Wanted) {
+        (self.plugin, self.governor, self.wanted)
+    }
+}
+
+enum Wanted {
+    Bridge(String),
+    Link(Result<Link, String>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -271,7 +292,10 @@ impl Inner {
             .collect()
     }
 
-    fn start(&mut self, command: &Command) -> Result<(), Refusal> {
+    /// A pipe answers or refuses at once, but a mod that lives in a page has to
+    /// connect to us, and that waits (ADR-0018). So planning happens under the
+    /// lock and the connecting happens outside it.
+    fn plan(&mut self, command: &Command) -> Result<Plan, Refusal> {
         self.session.apply(command)?;
 
         let Some(window) = self.detector.window() else {
@@ -287,18 +311,34 @@ impl Inner {
 
         let profile = self.profiles.get(&bundle.id.0);
         let governor = profile.governor(&Self::declared(bundle));
+        let plugin = bundle.id.clone();
 
-        let link = match bundle.bridge.as_deref() {
-            Some(name) if profile.bridge_granted => {
-                bridged(bundle, idlewarden_bridge::connect(name))
+        match bundle.bridge.clone() {
+            Some(bridge) if profile.bridge_granted => Ok(Plan {
+                plugin,
+                governor,
+                wanted: Wanted::Bridge(bridge),
+            }),
+            _ => {
+                let wanted = self
+                    .backends(window)
+                    .map(|(capture, input)| Link::Perceived {
+                        capture,
+                        perceiver: bundle.perceiver(),
+                        input,
+                    });
+                Ok(Plan {
+                    plugin,
+                    governor,
+                    wanted: Wanted::Link(wanted),
+                })
             }
-            _ => self
-                .backends(window)
-                .map(|(capture, input)| Link::Perceived {
-                    capture,
-                    perceiver: bundle.perceiver(),
-                    input,
-                }),
+        }
+    }
+
+    fn launch(&mut self, plugin: &PluginId, governor: GovernorConfig, link: Result<Link, String>) {
+        let Some(bundle) = self.plugins.iter().find(|bundle| &bundle.id == plugin) else {
+            return;
         };
 
         match link {
@@ -308,7 +348,6 @@ impl Inner {
                 self.publish([Event::Error { message: reason }]);
             }
         }
-        Ok(())
     }
 
     fn spawn(&self, bundle: &PluginBundle, link: Link, governor: GovernorConfig) -> SessionService {
@@ -326,13 +365,13 @@ impl Inner {
     }
 }
 
-fn bridged(bundle: &PluginBundle, connected: Result<Bridge, BridgeError>) -> Result<Link, String> {
+fn bridged(plugin: &PluginId, connected: Result<Bridge, BridgeError>) -> Result<Link, String> {
     let bridge = connected.map_err(|error| format!("the mod did not answer: {error}"))?;
-    if bridge.plugin() != &bundle.id {
+    if bridge.plugin() != plugin {
         return Err(format!(
             "the mod on this endpoint speaks for `{}`, not `{}`",
             bridge.plugin().0,
-            bundle.id.0
+            plugin.0
         ));
     }
     Ok(Link::Bridged(bridge))
@@ -383,26 +422,58 @@ pub fn session_events(handle: State<'_, SessionHandle>) -> Vec<Published> {
 }
 
 #[tauri::command]
-pub fn dispatch(handle: State<'_, SessionHandle>, command: Command) -> Result<Session, Refused> {
-    let mut inner = handle.0.lock().expect("session lock");
-    inner.refresh();
+pub async fn dispatch(
+    handle: State<'_, SessionHandle>,
+    command: Command,
+) -> Result<Session, Refused> {
+    let plan = {
+        let mut inner = handle.0.lock().expect("session lock");
+        inner.refresh();
 
-    match &command {
-        Command::Start { .. } => inner.start(&command)?,
-        Command::Stop => {
-            inner.session.apply(&command)?;
-            inner.service = None;
-            inner.kill.reset();
-        }
-        _ => {
-            inner.session.apply(&command)?;
-            if let Some(service) = &inner.service {
-                service.send(command);
+        match &command {
+            Command::Start { .. } => Some(inner.plan(&command)?),
+            Command::Stop => {
+                inner.session.apply(&command)?;
+                inner.service = None;
+                inner.kill.reset();
+                None
+            }
+            _ => {
+                inner.session.apply(&command)?;
+                if let Some(service) = &inner.service {
+                    service.send(command.clone());
+                }
+                None
             }
         }
+    };
+
+    if let Some(plan) = plan {
+        let (plugin, governor, wanted) = plan.split();
+        let link = open(wanted, &plugin).await;
+        let mut inner = handle.0.lock().expect("session lock");
+        inner.launch(&plugin, governor, link);
     }
 
+    let inner = handle.0.lock().expect("session lock");
     Ok(inner.session.clone())
+}
+
+async fn open(wanted: Wanted, plugin: &PluginId) -> Result<Link, String> {
+    let Wanted::Bridge(name) = wanted else {
+        let Wanted::Link(link) = wanted else {
+            unreachable!()
+        };
+        return link;
+    };
+
+    let connected = tauri::async_runtime::spawn_blocking(move || {
+        idlewarden_bridge::connect_or_listen(&name, BRIDGE_WAIT)
+    })
+    .await
+    .map_err(|error| error.to_string())?;
+
+    bridged(plugin, connected)
 }
 
 /// What detection saw on the last poll. Refreshing first means the screen
@@ -1036,12 +1107,25 @@ mod tests {
 
         fn start(inner: &mut Inner) {
             inner.refresh();
-            inner
-                .start(&Command::Start {
+            let plan = inner
+                .plan(&Command::Start {
                     plugin: PluginId("dev.idlewarden.test-game".to_owned()),
                     profile: "default".to_owned(),
                 })
                 .expect("a ready session accepts Start");
+
+            let (plugin, governor, wanted) = plan.split();
+            let link = match wanted {
+                Wanted::Link(link) => link,
+                Wanted::Bridge(name) => bridged(
+                    &plugin,
+                    idlewarden_bridge::connect_or_listen(
+                        &name,
+                        std::time::Duration::from_millis(200),
+                    ),
+                ),
+            };
+            inner.launch(&plugin, governor, link);
         }
 
         #[test]
@@ -1084,7 +1168,7 @@ mod tests {
             let inner = ready_with("bridge-imposter", &manifest("reference"), REFERENCE_RULES);
             let bundle = inner.plugins.first().expect("the fixture plugin loaded");
 
-            let refused = bridged(bundle, Ok(reference("dev.someone.else", 0).0))
+            let refused = bridged(&bundle.id, Ok(reference("dev.someone.else", 0).0))
                 .err()
                 .expect("an imposter is refused");
 
@@ -1109,7 +1193,7 @@ mod tests {
 
             let (bridge, cookies) = reference("dev.idlewarden.test-game", 150);
             let bundle = inner.plugins.first().expect("the fixture plugin loaded");
-            let link = bridged(bundle, Ok(bridge)).expect("the mod speaks for this plugin");
+            let link = bridged(&bundle.id, Ok(bridge)).expect("the mod speaks for this plugin");
             inner.service = Some(inner.spawn(bundle, link, GovernorConfig::default()));
 
             let published = drain_for(&mut inner, 6);

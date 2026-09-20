@@ -121,9 +121,7 @@ fn fetch_and_install(plugin: &PluginId, bridge: &str, game: &Path) -> Result<Ins
 
     let reloaded = std::env::var_os("RELOADEDIIMODS").map(PathBuf::from);
     let destination = release
-        .entry
-        .loader
-        .destination(game, reloaded.as_deref(), &release.entry.id)
+        .destination(game, reloaded.as_deref())
         .map_err(Refused::failed)?;
 
     let archive = download(&release.version.url, LARGEST_ARCHIVE)?;
