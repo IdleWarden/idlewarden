@@ -4,6 +4,12 @@ All notable changes to `core` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.22] - 2026-09-20
+
+### Features
+
+- feat(desktop): the editor writes post-conditions that say a counter moved (#70)
+
 ## [26.9.21] - 2026-09-20
 
 ### Features
