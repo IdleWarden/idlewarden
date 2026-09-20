@@ -297,7 +297,16 @@ mod over_a_local_websocket {
     fn a_mod_page(port: u16, path: &str, origin: Option<&str>) -> std::thread::JoinHandle<bool> {
         let request = request(port, path, origin);
         std::thread::spawn(move || {
-            let Ok((mut socket, _)) = tungstenite::connect(request) else {
+            let mut socket = None;
+            let deadline = std::time::Instant::now() + Duration::from_secs(2);
+            while std::time::Instant::now() < deadline {
+                if let Ok((connected, _)) = tungstenite::connect(request.clone()) {
+                    socket = Some(connected);
+                    break;
+                }
+                std::thread::sleep(Duration::from_millis(25));
+            }
+            let Some(mut socket) = socket else {
                 return false;
             };
 
@@ -355,6 +364,7 @@ mod over_a_local_websocket {
             accept(&listener, "cookie-clicker", Duration::from_millis(600)),
             "a remote page must never answer for a mod",
         );
+        drop(listener);
 
         assert!(matches!(refused, BridgeError::Connect { .. }), "{refused}");
         assert!(
@@ -372,6 +382,7 @@ mod over_a_local_websocket {
             accept(&listener, "cookie-clicker", Duration::from_millis(600)),
             "one game's mod must not answer for another's plugin",
         );
+        drop(listener);
 
         assert!(matches!(refused, BridgeError::Connect { .. }), "{refused}");
         assert!(!page.join().expect("the page thread finishes"));
@@ -390,6 +401,20 @@ mod over_a_local_websocket {
             refused.to_string().contains("cookie-clicker"),
             "the reason has to name the endpoint: {refused}"
         );
+    }
+
+    #[test]
+    fn with_no_pipe_to_be_found_the_host_waits_for_the_page_to_connect() {
+        let name = format!("ws-fallback-{}", std::process::id());
+        let listener = bind(crate::websocket::DEFAULT_PORT).expect("the shared port is free");
+        let page = a_mod_page(port(&listener), &format!("/{name}"), Some("file://"));
+        drop(listener);
+
+        let bridge = crate::connect_or_listen(&name, WAIT).expect("the mod connects instead");
+
+        assert_eq!(bridge.plugin().as_str(), "dev.example.cookie-clicker");
+        drop(bridge);
+        let _ = page.join();
     }
 
     #[test]

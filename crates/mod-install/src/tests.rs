@@ -151,7 +151,7 @@ mod loader {
         let game = bepinex_game("bepinex");
 
         let destination = Loader::Bepinex
-            .destination(&game, None, MOD_ID)
+            .destination(&game, None, None, MOD_ID)
             .expect("BepInEx is installed");
 
         assert_eq!(
@@ -165,7 +165,7 @@ mod loader {
         let game = scratch("no-loader");
 
         let error = Loader::Bepinex
-            .destination(&game, None, MOD_ID)
+            .destination(&game, None, None, MOD_ID)
             .expect_err("no BepInEx here");
 
         assert!(
@@ -181,7 +181,7 @@ mod loader {
         std::fs::create_dir_all(game.join("MelonLoader")).expect("loader");
 
         assert_eq!(
-            Loader::Melonloader.destination(&game, None, MOD_ID),
+            Loader::Melonloader.destination(&game, None, None, MOD_ID),
             Ok(Destination::Shared(game.join("Mods")))
         );
     }
@@ -192,19 +192,50 @@ mod loader {
         let reloaded = scratch("reloaded-mods");
 
         assert_eq!(
-            Loader::ReloadedIi.destination(&game, None, MOD_ID),
+            Loader::ReloadedIi.destination(&game, None, None, MOD_ID),
             Err(LoaderError::ReloadedMissing)
         );
         assert_eq!(
-            Loader::ReloadedIi.destination(&game, Some(&reloaded), MOD_ID),
+            Loader::ReloadedIi.destination(&game, Some(&reloaded), None, MOD_ID),
             Ok(Destination::Own(reloaded.join(MOD_ID)))
+        );
+    }
+
+    #[test]
+    fn a_game_with_its_own_mod_folder_takes_the_path_from_the_entry() {
+        let game = scratch("own-loader");
+        let mods = game.join("resources/app/mods/local");
+        std::fs::create_dir_all(&mods).expect("the game's mod folder");
+
+        assert_eq!(
+            Loader::Game.destination(&game, None, Some("resources/app/mods/local"), MOD_ID),
+            Ok(Destination::Own(mods.join(MOD_ID)))
+        );
+    }
+
+    #[test]
+    fn a_mod_folder_that_climbs_out_of_the_game_is_refused() {
+        let game = scratch("own-escape");
+
+        for hostile in ["../../windows/system32", "/etc", "C:/Windows", ""] {
+            assert!(
+                matches!(
+                    Loader::Game.destination(&game, None, Some(hostile), MOD_ID),
+                    Err(LoaderError::BadModsPath(_))
+                ),
+                "{hostile} was accepted as a mod folder"
+            );
+        }
+        assert_eq!(
+            Loader::Game.destination(&game, None, None, MOD_ID),
+            Err(LoaderError::NoModsPath)
         );
     }
 
     #[test]
     fn a_manual_mod_is_never_installed_by_the_app() {
         assert_eq!(
-            Loader::Manual.destination(&scratch("manual"), None, MOD_ID),
+            Loader::Manual.destination(&scratch("manual"), None, None, MOD_ID),
             Err(LoaderError::Manual)
         );
     }
@@ -212,7 +243,7 @@ mod loader {
     #[test]
     fn the_registry_spelling_of_each_loader_parses() {
         let loaders: Vec<Loader> =
-            serde_json::from_str(r#"["bepinex", "melonloader", "reloaded-ii", "manual"]"#)
+            serde_json::from_str(r#"["bepinex", "melonloader", "reloaded-ii", "game", "manual"]"#)
                 .expect("parses");
 
         assert_eq!(
@@ -221,6 +252,7 @@ mod loader {
                 Loader::Bepinex,
                 Loader::Melonloader,
                 Loader::ReloadedIi,
+                Loader::Game,
                 Loader::Manual
             ]
         );
@@ -232,7 +264,7 @@ mod archive {
 
     fn own(game: &Path) -> Destination {
         Loader::Bepinex
-            .destination(game, None, MOD_ID)
+            .destination(game, None, None, MOD_ID)
             .expect("BepInEx is installed")
     }
 

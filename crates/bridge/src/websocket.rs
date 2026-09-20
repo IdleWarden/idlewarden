@@ -126,8 +126,12 @@ fn is_local_document(request: &Request) -> bool {
         || origin.starts_with("app://")
 }
 
+/// The body stays empty on purpose: a client that reads one has no
+/// `Content-Length` to stop at, and waits for a close that a refused handshake
+/// does not always send.
 fn refuse(status: StatusCode, reason: &'static str) -> ErrorResponse {
-    let mut response = ErrorResponse::new(Some(reason.to_owned()));
+    tracing::warn!(reason, "a connection to the bridge was refused");
+    let mut response = ErrorResponse::new(None);
     *response.status_mut() = status;
     response
 }

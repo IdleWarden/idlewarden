@@ -18,6 +18,8 @@ pub struct ModEntry {
     pub plugin: PluginId,
     pub bridge: Bridge,
     pub loader: Loader,
+    #[serde(default)]
+    pub mods_path: Option<String>,
     pub versions: Vec<ModVersion>,
 }
 
@@ -40,6 +42,21 @@ pub struct ModVersion {
 pub struct Release<'a> {
     pub entry: &'a ModEntry,
     pub version: &'a ModVersion,
+}
+
+impl Release<'_> {
+    pub fn destination(
+        &self,
+        game: &std::path::Path,
+        reloaded_mods: Option<&std::path::Path>,
+    ) -> Result<crate::loader::Destination, crate::loader::LoaderError> {
+        self.entry.loader.destination(
+            game,
+            reloaded_mods,
+            self.entry.mods_path.as_deref(),
+            &self.entry.id,
+        )
+    }
 }
 
 impl Index {
