@@ -1602,7 +1602,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-bridge"
-version = "26.9.2"
+version = "26.9.3"
 dependencies = [
  "idlewarden-plugin-api",
  "serde",
@@ -1643,7 +1643,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-desktop"
-version = "26.9.23"
+version = "26.9.24"
 dependencies = [
  "idlewarden-bridge",
  "idlewarden-capture",
@@ -1676,7 +1676,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-mod-install"
-version = "26.9.1"
+version = "26.9.2"
 dependencies = [
  "idlewarden-plugin-api",
  "semver",

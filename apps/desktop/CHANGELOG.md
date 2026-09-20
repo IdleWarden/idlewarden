@@ -4,6 +4,12 @@ All notable changes to `desktop` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.24] - 2026-09-20
+
+### Features
+
+- feat(desktop): wait for a page mod to connect when no pipe answers (#63)
+
 ## [26.9.23] - 2026-09-19
 
 ### Features
