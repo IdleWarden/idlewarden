@@ -240,6 +240,12 @@
       ]
     },
     {
+      "name": "mod-cookie-clicker",
+      "path": "mods/js",
+      "tagTemplate": "mod/cookie-clicker@v{version}",
+      "changelog": "mods/js/CHANGELOG.md"
+    },
+    {
       "name": "plugin-example-game",
       "path": "plugins/example-game",
       "tagTemplate": "plugin/example-game@v{version}",

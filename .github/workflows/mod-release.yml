@@ -14,6 +14,55 @@ permissions:
   contents: read
 
 jobs:
+  package-cookie-clicker:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      startsWith(github.event.release.tag_name, 'mod/cookie-clicker@v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Package the mod folder the game loads
+        id: package
+        run: |
+          set -euo pipefail
+          [ "${TAG#mod/cookie-clicker@v}" != "$TAG" ] || exit 0
+          out=$(node mods/js/build.mjs "$RUNNER_TEMP/mod")
+          archive="IdleWarden.CookieClicker-${TAG#mod/cookie-clicker@v}.zip"
+          (cd "$(dirname "$out")" && zip -rX "$GITHUB_WORKSPACE/$archive" "$(basename "$out")")
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/attest-build-provenance@v2
+        if: steps.package.outputs.archive != ''
+        with:
+          subject-path: ${{ steps.package.outputs.archive }}
+
+      - name: Attach to the release
+        if: steps.package.outputs.archive != ''
+        env:
+          ARCHIVE: ${{ steps.package.outputs.archive }}
+        run: |
+          set -euo pipefail
+          gh release upload "$TAG" "$ARCHIVE" --clobber
+          {
+            echo "### $ARCHIVE"
+            echo
+            echo "sha256 for the registry entry: \`$(sha256sum "$ARCHIVE" | cut -d' ' -f1)\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   package:
     if: >-
       github.event_name == 'workflow_dispatch' ||
