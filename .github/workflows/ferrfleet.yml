@@ -1,8 +1,3 @@
-# Runs a FerrFleet agent on this repository's pull requests.
-#
-# The agent executes here, on a GitHub runner, on our own Claude credential.
-# FerrFleet only creates the run and collects the transcript, so nothing about
-# this repository is sent to it to be executed elsewhere.
 name: ferrfleet
 
 on:
@@ -17,27 +12,18 @@ on:
 permissions:
   contents: read
 
-# Each run spends our own Claude tokens, so a second push to a branch should
-# replace the review in flight rather than pay for both.
 concurrency:
   group: ferrfleet-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 jobs:
   review:
-    # Secrets are not exposed to a pull request from a fork, so the action would
-    # create a run it cannot authenticate and the job would go red on every
-    # outside contribution. Skipping says the same thing without the noise.
     if: >-
       github.event_name == 'workflow_dispatch' ||
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      # `mode: binary` rather than the default: it downloads the release binary
-      # instead of running the published image, which is the path a runner
-      # without a Docker daemon takes. A GitHub runner has one, so this is the
-      # deliberate choice to exercise the other branch.
       - uses: FerrLabs/FerrFleet-Runner@v1
         with:
           mode: binary
