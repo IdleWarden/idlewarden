@@ -1,0 +1,24 @@
+{
+  "$comment": "Declaration order is priority. A golden cookie expires, an upgrade does not, and a building will still be there next tick.",
+  "intents": [
+    {
+      "name": "pop_golden_cookie",
+      "when": [{ "op": "is_true", "signal": "ui.golden_cookie" }],
+      "post_condition": [{ "op": "is_false", "signal": "ui.golden_cookie" }],
+      "min_confidence": 0.9
+    },
+    {
+      "$comment": "The counter moving is the only honest proof a purchase went through: with enough cookies, `affordable` is true again the moment the next upgrade appears.",
+      "name": "buy_upgrade",
+      "when": [{ "op": "is_true", "signal": "upgrade.affordable" }],
+      "post_condition": [{ "op": "increased", "signal": "stat.upgrades_owned" }],
+      "min_confidence": 0.9
+    },
+    {
+      "name": "buy_best_building",
+      "when": [{ "op": "is_true", "signal": "building.best_payback_affordable" }],
+      "post_condition": [{ "op": "increased", "signal": "stat.buildings_owned" }],
+      "min_confidence": 0.9
+    }
+  ]
+}

@@ -143,6 +143,31 @@ mod tests {
     }
 
     #[test]
+    fn the_shipped_bridged_plugin_declares_its_mod_and_verifies_every_intent() {
+        let bundle = PluginBundle::load(&examples().join("cookie-clicker"))
+            .expect("the shipped plugin must load whole");
+
+        assert_eq!(bundle.bridge.as_deref(), Some("cookie-clicker"));
+        assert_eq!(
+            bundle
+                .rules
+                .intents
+                .iter()
+                .map(|intent| intent.name.as_str())
+                .collect::<Vec<_>>(),
+            ["pop_golden_cookie", "buy_upgrade", "buy_best_building"]
+        );
+        assert!(
+            bundle
+                .rules
+                .intents
+                .iter()
+                .all(|intent| intent.commands.is_empty()),
+            "a bridged plugin acts through the mod, so it declares no clicks"
+        );
+    }
+
+    #[test]
     fn a_plugin_that_captures_the_screen_declares_no_bridge() {
         let bundle = PluginBundle::load(&examples().join("example-game")).expect("loads");
 

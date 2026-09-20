@@ -22,6 +22,41 @@
       : null;
   }
 
+  function cheapestUpgrade() {
+    const store = global.Game.UpgradesInStore || [];
+    return (
+      store
+        .filter((upgrade) => upgrade.canBuy())
+        .sort((a, b) => a.getPrice() - b.getPrice())[0] || null
+    );
+  }
+
+  function paybackSeconds(object) {
+    const earns = (object.storedCps || 0) * (global.Game.globalCpsMult || 1);
+    return earns > 0 ? object.getPrice() / earns : Infinity;
+  }
+
+  function bestPayback() {
+    const objects = Object.values(global.Game.Objects || {});
+    let best = null;
+    for (const object of objects) {
+      if (object.locked) {
+        continue;
+      }
+      if (best === null || paybackSeconds(object) < paybackSeconds(best)) {
+        best = object;
+      }
+    }
+    return best !== null && paybackSeconds(best) < Infinity ? best : null;
+  }
+
+  function owned() {
+    return Object.values(global.Game.Objects || {}).reduce(
+      (total, object) => total + (object.amount || 0),
+      0,
+    );
+  }
+
   function parameter(intent, key) {
     const params = (intent && intent.params) || {};
     return Object.prototype.hasOwnProperty.call(params, key)
@@ -32,6 +67,7 @@
   function observe() {
     const Game = global.Game;
     const cursors = building("Cursor");
+    const best = bestPayback();
     return [
       bridge.signal("resource.cookies", bridge.Value.int(Game.cookies)),
       bridge.signal(
@@ -46,6 +82,19 @@
       bridge.signal(
         "stat.cursors",
         bridge.Value.int(cursors ? cursors.amount : 0),
+      ),
+      bridge.signal(
+        "stat.upgrades_owned",
+        bridge.Value.int(Game.UpgradesOwned || 0),
+      ),
+      bridge.signal("stat.buildings_owned", bridge.Value.int(owned())),
+      bridge.signal(
+        "building.best_payback",
+        bridge.Value.enumeration(best === null ? "none" : best.name),
+      ),
+      bridge.signal(
+        "building.best_payback_affordable",
+        bridge.Value.bool(best !== null && best.getPrice() <= Game.cookies),
       ),
     ];
   }
@@ -66,11 +115,25 @@
       }
 
       case "buy_upgrade": {
-        const upgrade = affordable();
+        const upgrade = cheapestUpgrade();
         if (upgrade === null) {
           return bridge.Outcome.failed("no upgrade in the store is affordable");
         }
         upgrade.buy();
+        return bridge.Outcome.succeeded();
+      }
+
+      case "buy_best_building": {
+        const best = bestPayback();
+        if (best === null) {
+          return bridge.Outcome.failed("no building earns anything yet");
+        }
+        if (best.getPrice() > global.Game.cookies) {
+          return bridge.Outcome.failed(
+            `not affordable: ${best.name} costs ${best.getPrice()}`,
+          );
+        }
+        best.buy(1);
         return bridge.Outcome.succeeded();
       }
 

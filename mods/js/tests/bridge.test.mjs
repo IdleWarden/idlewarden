@@ -28,20 +28,36 @@ function fakeSocket() {
   return socket;
 }
 
+const holding = (name, amount, price, storedCps, locked = false) => ({
+  name,
+  amount,
+  storedCps,
+  locked,
+  getPrice: () => price,
+  buy(count) {
+    this.amount += count;
+  },
+});
+
+const upgrade = (name, price, affordable = true) => ({
+  name,
+  bought: false,
+  getPrice: () => price,
+  canBuy: () => affordable,
+  buy() {
+    this.bought = true;
+  },
+});
+
 const cookieClicker = () => ({
   cookies: 1200.7,
   cookiesPs: 42.5,
+  globalCpsMult: 2,
   shimmers: [],
   UpgradesInStore: [],
+  UpgradesOwned: 41,
   Objects: {
-    Cursor: {
-      amount: 7,
-      price: 900,
-      getPrice: () => 900,
-      buy(amount) {
-        this.amount += amount;
-      },
-    },
+    Cursor: holding("Cursor", 7, 900, 0.1),
   },
   ClickCookie() {
     this.cookies += 1;
@@ -270,4 +286,146 @@ test("an intent the mod does not know is rejected, and one it cannot afford fail
     { outcome: "succeeded" },
   );
   assert.equal(game.Objects.Cursor.amount, 8);
+});
+
+test("the mod buys the cheapest upgrade it can afford, not the first listed", async () => {
+  const scope = await load(
+    "idlewarden-bridge/bridge.js",
+    "cookie-clicker/mod.js",
+  );
+  const game = cookieClicker();
+  const dear = upgrade("Dear", 5000);
+  const cheap = upgrade("Cheap", 300);
+  const unaffordable = upgrade("Unaffordable", 10, false);
+  game.UpgradesInStore = [dear, unaffordable, cheap];
+  scope.Game = game;
+
+  assert.deepEqual(
+    scope.IdleWardenCookieClicker.act({ name: "buy_upgrade", params: {} }),
+    {
+      outcome: "succeeded",
+    },
+  );
+
+  assert.equal(cheap.bought, true);
+  assert.equal(dear.bought, false);
+  assert.equal(
+    unaffordable.bought,
+    false,
+    "canBuy is the game's own answer, and it said no",
+  );
+});
+
+test("with nothing affordable in the store, buying an upgrade fails", async () => {
+  const scope = await load(
+    "idlewarden-bridge/bridge.js",
+    "cookie-clicker/mod.js",
+  );
+  const game = cookieClicker();
+  game.UpgradesInStore = [upgrade("Dear", 5000, false)];
+  scope.Game = game;
+
+  const outcome = scope.IdleWardenCookieClicker.act({
+    name: "buy_upgrade",
+    params: {},
+  });
+
+  assert.equal(outcome.outcome, "failed");
+});
+
+test("the best building is the one that pays for itself soonest", async () => {
+  const scope = await load(
+    "idlewarden-bridge/bridge.js",
+    "cookie-clicker/mod.js",
+  );
+  const game = cookieClicker();
+  game.Objects = {
+    Cursor: holding("Cursor", 7, 900, 0.1),
+    Grandma: holding("Grandma", 3, 1000, 5),
+    Farm: holding("Farm", 0, 100000, 10),
+    Locked: holding("Locked", 0, 1, 1000, true),
+  };
+  scope.Game = game;
+
+  const signals = Object.fromEntries(
+    scope.IdleWardenCookieClicker.observe().map((signal) => [
+      signal.id,
+      signal.value,
+    ]),
+  );
+
+  assert.deepEqual(signals["building.best_payback"], {
+    type: "enum",
+    value: "Grandma",
+  });
+  assert.deepEqual(signals["building.best_payback_affordable"], {
+    type: "bool",
+    value: true,
+  });
+  assert.deepEqual(signals["stat.buildings_owned"], { type: "int", value: 10 });
+  assert.deepEqual(signals["stat.upgrades_owned"], { type: "int", value: 41 });
+});
+
+test("a building that earns nothing is never the best buy", async () => {
+  const scope = await load(
+    "idlewarden-bridge/bridge.js",
+    "cookie-clicker/mod.js",
+  );
+  const game = cookieClicker();
+  game.Objects = { Cursor: holding("Cursor", 0, 15, 0) };
+  scope.Game = game;
+
+  const signals = Object.fromEntries(
+    scope.IdleWardenCookieClicker.observe().map((signal) => [
+      signal.id,
+      signal.value,
+    ]),
+  );
+
+  assert.deepEqual(signals["building.best_payback"], {
+    type: "enum",
+    value: "none",
+  });
+  assert.deepEqual(
+    scope.IdleWardenCookieClicker.act({
+      name: "buy_best_building",
+      params: {},
+    }),
+    {
+      outcome: "failed",
+      reason: "no building earns anything yet",
+    },
+  );
+});
+
+test("buying the best building buys that one, and fails rather than overdrawing", async () => {
+  const scope = await load(
+    "idlewarden-bridge/bridge.js",
+    "cookie-clicker/mod.js",
+  );
+  const game = cookieClicker();
+  const grandma = holding("Grandma", 3, 1000, 5);
+  game.Objects = { Cursor: holding("Cursor", 7, 900, 0.1), Grandma: grandma };
+  scope.Game = game;
+
+  assert.deepEqual(
+    scope.IdleWardenCookieClicker.act({
+      name: "buy_best_building",
+      params: {},
+    }),
+    { outcome: "succeeded" },
+  );
+  assert.equal(grandma.amount, 4);
+
+  game.cookies = 10;
+  const outcome = scope.IdleWardenCookieClicker.act({
+    name: "buy_best_building",
+    params: {},
+  });
+  assert.equal(outcome.outcome, "failed");
+  assert.equal(
+    grandma.amount,
+    4,
+    "a failed purchase must not have bought anything",
+  );
 });
