@@ -1,0 +1,36 @@
+{
+  "$schema": "https://idlewarden.github.io/registry/schema/plugin-manifest.schema.json",
+  "id": "dev.idlewarden.cookie-clicker",
+  "name": "Cookie Clicker",
+  "version": "26.9.1",
+  "api_version": "^0.1",
+  "game": {
+    "executable": "Cookie Clicker.exe",
+    "steam_appid": 1454400,
+    "title": "Cookie Clicker"
+  },
+  "multiplayer": false,
+  "presentation": {
+    "description": "Pops golden cookies, buys the cheapest upgrade, and buys the building that pays for itself soonest. Reads the game through the mod, so every value is exact.",
+    "tags": ["idle", "bridge", "reference"]
+  },
+  "rights": {
+    "license": "MPL-2.0",
+    "authors": ["The IdleWarden contributors"],
+    "asset_provenance": "hashes-only",
+    "trademark_notice": "Cookie Clicker is by Orteil and DashNet. This plugin is not affiliated with them."
+  },
+  "signals": [
+    { "id": "resource.cookies", "value_type": "int", "description": "Cookies in the bank." },
+    { "id": "rate.cookies_per_second", "value_type": "float", "unit": "cookies/s" },
+    { "id": "ui.golden_cookie", "value_type": "bool", "description": "A golden cookie is on screen." },
+    { "id": "upgrade.affordable", "value_type": "bool" },
+    { "id": "stat.cursors", "value_type": "int" },
+    { "id": "stat.upgrades_owned", "value_type": "int" },
+    { "id": "stat.buildings_owned", "value_type": "int" },
+    { "id": "building.best_payback", "value_type": "enum", "description": "The building whose price divided by its output is lowest." },
+    { "id": "building.best_payback_affordable", "value_type": "bool" }
+  ],
+  "intents": ["pop_golden_cookie", "buy_upgrade", "buy_best_building"],
+  "capabilities": ["bridge:cookie-clicker"]
+}

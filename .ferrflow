@@ -256,6 +256,18 @@
           "format": "json"
         }
       ]
+    },
+    {
+      "name": "plugin-cookie-clicker",
+      "path": "plugins/cookie-clicker",
+      "tagTemplate": "plugin/cookie-clicker@v{version}",
+      "changelog": "plugins/cookie-clicker/CHANGELOG.md",
+      "versionedFiles": [
+        {
+          "path": "plugins/cookie-clicker/plugin.json",
+          "format": "json"
+        }
+      ]
     }
   ]
 }
