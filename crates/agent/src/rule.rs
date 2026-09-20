@@ -10,11 +10,36 @@ use crate::Decider;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "op", rename_all = "snake_case")]
 pub enum Condition {
-    IsTrue { signal: String },
-    IsFalse { signal: String },
-    Equals { signal: String, value: Value },
-    AtLeast { signal: String, value: f64 },
-    AtMost { signal: String, value: f64 },
+    IsTrue {
+        signal: String,
+    },
+    IsFalse {
+        signal: String,
+    },
+    Equals {
+        signal: String,
+        value: Value,
+    },
+    AtLeast {
+        signal: String,
+        value: f64,
+    },
+    AtMost {
+        signal: String,
+        value: f64,
+    },
+    /// True when the signal is worth more than it was before the action. Only
+    /// a post-condition can hold one: there is nothing to compare against when
+    /// deciding what to do (ADR-0003).
+    Increased {
+        signal: String,
+    },
+    Decreased {
+        signal: String,
+    },
+    Changed {
+        signal: String,
+    },
 }
 
 impl Condition {
@@ -24,7 +49,45 @@ impl Condition {
             | Condition::IsFalse { signal }
             | Condition::Equals { signal, .. }
             | Condition::AtLeast { signal, .. }
-            | Condition::AtMost { signal, .. } => signal,
+            | Condition::AtMost { signal, .. }
+            | Condition::Increased { signal }
+            | Condition::Decreased { signal }
+            | Condition::Changed { signal } => signal,
+        }
+    }
+
+    /// A condition that reads the signal on its own, with nothing to compare
+    /// against. The ones that need a before are not usable when deciding.
+    pub fn is_standalone(&self) -> bool {
+        !matches!(
+            self,
+            Condition::Increased { .. } | Condition::Decreased { .. } | Condition::Changed { .. }
+        )
+    }
+
+    /// Whether this condition holds for an action that ran between the two
+    /// observations.
+    pub fn met_between(&self, before: &Observation, after: &Observation) -> bool {
+        let Some(now) = after.get(self.signal()) else {
+            return false;
+        };
+        match self {
+            Condition::Increased { .. } | Condition::Decreased { .. } => {
+                let (Some(was), Some(is)) = (
+                    before.get(self.signal()).and_then(|s| number(&s.value)),
+                    number(&now.value),
+                ) else {
+                    return false;
+                };
+                match self {
+                    Condition::Increased { .. } => is > was,
+                    _ => is < was,
+                }
+            }
+            Condition::Changed { .. } => before
+                .get(self.signal())
+                .is_some_and(|was| was.value != now.value),
+            _ => self.holds(&now.value),
         }
     }
 
@@ -35,7 +98,7 @@ impl Condition {
             .is_some_and(|signal| self.holds(&signal.value))
     }
 
-    fn holds(&self, value: &Value) -> bool {
+    pub(crate) fn holds(&self, value: &Value) -> bool {
         match self {
             Condition::IsTrue { .. } => matches!(value, Value::Bool(true)),
             Condition::IsFalse { .. } => matches!(value, Value::Bool(false)),
@@ -48,6 +111,9 @@ impl Condition {
             Condition::AtMost { value: ceiling, .. } => {
                 number(value).is_some_and(|found| found <= *ceiling)
             }
+            Condition::Increased { .. }
+            | Condition::Decreased { .. }
+            | Condition::Changed { .. } => false,
         }
     }
 }
@@ -163,6 +229,111 @@ mod tests {
         Condition::IsTrue {
             signal: "ui.reward_ready".to_owned(),
         }
+    }
+
+    #[test]
+    fn a_counter_that_went_up_meets_increased_and_nothing_else() {
+        let before = observation(1, vec![("resource.gold", Value::Int(100), 1.0)]);
+        let after = observation(2, vec![("resource.gold", Value::Int(140), 1.0)]);
+        let signal = "resource.gold".to_owned();
+
+        assert!(Condition::Increased {
+            signal: signal.clone()
+        }
+        .met_between(&before, &after));
+        assert!(Condition::Changed {
+            signal: signal.clone()
+        }
+        .met_between(&before, &after));
+        assert!(!Condition::Decreased { signal }.met_between(&before, &after));
+    }
+
+    #[test]
+    fn a_counter_that_stood_still_moved_in_no_direction() {
+        let same = observation(1, vec![("resource.gold", Value::Int(100), 1.0)]);
+        let after = observation(2, vec![("resource.gold", Value::Int(100), 1.0)]);
+
+        for condition in [
+            Condition::Increased {
+                signal: "resource.gold".to_owned(),
+            },
+            Condition::Decreased {
+                signal: "resource.gold".to_owned(),
+            },
+            Condition::Changed {
+                signal: "resource.gold".to_owned(),
+            },
+        ] {
+            assert!(
+                !condition.met_between(&same, &after),
+                "{condition:?} claimed a move that did not happen"
+            );
+        }
+    }
+
+    #[test]
+    fn spending_shows_up_as_decreased() {
+        let before = observation(1, vec![("resource.gold", Value::Float(500.0), 1.0)]);
+        let after = observation(2, vec![("resource.gold", Value::Float(400.0), 1.0)]);
+
+        assert!(Condition::Decreased {
+            signal: "resource.gold".to_owned()
+        }
+        .met_between(&before, &after));
+    }
+
+    #[test]
+    fn a_screen_that_switched_changed_even_though_it_is_not_a_number() {
+        let before = observation(1, vec![("ui.screen_id", Value::Enum("main".into()), 1.0)]);
+        let after = observation(2, vec![("ui.screen_id", Value::Enum("shop".into()), 1.0)]);
+        let signal = "ui.screen_id".to_owned();
+
+        assert!(Condition::Changed {
+            signal: signal.clone()
+        }
+        .met_between(&before, &after));
+        assert!(
+            !Condition::Increased { signal }.met_between(&before, &after),
+            "an enum has no direction, so it cannot have gone up"
+        );
+    }
+
+    #[test]
+    fn a_signal_that_was_not_there_before_cannot_prove_it_moved() {
+        let before = observation(1, vec![]);
+        let after = observation(2, vec![("resource.gold", Value::Int(10), 1.0)]);
+
+        assert!(!Condition::Increased {
+            signal: "resource.gold".to_owned()
+        }
+        .met_between(&before, &after));
+    }
+
+    #[test]
+    fn a_condition_that_reads_one_observation_still_means_the_same_after_acting() {
+        let before = observation(1, vec![("ui.reward_ready", Value::Bool(true), 1.0)]);
+        let after = observation(2, vec![("ui.reward_ready", Value::Bool(false), 1.0)]);
+
+        assert!(Condition::IsFalse {
+            signal: "ui.reward_ready".to_owned()
+        }
+        .met_between(&before, &after));
+        assert!(ready().met(&before));
+    }
+
+    #[test]
+    fn a_delta_never_decides_anything_on_its_own() {
+        let obs = observation(1, vec![("resource.gold", Value::Int(10), 1.0)]);
+        let increased = Condition::Increased {
+            signal: "resource.gold".to_owned(),
+        };
+
+        assert!(!increased.is_standalone());
+        assert!(ready().is_standalone());
+        assert!(
+            !increased.met(&obs),
+            "with one observation there is nothing to compare against"
+        );
     }
 
     #[test]

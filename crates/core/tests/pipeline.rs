@@ -59,7 +59,12 @@ impl Actuator for Hands {
         }]
     }
 
-    fn verify(&mut self, _intent: &Intent, _after: &Observation) -> ActionOutcome {
+    fn verify(
+        &mut self,
+        _intent: &Intent,
+        _before: &Observation,
+        _after: &Observation,
+    ) -> ActionOutcome {
         ActionOutcome::Succeeded
     }
 }

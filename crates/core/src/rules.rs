@@ -51,6 +51,8 @@ pub enum RulesError {
     Unseparated(String, String),
     #[error("signal `{0}` maps glyph key `{1}`, which is not a single character")]
     BadGlyphKey(String, String),
+    #[error("intent `{0}` decides on `{1}`, which only a post-condition can answer")]
+    DeltaWhenDeciding(String, String),
 }
 
 impl PluginRules {
@@ -61,6 +63,12 @@ impl PluginRules {
         for intent in &rules.intents {
             if intent.post_condition.is_empty() {
                 return Err(RulesError::Unverifiable(intent.name.clone()));
+            }
+            if let Some(delta) = intent.when.iter().find(|c| !c.is_standalone()) {
+                return Err(RulesError::DeltaWhenDeciding(
+                    intent.name.clone(),
+                    delta.signal().to_owned(),
+                ));
             }
         }
 
@@ -315,6 +323,40 @@ mod tests {
         assert_eq!(collect.commands.len(), 2);
         assert_eq!(collect.post_condition.len(), 1);
         assert_eq!(collect.min_confidence, 0.8);
+    }
+
+    #[test]
+    fn an_intent_that_decides_on_a_delta_is_refused_at_load() {
+        let rules = r#"{
+          "intents": [{
+            "name": "buy_upgrade",
+            "when": [{ "op": "increased", "signal": "resource.gold" }],
+            "commands": [],
+            "post_condition": [{ "op": "increased", "signal": "stat.upgrades" }]
+          }]
+        }"#;
+
+        let error = PluginRules::parse(rules).expect_err("refused");
+
+        assert!(
+            matches!(&error, RulesError::DeltaWhenDeciding(intent, signal)
+                if intent == "buy_upgrade" && signal == "resource.gold"),
+            "deciding on a delta would compare an observation with itself: {error}"
+        );
+    }
+
+    #[test]
+    fn an_intent_verified_by_a_delta_loads() {
+        let rules = r#"{
+          "intents": [{
+            "name": "buy_upgrade",
+            "when": [{ "op": "is_true", "signal": "upgrade.affordable" }],
+            "commands": [],
+            "post_condition": [{ "op": "increased", "signal": "stat.upgrades" }]
+          }]
+        }"#;
+
+        assert_eq!(PluginRules::parse(rules).expect("loads").intents.len(), 1);
     }
 
     #[test]
