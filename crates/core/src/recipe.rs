@@ -47,7 +47,12 @@ impl Actuator for RecipeActuator {
             .unwrap_or_default()
     }
 
-    fn verify(&mut self, intent: &Intent, after: &Observation) -> ActionOutcome {
+    fn verify(
+        &mut self,
+        intent: &Intent,
+        before: &Observation,
+        after: &Observation,
+    ) -> ActionOutcome {
         let Some(recipe) = self.recipe(intent) else {
             return ActionOutcome::Failed {
                 reason: format!("no recipe declares `{}`", intent.name),
@@ -71,7 +76,7 @@ impl Actuator for RecipeActuator {
                     reason: format!("`{}` was read too weakly to confirm", condition.signal()),
                 };
             }
-            if !condition.met(after) {
+            if !condition.met_between(before, after) {
                 return ActionOutcome::Failed {
                     reason: format!("`{}` did not change as expected", condition.signal()),
                 };
@@ -100,6 +105,10 @@ mod tests {
                 })
                 .collect(),
         }
+    }
+
+    fn before() -> Observation {
+        observation(vec![("ui.reward_ready", Value::Bool(true), 0.95)])
     }
 
     fn collect() -> Recipe {
@@ -136,7 +145,7 @@ mod tests {
 
         assert!(actuator.plan(&unknown).is_empty());
         assert!(matches!(
-            actuator.verify(&unknown, &observation(vec![])),
+            actuator.verify(&unknown, &observation(vec![]), &observation(vec![])),
             ActionOutcome::Failed { .. }
         ));
     }
@@ -147,6 +156,7 @@ mod tests {
 
         let outcome = actuator.verify(
             &Intent::new("collect_reward"),
+            &before(),
             &observation(vec![("ui.reward_ready", Value::Bool(false), 0.95)]),
         );
 
@@ -159,6 +169,7 @@ mod tests {
 
         let outcome = actuator.verify(
             &Intent::new("collect_reward"),
+            &before(),
             &observation(vec![("ui.reward_ready", Value::Bool(true), 0.95)]),
         );
 
@@ -175,6 +186,7 @@ mod tests {
 
         let outcome = actuator.verify(
             &Intent::new("collect_reward"),
+            &before(),
             &observation(vec![("ui.reward_ready", Value::Bool(false), 0.95)]),
         );
 
@@ -190,6 +202,7 @@ mod tests {
 
         let outcome = actuator.verify(
             &Intent::new("collect_reward"),
+            &before(),
             &observation(vec![("ui.reward_ready", Value::Bool(false), 0.2)]),
         );
 
@@ -205,12 +218,49 @@ mod tests {
 
         let outcome = actuator.verify(
             &Intent::new("collect_reward"),
+            &before(),
             &observation(vec![("something.else", Value::Bool(true), 0.95)]),
         );
 
         assert!(
             matches!(outcome, ActionOutcome::Failed { reason } if reason.contains("not observed"))
         );
+    }
+
+    #[test]
+    fn a_counter_that_moved_confirms_an_action_a_constant_never_could() {
+        let mut buy = collect();
+        buy.intent = "buy_upgrade".to_owned();
+        buy.post_condition = vec![Condition::Increased {
+            signal: "stat.upgrades_owned".to_owned(),
+        }];
+        let mut actuator = RecipeActuator::new(vec![buy]);
+
+        let outcome = actuator.verify(
+            &Intent::new("buy_upgrade"),
+            &observation(vec![("stat.upgrades_owned", Value::Int(41), 1.0)]),
+            &observation(vec![("stat.upgrades_owned", Value::Int(42), 1.0)]),
+        );
+
+        assert_eq!(outcome, ActionOutcome::Succeeded);
+    }
+
+    #[test]
+    fn a_counter_that_stood_still_is_not_a_purchase() {
+        let mut buy = collect();
+        buy.intent = "buy_upgrade".to_owned();
+        buy.post_condition = vec![Condition::Increased {
+            signal: "stat.upgrades_owned".to_owned(),
+        }];
+        let mut actuator = RecipeActuator::new(vec![buy]);
+
+        let outcome = actuator.verify(
+            &Intent::new("buy_upgrade"),
+            &observation(vec![("stat.upgrades_owned", Value::Int(42), 1.0)]),
+            &observation(vec![("stat.upgrades_owned", Value::Int(42), 1.0)]),
+        );
+
+        assert!(matches!(outcome, ActionOutcome::Failed { .. }));
     }
 
     #[test]

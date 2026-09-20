@@ -34,7 +34,12 @@ pub trait Actuator: Send {
     fn plan(&mut self, intent: &Intent) -> Vec<InputCommand>;
 
     /// Called with the first observation taken *after* the commands ran.
-    fn verify(&mut self, intent: &Intent, after: &Observation) -> ActionOutcome;
+    fn verify(
+        &mut self,
+        intent: &Intent,
+        before: &Observation,
+        after: &Observation,
+    ) -> ActionOutcome;
 }
 
 pub struct Runner {
@@ -46,7 +51,7 @@ pub struct Runner {
     session: Session,
     /// An intent whose commands have run and whose post-condition is waiting on
     /// the next observation.
-    in_flight: Option<Intent>,
+    in_flight: Option<(Intent, Observation)>,
     events: Vec<Event>,
 }
 
@@ -148,7 +153,7 @@ impl Runner {
         match self.governor.review(&intent, &observation, now_ms) {
             Verdict::Reject { reason } => self.emit(Event::IntentRejected { intent, reason }),
             Verdict::Halt { reason } => self.halt(reason),
-            Verdict::Allow => self.act(intent),
+            Verdict::Allow => self.act(intent, observation),
         }
     }
 
@@ -175,22 +180,22 @@ impl Runner {
     }
 
     fn settle_in_flight(&mut self, observation: &Observation) {
-        let Some(intent) = self.in_flight.take() else {
+        let Some((intent, before)) = self.in_flight.take() else {
             return;
         };
-        let outcome = self.actuator.verify(&intent, observation);
+        let outcome = self.actuator.verify(&intent, &before, observation);
         self.emit(Event::ActionFinished { intent, outcome });
     }
 
-    fn act(&mut self, intent: Intent) {
+    fn act(&mut self, intent: Intent, before: Observation) {
         if matches!(self.link, Wired::Bridged(_)) {
-            self.act_through_bridge(intent);
+            self.act_through_bridge(intent, before);
         } else {
-            self.act_through_input(intent);
+            self.act_through_input(intent, before);
         }
     }
 
-    fn act_through_bridge(&mut self, intent: Intent) {
+    fn act_through_bridge(&mut self, intent: Intent, before: Observation) {
         if self.kill.is_engaged() {
             self.emit(Event::KillSwitch);
             self.halt("the kill switch was engaged".to_owned());
@@ -211,7 +216,7 @@ impl Runner {
                 "dry-run: not sending to the mod"
             );
             self.session.actions_taken += 1;
-            self.in_flight = Some(intent);
+            self.in_flight = Some((intent, before));
             return;
         }
 
@@ -221,7 +226,7 @@ impl Runner {
         match bridge.act(&intent) {
             Ok(ActionOutcome::Succeeded) => {
                 self.session.actions_taken += 1;
-                self.in_flight = Some(intent);
+                self.in_flight = Some((intent, before));
             }
             Ok(outcome) => self.emit(Event::ActionFinished { intent, outcome }),
             Err(error) if is_lost(&error) => {
@@ -244,7 +249,7 @@ impl Runner {
         }
     }
 
-    fn act_through_input(&mut self, intent: Intent) {
+    fn act_through_input(&mut self, intent: Intent, before: Observation) {
         let commands = self.actuator.plan(&intent);
         if commands.is_empty() {
             self.emit(Event::ActionFinished {
@@ -291,7 +296,7 @@ impl Runner {
         // Nothing is called succeeded here. The post-condition is checked
         // against the next observation, which is the only thing that can say
         // whether the world actually changed.
-        self.in_flight = Some(intent);
+        self.in_flight = Some((intent, before));
     }
 
     fn pause_for(&mut self, reason: String) {

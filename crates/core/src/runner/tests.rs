@@ -74,7 +74,12 @@ impl Actuator for StubActuator {
         self.commands.clone()
     }
 
-    fn verify(&mut self, intent: &Intent, _after: &Observation) -> ActionOutcome {
+    fn verify(
+        &mut self,
+        intent: &Intent,
+        _before: &Observation,
+        _after: &Observation,
+    ) -> ActionOutcome {
         self.verified.push(intent.name.clone());
         self.outcome.clone()
     }
