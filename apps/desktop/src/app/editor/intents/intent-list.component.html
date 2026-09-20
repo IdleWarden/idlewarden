@@ -29,8 +29,9 @@
             (change)="setOp(index, clause.key, at, $any($event.target).value)"
             aria-label="état attendu"
           >
-            <option value="is_true">est vrai</option>
-            <option value="is_false">est faux</option>
+            @for (entry of opsFor(clause.key); track entry.op) {
+              <option [value]="entry.op">{{ entry.label }}</option>
+            }
           </select>
           <button
             type="button"

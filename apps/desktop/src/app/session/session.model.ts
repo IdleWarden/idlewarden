@@ -133,8 +133,13 @@ export interface Point {
   y: number;
 }
 
-export type Condition =
-  { op: "is_true"; signal: string } | { op: "is_false"; signal: string };
+export type ConditionOp =
+  "is_true" | "is_false" | "increased" | "decreased" | "changed";
+
+export interface Condition {
+  op: ConditionOp;
+  signal: string;
+}
 
 export interface IntentDraft {
   name: string;

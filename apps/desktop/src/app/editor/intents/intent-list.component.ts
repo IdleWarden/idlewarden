@@ -1,6 +1,6 @@
 import { Component, computed, input, model } from "@angular/core";
 
-import { Condition, Point } from "../../session/session.model";
+import { Condition, ConditionOp, Point } from "../../session/session.model";
 
 export interface IntentState {
   name: string;
@@ -24,6 +24,14 @@ export class IntentListComponent {
   readonly clauses: readonly { key: Clause; label: string }[] = [
     { key: "when", label: "Quand" },
     { key: "post_condition", label: "Ensuite, vérifier que" },
+  ];
+
+  readonly ops: readonly { op: ConditionOp; label: string; clause: Clause | null }[] = [
+    { op: "is_true", label: "est vrai", clause: null },
+    { op: "is_false", label: "est faux", clause: null },
+    { op: "increased", label: "a augmenté", clause: "post_condition" },
+    { op: "decreased", label: "a diminué", clause: "post_condition" },
+    { op: "changed", label: "a changé", clause: "post_condition" },
   ];
 
   readonly canAddCondition = computed(() => this.signals().length > 0);
@@ -65,12 +73,19 @@ export class IntentListComponent {
     this.editCondition(index, clause, at, (condition) => ({ ...condition, signal }));
   }
 
+  opsFor(clause: Clause): readonly { op: ConditionOp; label: string }[] {
+    return this.ops.filter((entry) => entry.clause === null || entry.clause === clause);
+  }
+
   setOp(index: number, clause: Clause, at: number, op: string): void {
-    this.editCondition(index, clause, at, (condition) =>
-      op === "is_false"
-        ? { op: "is_false", signal: condition.signal }
-        : { op: "is_true", signal: condition.signal },
-    );
+    const chosen = this.opsFor(clause).find((entry) => entry.op === op);
+    if (chosen === undefined) {
+      return;
+    }
+    this.editCondition(index, clause, at, (condition) => ({
+      op: chosen.op,
+      signal: condition.signal,
+    }));
   }
 
   removeCondition(index: number, clause: Clause, at: number): void {
