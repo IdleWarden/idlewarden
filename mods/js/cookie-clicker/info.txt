@@ -1,0 +1,10 @@
+{
+	"Name": "IdleWarden bridge",
+	"ID": "idlewarden bridge",
+	"Author": "The IdleWarden contributors",
+	"Description": "Exposes what the game already knows to IdleWarden over a local WebSocket, and carries out its intents through the game's own API. Does nothing on its own, and nothing at all unless IdleWarden is listening.",
+	"ModVersion": 1,
+	"GameVersion": 2.053,
+	"Date": "20/09/2026",
+	"Dependencies": []
+}

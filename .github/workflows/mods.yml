@@ -9,6 +9,21 @@ permissions:
   contents: read
 
 jobs:
+  js:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Test the JavaScript side of the protocol
+        run: node --test mods/js/tests/bridge.test.mjs
+      - name: The mod builds into what the game loads
+        run: |
+          set -euo pipefail
+          out=$(node mods/js/build.mjs "$RUNNER_TEMP/mod")
+          test -f "$out/main.js" && test -f "$out/info.txt"
+
   build:
     runs-on: ubuntu-latest
     defaults:
