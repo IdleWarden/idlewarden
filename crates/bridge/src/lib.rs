@@ -11,6 +11,7 @@
 
 pub mod protocol;
 pub mod transport;
+pub mod websocket;
 
 #[cfg(test)]
 mod tests;
