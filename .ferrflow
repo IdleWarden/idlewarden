@@ -35,6 +35,9 @@
     {
       "name": "capture",
       "path": "crates/capture",
+      "dependsOn": [
+        "plugin-api"
+      ],
       "changelog": "crates/capture/CHANGELOG.md",
       "versionedFiles": [
         {
@@ -56,6 +59,10 @@
     {
       "name": "vision",
       "path": "crates/vision",
+      "dependsOn": [
+        "plugin-api",
+        "capture"
+      ],
       "changelog": "crates/vision/CHANGELOG.md",
       "versionedFiles": [
         {
@@ -77,6 +84,9 @@
     {
       "name": "input",
       "path": "crates/input",
+      "dependsOn": [
+        "plugin-api"
+      ],
       "changelog": "crates/input/CHANGELOG.md",
       "versionedFiles": [
         {
@@ -98,6 +108,9 @@
     {
       "name": "bridge",
       "path": "crates/bridge",
+      "dependsOn": [
+        "plugin-api"
+      ],
       "changelog": "crates/bridge/CHANGELOG.md",
       "versionedFiles": [
         {
@@ -119,6 +132,9 @@
     {
       "name": "mod-install",
       "path": "crates/mod-install",
+      "dependsOn": [
+        "plugin-api"
+      ],
       "changelog": "crates/mod-install/CHANGELOG.md",
       "versionedFiles": [
         {
@@ -140,6 +156,9 @@
     {
       "name": "plugin-host",
       "path": "crates/plugin-host",
+      "dependsOn": [
+        "plugin-api"
+      ],
       "changelog": "crates/plugin-host/CHANGELOG.md",
       "versionedFiles": [
         {
@@ -161,6 +180,9 @@
     {
       "name": "agent",
       "path": "crates/agent",
+      "dependsOn": [
+        "plugin-api"
+      ],
       "changelog": "crates/agent/CHANGELOG.md",
       "versionedFiles": [
         {
@@ -182,6 +204,15 @@
     {
       "name": "core",
       "path": "crates/core",
+      "dependsOn": [
+        "plugin-api",
+        "capture",
+        "vision",
+        "input",
+        "bridge",
+        "plugin-host",
+        "agent"
+      ],
       "changelog": "crates/core/CHANGELOG.md",
       "versionedFiles": [
         {
@@ -203,6 +234,15 @@
     {
       "name": "desktop",
       "path": "apps/desktop",
+      "dependsOn": [
+        "core",
+        "capture",
+        "vision",
+        "input",
+        "bridge",
+        "mod-install",
+        "plugin-api"
+      ],
       "changelog": "apps/desktop/CHANGELOG.md",
       "versionedFiles": [
         {
@@ -230,6 +270,9 @@
     {
       "name": "mod-reference",
       "path": "mods/src/IdleWarden.Reference",
+      "dependsOn": [
+        "mod-bridge"
+      ],
       "tagTemplate": "mod/reference@v{version}",
       "changelog": "mods/src/IdleWarden.Reference/CHANGELOG.md",
       "versionedFiles": [
