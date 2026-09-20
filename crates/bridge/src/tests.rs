@@ -255,3 +255,152 @@ fn a_client_reaches_a_real_named_pipe_and_completes_the_handshake() {
     assert_eq!(bridge.plugin().as_str(), "dev.example.game");
     assert!(received.contains("\"request\":\"hello\""));
 }
+
+mod over_a_local_websocket {
+    use std::net::TcpListener;
+    use std::time::Duration;
+
+    use tungstenite::client::IntoClientRequest;
+    use tungstenite::Message;
+
+    use crate::websocket::{accept, bind};
+    use crate::{Bridge, BridgeError};
+
+    const WAIT: Duration = Duration::from_secs(5);
+
+    fn refused(
+        result: Result<Box<dyn crate::transport::Transport>, BridgeError>,
+        expectation: &str,
+    ) -> BridgeError {
+        match result {
+            Ok(_) => panic!("{expectation}"),
+            Err(error) => error,
+        }
+    }
+
+    fn port(listener: &TcpListener) -> u16 {
+        listener.local_addr().expect("bound").port()
+    }
+
+    fn request(port: u16, path: &str, origin: Option<&str>) -> tungstenite::http::Request<()> {
+        let mut request = format!("ws://127.0.0.1:{port}{path}")
+            .into_client_request()
+            .expect("a well formed url");
+        if let Some(origin) = origin {
+            request
+                .headers_mut()
+                .insert("origin", origin.parse().expect("a header value"));
+        }
+        request
+    }
+
+    fn a_mod_page(port: u16, path: &str, origin: Option<&str>) -> std::thread::JoinHandle<bool> {
+        let request = request(port, path, origin);
+        std::thread::spawn(move || {
+            let Ok((mut socket, _)) = tungstenite::connect(request) else {
+                return false;
+            };
+
+            while let Ok(Message::Text(incoming)) = socket.read() {
+                let incoming: serde_json::Value =
+                    serde_json::from_str(&incoming).expect("the host speaks JSON");
+                let answer = match incoming["request"].as_str().expect("a request") {
+                    "hello" => serde_json::json!({
+                        "response": "hello",
+                        "plugin": "dev.example.cookie-clicker",
+                        "api_version": "^0.1",
+                    }),
+                    "observe" => serde_json::json!({
+                        "response": "observed",
+                        "signals": [{
+                            "id": "resource.cookies",
+                            "value": { "type": "int", "value": 1200 },
+                        }],
+                    }),
+                    other => panic!("unexpected request {other}"),
+                };
+                if socket.send(Message::text(answer.to_string())).is_err() {
+                    break;
+                }
+            }
+            true
+        })
+    }
+
+    #[test]
+    fn a_mod_running_in_the_game_page_drives_the_bridge() {
+        let listener = bind(0).expect("binds a port");
+        let page = a_mod_page(port(&listener), "/cookie-clicker", Some("file://"));
+
+        let transport = accept(&listener, "cookie-clicker", WAIT).expect("the mod connects");
+        let mut bridge = Bridge::open(transport).expect("the handshake completes");
+        let observation = bridge.observe(1_000).expect("the mod answers");
+
+        assert_eq!(bridge.plugin().as_str(), "dev.example.cookie-clicker");
+        assert_eq!(observation.signals[0].id.as_str(), "resource.cookies");
+        drop(bridge);
+        let _ = page.join();
+    }
+
+    #[test]
+    fn a_page_served_from_the_web_is_turned_away() {
+        let listener = bind(0).expect("binds a port");
+        let page = a_mod_page(
+            port(&listener),
+            "/cookie-clicker",
+            Some("https://evil.example"),
+        );
+
+        let refused = refused(
+            accept(&listener, "cookie-clicker", Duration::from_millis(600)),
+            "a remote page must never answer for a mod",
+        );
+
+        assert!(matches!(refused, BridgeError::Connect { .. }), "{refused}");
+        assert!(
+            !page.join().expect("the page thread finishes"),
+            "the handshake itself has to fail, not the conversation after it"
+        );
+    }
+
+    #[test]
+    fn a_connection_asking_for_another_endpoint_is_refused() {
+        let listener = bind(0).expect("binds a port");
+        let page = a_mod_page(port(&listener), "/some-other-game", Some("file://"));
+
+        let refused = refused(
+            accept(&listener, "cookie-clicker", Duration::from_millis(600)),
+            "one game's mod must not answer for another's plugin",
+        );
+
+        assert!(matches!(refused, BridgeError::Connect { .. }), "{refused}");
+        assert!(!page.join().expect("the page thread finishes"));
+    }
+
+    #[test]
+    fn a_mod_that_never_connects_says_so_rather_than_waiting_forever() {
+        let listener = bind(0).expect("binds a port");
+
+        let refused = refused(
+            accept(&listener, "cookie-clicker", Duration::from_millis(300)),
+            "nothing is listening on the other side",
+        );
+
+        assert!(
+            refused.to_string().contains("cookie-clicker"),
+            "the reason has to name the endpoint: {refused}"
+        );
+    }
+
+    #[test]
+    fn an_endpoint_name_that_could_escape_the_url_is_refused() {
+        let listener = bind(0).expect("binds a port");
+
+        let refused = refused(
+            accept(&listener, "../other", Duration::from_millis(100)),
+            "a name is checked before it reaches a path",
+        );
+
+        assert!(matches!(refused, BridgeError::InvalidEndpoint { .. }));
+    }
+}

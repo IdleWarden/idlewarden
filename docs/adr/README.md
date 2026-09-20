@@ -23,3 +23,4 @@ request against the ADR, not around it.
 | [0015](0015-calver-everywhere.md) | calver-short everywhere, including the contract | Accepted |
 | [0016](0016-branch-protection.md) | Two rulesets on `main`, and the release bot bypasses only one | Accepted |
 | [0017](0017-wire-format-fixtures.md) | The UI's types stay hand-written, and a generated fixture keeps them honest | Accepted |
+| [0018](0018-bridge-websocket.md) | A mod that cannot open a pipe connects to us instead, over a local WebSocket | Accepted |
