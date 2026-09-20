@@ -505,6 +505,37 @@ fn a_numeric_condition_on_a_drawn_signal_is_refused() {
 }
 
 #[test]
+fn a_post_condition_that_says_a_counter_moved_is_accepted() {
+    let mut counted = collect();
+    counted.post_condition = vec![Condition::Increased {
+        signal: "ui.reward_ready".to_owned(),
+    }];
+
+    let written = write(
+        &with_intents(vec![counted]),
+        &game_screen(),
+        &root("counter-moved"),
+    )
+    .expect("a drawn signal can be checked for having moved");
+
+    let rules = std::fs::read_to_string(written.join("rules.json")).expect("rules written");
+    assert!(rules.contains("\"increased\""), "{rules}");
+}
+
+#[test]
+fn deciding_on_a_counter_having_moved_is_refused() {
+    let mut counted = collect();
+    counted.when = vec![Condition::Increased {
+        signal: "ui.reward_ready".to_owned(),
+    }];
+
+    assert!(matches!(
+        refused(with_intents(vec![counted]), "delta-when"),
+        AuthoringError::DeltaWhenDeciding(_, _)
+    ));
+}
+
+#[test]
 fn a_click_outside_the_window_is_refused() {
     let mut beyond = collect();
     beyond.click = Point { x: 1.2, y: 0.5 };

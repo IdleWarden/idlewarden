@@ -75,6 +75,8 @@ pub enum AuthoringError {
     NoPostCondition(String),
     #[error("intent `{0}` tests `{1}` with a condition the editor cannot draw; drawn signals are true or false")]
     UnsupportedCondition(String, String),
+    #[error("intent `{0}` decides on `{1}` having moved, which only a post-condition can answer")]
+    DeltaWhenDeciding(String, String),
     #[error("intent `{0}` tests `{1}`, which is not a signal drawn in this plugin")]
     UnknownSignal(String, String),
     #[error("intent `{0}` expects afterwards only what was already true before, so it cannot tell a click that worked from one that did nothing")]

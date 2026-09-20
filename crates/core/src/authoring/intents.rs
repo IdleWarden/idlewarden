@@ -40,13 +40,27 @@ pub(super) fn validate(intents: &[IntentDraft], regions: &[Region]) -> Result<()
             return Err(AuthoringError::NoPostCondition(name()));
         }
 
-        for condition in intent.when.iter().chain(&intent.post_condition) {
+        let decided = intent.when.iter().map(|condition| (condition, true));
+        let verified = intent
+            .post_condition
+            .iter()
+            .map(|condition| (condition, false));
+
+        for (condition, decides) in decided.chain(verified) {
             let signal = condition.signal().to_owned();
-            if !matches!(
-                condition,
-                Condition::IsTrue { .. } | Condition::IsFalse { .. }
-            ) {
-                return Err(AuthoringError::UnsupportedCondition(name(), signal));
+            let allowed = match condition {
+                Condition::IsTrue { .. } | Condition::IsFalse { .. } => true,
+                Condition::Increased { .. }
+                | Condition::Decreased { .. }
+                | Condition::Changed { .. } => !decides,
+                _ => false,
+            };
+            if !allowed {
+                return Err(if condition.is_standalone() {
+                    AuthoringError::UnsupportedCondition(name(), signal)
+                } else {
+                    AuthoringError::DeltaWhenDeciding(name(), signal)
+                });
             }
             if !signals.contains(signal.as_str()) {
                 return Err(AuthoringError::UnknownSignal(name(), signal));
