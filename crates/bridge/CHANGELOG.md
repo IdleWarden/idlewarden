@@ -4,6 +4,12 @@ All notable changes to `bridge` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.2] - 2026-09-20
+
+### Features
+
+- feat(bridge): let a mod that cannot serve a pipe connect over a local websocket (#61)
+
 ## [26.9.1] - 2026-09-19
 
 ### Bug Fixes
