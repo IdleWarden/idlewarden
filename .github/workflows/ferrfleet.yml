@@ -12,7 +12,7 @@ on:
       agent:
         description: Agent id to run
         required: false
-        default: idlewarden-pr-agent
+        default: pr-review
 
 permissions:
   contents: read
@@ -41,6 +41,6 @@ jobs:
       - uses: FerrLabs/FerrFleet-Runner@v1
         with:
           mode: binary
-          agent: ${{ inputs.agent || 'idlewarden-pr-agent' }}
+          agent: ${{ inputs.agent || 'pr-review' }}
           token: ${{ secrets.FERRFLEET_ORG_TOKEN }}
           claude-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
