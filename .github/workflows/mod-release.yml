@@ -15,9 +15,7 @@ permissions:
 
 jobs:
   package-plugin:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      startsWith(github.event.release.tag_name, 'plugin/')
+    if: startsWith(github.event.release.tag_name || inputs.tag, 'plugin/')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -36,7 +34,6 @@ jobs:
         run: |
           set -euo pipefail
           rest=${TAG#plugin/}
-          [ "$rest" != "$TAG" ] || exit 0
           name=${rest%@v*}
           version=${rest#*@v}
           test -f "plugins/$name/plugin.json"
@@ -46,12 +43,10 @@ jobs:
           echo "archive=$archive" >> "$GITHUB_OUTPUT"
 
       - uses: actions/attest-build-provenance@v2
-        if: steps.package.outputs.archive != ''
         with:
           subject-path: ${{ steps.package.outputs.archive }}
 
       - name: Attach to the release
-        if: steps.package.outputs.archive != ''
         env:
           ARCHIVE: ${{ steps.package.outputs.archive }}
         run: |
@@ -64,9 +59,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   package-cookie-clicker:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      startsWith(github.event.release.tag_name, 'mod/cookie-clicker@v')
+    if: startsWith(github.event.release.tag_name || inputs.tag, 'mod/cookie-clicker@v')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -88,19 +81,16 @@ jobs:
         id: package
         run: |
           set -euo pipefail
-          [ "${TAG#mod/cookie-clicker@v}" != "$TAG" ] || exit 0
           out=$(node mods/js/build.mjs "$RUNNER_TEMP/mod")
           archive="IdleWarden.CookieClicker-${TAG#mod/cookie-clicker@v}.zip"
           (cd "$(dirname "$out")" && zip -rX "$GITHUB_WORKSPACE/$archive" "$(basename "$out")")
           echo "archive=$archive" >> "$GITHUB_OUTPUT"
 
       - uses: actions/attest-build-provenance@v2
-        if: steps.package.outputs.archive != ''
         with:
           subject-path: ${{ steps.package.outputs.archive }}
 
       - name: Attach to the release
-        if: steps.package.outputs.archive != ''
         env:
           ARCHIVE: ${{ steps.package.outputs.archive }}
         run: |
@@ -113,9 +103,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   package:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      startsWith(github.event.release.tag_name, 'mod/reference@v')
+    if: startsWith(github.event.release.tag_name || inputs.tag, 'mod/reference@v')
     runs-on: ubuntu-latest
     permissions:
       contents: write
