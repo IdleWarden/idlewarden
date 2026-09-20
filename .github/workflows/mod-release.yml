@@ -83,7 +83,7 @@ jobs:
           set -euo pipefail
           out=$(node mods/js/build.mjs "$RUNNER_TEMP/mod")
           archive="IdleWarden.CookieClicker-${TAG#mod/cookie-clicker@v}.zip"
-          (cd "$(dirname "$out")" && zip -rX "$GITHUB_WORKSPACE/$archive" "$(basename "$out")")
+          (cd "$out" && zip -rX "$GITHUB_WORKSPACE/$archive" .)
           echo "archive=$archive" >> "$GITHUB_OUTPUT"
 
       - uses: actions/attest-build-provenance@v2
