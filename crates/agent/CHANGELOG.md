@@ -4,6 +4,12 @@ All notable changes to `agent` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.6] - 2026-09-20
+
+### Features
+
+- feat(agent): a post-condition can say a counter moved (#66)
+
 ## [26.9.5] - 2026-09-05
 
 ### Features
