@@ -217,7 +217,13 @@ mod loader {
     fn a_mod_folder_that_climbs_out_of_the_game_is_refused() {
         let game = scratch("own-escape");
 
-        for hostile in ["../../windows/system32", "/etc", "C:/Windows", ""] {
+        for hostile in [
+            "../../windows/system32",
+            "/etc",
+            "C:/Windows",
+            r"..\..\system32",
+            "",
+        ] {
             assert!(
                 matches!(
                     Loader::Game.destination(&game, None, Some(hostile), MOD_ID),

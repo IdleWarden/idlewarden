@@ -100,8 +100,13 @@ impl Loader {
     }
 }
 
+/// A registry entry is read on every platform, so a path is judged by its text
+/// as well: `C:/Windows` and `..\..\system32` are relative and ordinary to a
+/// Linux `Path`, and are neither on the machine that would install the mod.
 fn is_inside_the_game(mods: &str) -> bool {
     !mods.is_empty()
+        && !mods.contains(':')
+        && !mods.contains('\\')
         && Path::new(mods).is_relative()
         && Path::new(mods)
             .components()
