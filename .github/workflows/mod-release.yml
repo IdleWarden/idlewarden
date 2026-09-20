@@ -1,4 +1,4 @@
-name: mod release
+name: release assets
 
 on:
   release:
@@ -14,6 +14,55 @@ permissions:
   contents: read
 
 jobs:
+  package-plugin:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      startsWith(github.event.release.tag_name, 'plugin/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Package the plugin folder
+        id: package
+        run: |
+          set -euo pipefail
+          rest=${TAG#plugin/}
+          [ "$rest" != "$TAG" ] || exit 0
+          name=${rest%@v*}
+          version=${rest#*@v}
+          test -f "plugins/$name/plugin.json"
+          id=$(jq -r .id "plugins/$name/plugin.json")
+          archive="$id-$version.zip"
+          (cd "plugins/$name" && zip -rX "$GITHUB_WORKSPACE/$archive" . -x CHANGELOG.md)
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/attest-build-provenance@v2
+        if: steps.package.outputs.archive != ''
+        with:
+          subject-path: ${{ steps.package.outputs.archive }}
+
+      - name: Attach to the release
+        if: steps.package.outputs.archive != ''
+        env:
+          ARCHIVE: ${{ steps.package.outputs.archive }}
+        run: |
+          set -euo pipefail
+          gh release upload "$TAG" "$ARCHIVE" --clobber
+          {
+            echo "### $ARCHIVE"
+            echo
+            echo "sha256 for the registry entry: \`$(sha256sum "$ARCHIVE" | cut -d' ' -f1)\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   package-cookie-clicker:
     if: >-
       github.event_name == 'workflow_dispatch' ||
