@@ -14,11 +14,13 @@ use std::sync::Arc;
 mod detect;
 mod frame;
 mod null;
+mod steam;
 
 #[cfg(windows)]
 mod enumerate;
-#[cfg(windows)]
-mod steam;
+
+#[cfg(target_os = "linux")]
+mod x11;
 
 #[cfg(windows)]
 mod wgc;
@@ -29,8 +31,11 @@ pub use null::NullBackend;
 
 #[cfg(windows)]
 pub use enumerate::{game_directory, windows as enumerate_windows};
+
 #[cfg(windows)]
 pub use wgc::WindowsCapture;
+#[cfg(target_os = "linux")]
+pub use x11::{game_directory, windows as enumerate_windows};
 
 #[derive(Debug, thiserror::Error)]
 pub enum CaptureError {

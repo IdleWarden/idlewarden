@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: MPL-2.0
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, OnceLock};
-use std::time::{Duration, Instant};
 
 use windows::core::BOOL;
 use windows::Win32::Foundation::{CloseHandle, HWND, LPARAM, MAX_PATH};
-use windows::Win32::System::Registry::{RegGetValueW, HKEY_CURRENT_USER, RRF_RT_REG_SZ};
 use windows::Win32::System::Threading::{
     OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_FORMAT, PROCESS_QUERY_LIMITED_INFORMATION,
 };
@@ -14,7 +11,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
 };
 
 use crate::detect::GameWindow;
-use crate::steam;
+use crate::steam::Library;
 use crate::WindowHandle;
 
 /// Every visible top-level window that belongs to a process we can name.
@@ -27,7 +24,7 @@ pub fn windows() -> Vec<GameWindow> {
         )
     };
 
-    let library = library();
+    let library = Library::cached();
 
     handles
         .into_iter()
@@ -43,7 +40,7 @@ unsafe extern "system" fn collect(hwnd: HWND, lparam: LPARAM) -> BOOL {
     true.into()
 }
 
-fn describe(hwnd: HWND, library: &SteamLibrary) -> Option<GameWindow> {
+fn describe(hwnd: HWND, library: &Library) -> Option<GameWindow> {
     let title = title(hwnd)?;
     if title.is_empty() {
         return None;
@@ -105,96 +102,4 @@ fn executable_path(hwnd: HWND) -> Option<PathBuf> {
     Some(PathBuf::from(String::from_utf16_lossy(
         &buffer[..length as usize],
     )))
-}
-
-/// How long an index of installed games is trusted before being rebuilt.
-/// Enumeration runs several times a second; rescanning every Steam manifest
-/// that often is pure disk churn for something that changes when a game is
-/// installed.
-const LIBRARY_TTL: Duration = Duration::from_secs(60);
-
-fn library() -> SteamLibrary {
-    static CACHE: OnceLock<Mutex<Option<(Instant, SteamLibrary)>>> = OnceLock::new();
-    let cache = CACHE.get_or_init(|| Mutex::new(None));
-    let mut held = cache
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
-
-    if let Some((built, library)) = held.as_ref() {
-        if built.elapsed() < LIBRARY_TTL {
-            return library.clone();
-        }
-    }
-
-    let fresh = SteamLibrary::load();
-    *held = Some((Instant::now(), fresh.clone()));
-    fresh
-}
-
-#[derive(Clone)]
-struct SteamLibrary {
-    games: Vec<(PathBuf, u32)>,
-}
-
-impl SteamLibrary {
-    fn load() -> Self {
-        let mut games = Vec::new();
-        let Some(root) = steam_path() else {
-            return SteamLibrary { games };
-        };
-
-        let mut libraries = vec![root.clone()];
-        if let Ok(vdf) = std::fs::read_to_string(root.join("steamapps/libraryfolders.vdf")) {
-            libraries.extend(steam::library_paths(&vdf));
-        }
-
-        for library in libraries {
-            let apps = library.join("steamapps");
-            let Ok(entries) = std::fs::read_dir(&apps) else {
-                continue;
-            };
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if path.extension().is_some_and(|ext| ext == "acf") {
-                    if let Some((appid, installdir)) = std::fs::read_to_string(&path)
-                        .ok()
-                        .and_then(|acf| steam::app_manifest(&acf))
-                    {
-                        games.push((apps.join("common").join(installdir), appid));
-                    }
-                }
-            }
-        }
-
-        SteamLibrary { games }
-    }
-
-    fn appid_of(&self, executable: &Path) -> Option<u32> {
-        self.games
-            .iter()
-            .find(|(install, _)| steam::owns(install, executable))
-            .map(|(_, appid)| *appid)
-    }
-}
-
-fn steam_path() -> Option<PathBuf> {
-    let mut buffer = vec![0u16; MAX_PATH as usize];
-    let mut size = (buffer.len() * 2) as u32;
-    let status = unsafe {
-        RegGetValueW(
-            HKEY_CURRENT_USER,
-            windows::core::w!("Software\\Valve\\Steam"),
-            windows::core::w!("SteamPath"),
-            RRF_RT_REG_SZ,
-            None,
-            Some(buffer.as_mut_ptr() as *mut std::ffi::c_void),
-            Some(&mut size),
-        )
-    };
-    if status.is_err() {
-        return None;
-    }
-
-    let chars = (size as usize / 2).saturating_sub(1);
-    Some(PathBuf::from(String::from_utf16_lossy(&buffer[..chars])))
 }
