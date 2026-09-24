@@ -3,7 +3,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Pipes;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -33,7 +32,8 @@ namespace IdleWarden.Bridge
     }
 
     /// <summary>
-    /// Hosts <see cref="IGameBridge"/> on a named pipe.
+    /// Hosts <see cref="IGameBridge"/> on a named pipe, or on a Unix domain
+    /// socket where there are no pipes.
     /// <para>
     /// Pipe IO runs on its own thread, but Unity objects may only be touched
     /// from the main thread, so requests are queued and executed by
@@ -45,7 +45,7 @@ namespace IdleWarden.Bridge
         private static readonly Regex ValidEndpoint = new Regex("^[a-z0-9-]{1,64}$", RegexOptions.Compiled);
         private static readonly TimeSpan DefaultMainThreadTimeout = TimeSpan.FromSeconds(5);
 
-        private readonly string pipeName;
+        private readonly string endpointName;
         private readonly IGameBridge bridge;
         private readonly Action<string> log;
         private readonly TimeSpan mainThreadTimeout;
@@ -55,7 +55,7 @@ namespace IdleWarden.Bridge
         private readonly object gate = new object();
 
         private Thread worker;
-        private NamedPipeServerStream pipe;
+        private IBridgeEndpoint endpoint;
         private volatile bool stopping;
 
         public BridgeServer(
@@ -80,7 +80,7 @@ namespace IdleWarden.Bridge
             this.log = log ?? (_ => { });
             this.mainThreadTimeout = mainThreadTimeout ?? DefaultMainThreadTimeout;
 
-            pipeName = "idlewarden." + endpointName;
+            this.endpointName = endpointName;
             pluginId = bridge.PluginId;
             apiVersion = bridge.ApiVersion;
         }
@@ -92,9 +92,10 @@ namespace IdleWarden.Bridge
                 throw new InvalidOperationException("this server is already started");
             }
 
+            endpoint = Endpoints.ForThisPlatform(endpointName);
             worker = new Thread(Serve) { IsBackground = true, Name = "idlewarden-bridge" };
             worker.Start();
-            log("bridge listening on " + pipeName);
+            log("bridge listening on " + endpoint.Description);
         }
 
         /// <summary>Executes queued requests. Call from the game's main thread.</summary>
@@ -136,11 +137,11 @@ namespace IdleWarden.Bridge
             stopping = true;
             try
             {
-                pipe?.Dispose();
+                endpoint?.Dispose();
             }
             catch (Exception error)
             {
-                log("closing the pipe failed: " + error.Message);
+                log("closing the endpoint failed: " + error.Message);
             }
 
             worker?.Join(TimeSpan.FromSeconds(2));
@@ -152,15 +153,9 @@ namespace IdleWarden.Bridge
             {
                 try
                 {
-                    using (pipe = new NamedPipeServerStream(
-                        pipeName,
-                        PipeDirection.InOut,
-                        1,
-                        PipeTransmissionMode.Byte,
-                        PipeOptions.None))
+                    using (var stream = endpoint.Accept())
                     {
-                        pipe.WaitForConnection();
-                        Converse(pipe);
+                        Converse(stream);
                     }
                 }
                 catch (Exception error)

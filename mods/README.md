@@ -119,12 +119,16 @@ not from the assembly, so a literal there would silently disagree with the tag
 the moment either moved. CI greps for a version literal inside `[BepInPlugin]`
 and fails the build if one comes back.
 
-## Known gaps
+## Where a mod listens
 
-The transport is Windows named pipes only. The Rust client also speaks Unix
-domain sockets, but .NET maps `NamedPipeServerStream` onto a socket path that
-does not match, so a Linux mod needs an explicit `UnixDomainSocket` transport
-here before that side works.
+`BridgeServer` picks the endpoint from the platform: `\\.\pipe\idlewarden.<name>`
+on Windows, `$XDG_RUNTIME_DIR/idlewarden.<name>.sock` elsewhere, falling back to
+`/tmp`. Those are the paths `crates/bridge` connects to, so the same mod source
+serves both. `.NET` only gained `UnixDomainSocketEndPoint` after netstandard2.0,
+which a Unity mod has to target, so the `sockaddr_un` is written out by hand in
+`Endpoints.cs`.
+
+## Known gaps
 
 The reference mod exposes a synthetic counter, not a real game. It proves the
 pipe end to end and shows the shape; it is not a plugin for anything.
