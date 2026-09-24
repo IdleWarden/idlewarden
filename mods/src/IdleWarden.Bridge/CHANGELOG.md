@@ -4,6 +4,12 @@ All notable changes to `mod-bridge` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.1] - 2026-09-24
+
+### Features
+
+- feat(mod-bridge): a mod listens on a unix socket where there are no pipes (#76)
+
 ## [26.8.26] - 2026-08-26
 
 ### Breaking Changes
