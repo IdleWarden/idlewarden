@@ -121,12 +121,15 @@ impl Detector {
 pub struct DesktopWindows;
 
 impl WindowSource for DesktopWindows {
-    #[cfg(windows)]
+    #[cfg(any(windows, target_os = "linux"))]
     fn windows(&mut self) -> Vec<GameWindow> {
         idlewarden_capture::enumerate_windows()
     }
 
-    #[cfg(not(windows))]
+    /// A platform with no enumeration sees no games rather than pretending
+    /// (ADR-0019). On Wayland that is also true of Linux, where the portal's
+    /// picker replaces the list.
+    #[cfg(not(any(windows, target_os = "linux")))]
     fn windows(&mut self) -> Vec<GameWindow> {
         Vec::new()
     }

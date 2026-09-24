@@ -63,5 +63,5 @@ fn grab(window: WindowHandle) -> Result<Arc<Frame>, String> {
 
 #[cfg(not(windows))]
 fn grab(_window: WindowHandle) -> Result<Arc<Frame>, String> {
-    Err("capture is only implemented on Windows".to_owned())
+    Err("drawing a plugin needs capture, which is not implemented on this platform yet".to_owned())
 }

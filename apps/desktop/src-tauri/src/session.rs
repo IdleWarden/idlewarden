@@ -102,6 +102,10 @@ impl From<Candidate> for WindowCandidate {
     }
 }
 
+#[cfg(not(windows))]
+const NO_CAPTURE: &str =
+    "this plugin reads the screen, and capture is not implemented on this platform yet;      a plugin that speaks to a mod works";
+
 /// How long a page mod has to connect once a session starts. Long enough for a
 /// reconnect cycle, short enough that a missing mod is a pause and not a hang.
 const BRIDGE_WAIT: std::time::Duration = std::time::Duration::from_secs(12);
@@ -252,11 +256,12 @@ impl Inner {
         Ok((Box::new(capture), input))
     }
 
-    /// No capture or input backend exists off Windows yet (#11). Saying so is
-    /// better than running a session over blank frames.
+    /// Linux has input and detection but no capture yet (#11, ADR-0019), so a
+    /// plugin that reads the screen has nothing to read. A bridged plugin needs
+    /// neither and starts normally.
     #[cfg(not(windows))]
     fn backends(&self, _window: idlewarden_capture::WindowHandle) -> Result<Backends, String> {
-        Err("capture and input are only implemented on Windows".to_owned())
+        Err(NO_CAPTURE.to_owned())
     }
 
     fn declared(bundle: &PluginBundle) -> Vec<String> {
