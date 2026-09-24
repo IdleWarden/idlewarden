@@ -4,6 +4,12 @@ All notable changes to `capture` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.9] - 2026-09-24
+
+### Features
+
+- feat(capture): list game windows on an x11 session (#78)
+
 ## [26.9.8] - 2026-09-19
 
 ### Features
