@@ -83,16 +83,14 @@ pub use device::UinputDevice;
 
 #[cfg(target_os = "linux")]
 mod device {
-    use evdev::uinput::{VirtualDevice, VirtualDeviceBuilder};
+    use evdev::uinput::VirtualDevice;
     use evdev::{
-        AbsInfo, AbsoluteAxisType, AttributeSet, EventType, InputEvent, Key, RelativeAxisType,
+        AbsInfo, AbsoluteAxisCode, AttributeSet, InputEvent, KeyCode, RelativeAxisCode,
         UinputAbsSetup,
     };
 
     use super::EventSink;
-    use crate::events::{
-        Event, ABS_MAX, ABS_X, ABS_Y, BTN_LEFT, BTN_MIDDLE, BTN_RIGHT, EV_ABS, EV_KEY, EV_REL,
-    };
+    use crate::events::{Event, ABS_MAX, BTN_LEFT, BTN_MIDDLE, BTN_RIGHT};
     use crate::InputError;
 
     /// The device the compositor sees. Creating it needs write access to
@@ -104,24 +102,24 @@ mod device {
         pub fn open() -> Result<Self, InputError> {
             let axis = AbsInfo::new(0, 0, ABS_MAX, 0, 0, 1);
 
-            let mut keys = AttributeSet::<Key>::new();
+            let mut keys = AttributeSet::<KeyCode>::new();
             for code in pressable() {
-                keys.insert(Key::new(code));
+                keys.insert(KeyCode::new(code));
             }
 
-            let mut wheel = AttributeSet::<RelativeAxisType>::new();
-            wheel.insert(RelativeAxisType::REL_WHEEL);
+            let mut wheel = AttributeSet::<RelativeAxisCode>::new();
+            wheel.insert(RelativeAxisCode::REL_WHEEL);
 
-            let device = VirtualDeviceBuilder::new()
+            let device = VirtualDevice::builder()
                 .map_err(reason)?
                 .name("IdleWarden")
                 .with_keys(&keys)
                 .map_err(reason)?
                 .with_relative_axes(&wheel)
                 .map_err(reason)?
-                .with_absolute_axis(&UinputAbsSetup::new(AbsoluteAxisType::ABS_X, axis))
+                .with_absolute_axis(&UinputAbsSetup::new(AbsoluteAxisCode::ABS_X, axis))
                 .map_err(reason)?
-                .with_absolute_axis(&UinputAbsSetup::new(AbsoluteAxisType::ABS_Y, axis))
+                .with_absolute_axis(&UinputAbsSetup::new(AbsoluteAxisCode::ABS_Y, axis))
                 .map_err(reason)?
                 .build()
                 .map_err(reason)?;
@@ -134,19 +132,10 @@ mod device {
         fn emit(&mut self, events: &[Event]) -> Result<(), InputError> {
             let batch: Vec<InputEvent> = events
                 .iter()
-                .map(|event| InputEvent::new(kind(event.kind), event.code, event.value))
+                .map(|event| InputEvent::new(event.kind, event.code, event.value))
                 .collect();
 
             self.0.emit(&batch).map_err(reason)
-        }
-    }
-
-    fn kind(kind: u16) -> EventType {
-        match kind {
-            EV_KEY => EventType::KEY,
-            EV_REL => EventType::RELATIVE,
-            EV_ABS => EventType::ABSOLUTE,
-            _ => EventType::SYNCHRONIZATION,
         }
     }
 
