@@ -9,18 +9,25 @@
 //!   emit a single event.
 
 mod coords;
+mod events;
 mod humanise;
 mod keys;
+mod uinput;
 
 pub use coords::{to_absolute, to_screen, Rect};
+pub use events::{absolute, encode, Event, ABS_MAX};
 pub use humanise::Jitter;
-pub use keys::virtual_key;
+pub use keys::{evdev_key, virtual_key};
+pub use uinput::{EventSink, UinputBackend};
 
 #[cfg(windows)]
 mod sendinput;
 
 #[cfg(windows)]
 pub use sendinput::SendInputBackend;
+
+#[cfg(target_os = "linux")]
+pub use uinput::UinputDevice;
 
 use idlewarden_plugin_api::{InputCommand, Point};
 use std::sync::atomic::{AtomicBool, Ordering};
