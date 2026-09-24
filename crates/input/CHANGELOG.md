@@ -4,6 +4,12 @@ All notable changes to `input` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.8] - 2026-09-24
+
+### Features
+
+- feat(input): actuate through a uinput device on linux (#77)
+
 ## [26.9.7] - 2026-09-07
 
 ### Bug Fixes

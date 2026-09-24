@@ -1661,7 +1661,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-core"
-version = "26.9.22"
+version = "26.9.23"
 dependencies = [
  "idlewarden-agent",
  "idlewarden-bridge",
@@ -1679,7 +1679,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-desktop"
-version = "26.9.25"
+version = "26.9.26"
 dependencies = [
  "idlewarden-bridge",
  "idlewarden-capture",
@@ -1702,7 +1702,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-input"
-version = "26.9.7"
+version = "26.9.8"
 dependencies = [
  "evdev",
  "idlewarden-plugin-api",
