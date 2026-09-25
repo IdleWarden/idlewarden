@@ -51,11 +51,19 @@ namespace IdleWarden.Kale
 
         public ActionOutcome Act(Intent intent)
         {
+            // A spell parameter, not the intent's name, is what makes this a cast.
+            // The host resolves an intent's post-condition by name and takes the
+            // first match, so rules that must prove different things each need
+            // their own name: reviving proves `party.down` fell, healing proves
+            // health rose. Reading the parameter instead of the name lets them,
+            // without a branch per spell in here.
+            if (intent.Parameter("spell") != null)
+            {
+                return Cast(intent);
+            }
+
             switch (intent.Name)
             {
-                case "cast":
-                    return Cast(intent);
-
                 case "buy_cheapest_skill":
                     GameReader.RefreshTree(force: true);
                     return GameActions.Buy(
@@ -66,18 +74,14 @@ namespace IdleWarden.Kale
                     return BuyBest(intent);
 
                 default:
-                    return ActionOutcome.Rejected("unknown intent `" + intent.Name + "`");
+                    return ActionOutcome.Rejected(
+                        "unknown intent `" + intent.Name + "`; a cast needs a `spell` parameter");
             }
         }
 
         private static ActionOutcome Cast(Intent intent)
         {
             var spell = intent.Parameter("spell");
-            if (spell == null)
-            {
-                return ActionOutcome.Rejected("cast needs a `spell` parameter naming one of the game's spells");
-            }
-
             var asked = intent.Parameter("target")?.AsString();
             if (!CastPlan.TryPolicy(asked, out var policy))
             {

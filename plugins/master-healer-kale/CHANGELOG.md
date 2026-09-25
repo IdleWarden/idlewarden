@@ -1,0 +1,11 @@
+# Changelog
+
+All notable changes to the Master Healer Kale plugin will be documented here.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/).
+
+## [26.9.1] - 2026-09-25
+
+### Features
+
+- feat(plugins): Master Healer Kale heals, raises and shops through the mod

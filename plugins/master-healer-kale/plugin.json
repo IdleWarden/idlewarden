@@ -1,0 +1,86 @@
+{
+  "$schema": "https://idlewarden.github.io/registry/schema/plugin-manifest.schema.json",
+  "id": "dev.idlewarden.master-healer-kale",
+  "name": "Master Healer Kale",
+  "version": "26.9.1",
+  "api_version": "^0.1",
+  "game": {
+    "executable": "MasterHealerKale.exe",
+    "steam_appid": 4634490,
+    "title": "Master Healer Kale"
+  },
+  "multiplayer": false,
+  "presentation": {
+    "description": "Plays the healer: raises whoever went down, heals the party when it sags, heals whoever is closest to death, and meditates when mana runs dry. Buys the cheapest skill node while in the tavern. Reads the game through a BepInEx mod, so every value is exact. `buy_best_skill` is offered without a starter rule: it ranks effect per cost, and only within one currency and one kind of node, because this game gives no common unit across them.",
+    "tags": ["idle", "rpg", "bridge", "unity"]
+  },
+  "rights": {
+    "license": "MPL-2.0",
+    "authors": ["The IdleWarden contributors"],
+    "asset_provenance": "hashes-only",
+    "trademark_notice": "Master Healer Kale is by its publisher. This plugin is not affiliated with them."
+  },
+  "signals": [
+    { "id": "ui.screen_id", "value_type": "enum", "description": "The scene the game is showing: main_menu, tavern, battle." },
+    { "id": "save.loaded", "value_type": "bool", "description": "False on the title screen, where the game reports a default database rather than the player's save." },
+    { "id": "progress.tutorial_done", "value_type": "bool", "description": "Until this holds, the game swallows clicks on anything the tutorial is not pointing at." },
+    { "id": "progress.highest_level_clear", "value_type": "int" },
+
+    { "id": "resource.gold", "value_type": "float" },
+    { "id": "resource.skill_points", "value_type": "float" },
+    { "id": "resource.ruby", "value_type": "float" },
+
+    { "id": "tavern.completion", "value_type": "ratio", "description": "Share of the skill tree taken." },
+    { "id": "tavern.levelable_nodes", "value_type": "int", "description": "Nodes the game itself says can be levelled now, which is fewer than the nodes you can afford." },
+    { "id": "tavern.levels_owned", "value_type": "int", "description": "Levels held across the whole tree. Rises on any purchase, whichever currency paid for it." },
+
+    { "id": "battle.active", "value_type": "bool" },
+    { "id": "battle.floor", "value_type": "int" },
+
+    { "id": "player.mana", "value_type": "int" },
+    { "id": "player.mana_ratio", "value_type": "ratio" },
+
+    { "id": "party.size", "value_type": "int" },
+    { "id": "party.down", "value_type": "int", "description": "Members who are down and need raising." },
+    { "id": "party.lowest_hp_ratio", "value_type": "ratio", "description": "Health of the living member closest to death. Ignores the dead, or it would sit at zero." },
+    { "id": "party.average_hp_ratio", "value_type": "ratio", "description": "Mean health across the living." },
+
+    { "id": "spell.ready_count", "value_type": "int" },
+
+    { "id": "spell.heal.ready", "value_type": "bool" },
+    { "id": "spell.heal.mana_cost", "value_type": "int", "description": "Read every tick: a talent can drop a cost to zero mid-fight." },
+    { "id": "spell.party_heal.ready", "value_type": "bool" },
+    { "id": "spell.party_heal.mana_cost", "value_type": "int" },
+    { "id": "spell.burst_heal.ready", "value_type": "bool" },
+    { "id": "spell.burst_heal.mana_cost", "value_type": "int" },
+    { "id": "spell.instant_heal.ready", "value_type": "bool" },
+    { "id": "spell.instant_heal.mana_cost", "value_type": "int" },
+    { "id": "spell.regen.ready", "value_type": "bool" },
+    { "id": "spell.regen.mana_cost", "value_type": "int" },
+    { "id": "spell.protection.ready", "value_type": "bool" },
+    { "id": "spell.protection.mana_cost", "value_type": "int" },
+    { "id": "spell.raise.ready", "value_type": "bool" },
+    { "id": "spell.raise.mana_cost", "value_type": "int" },
+    { "id": "spell.meditate.ready", "value_type": "bool" },
+    { "id": "spell.meditate.mana_cost", "value_type": "int" },
+    { "id": "spell.esuna.ready", "value_type": "bool" },
+    { "id": "spell.esuna.mana_cost", "value_type": "int" },
+    { "id": "spell.haste.ready", "value_type": "bool" },
+    { "id": "spell.haste.mana_cost", "value_type": "int" },
+    { "id": "spell.might.ready", "value_type": "bool" },
+    { "id": "spell.might.mana_cost", "value_type": "int" },
+    { "id": "spell.cast_all.ready", "value_type": "bool" },
+    { "id": "spell.cast_all.mana_cost", "value_type": "int" },
+    { "id": "spell.time_warp.ready", "value_type": "bool" },
+    { "id": "spell.time_warp.mana_cost", "value_type": "int" }
+  ],
+  "intents": [
+    "revive_fallen",
+    "heal_party",
+    "heal_lowest",
+    "restore_mana",
+    "buy_cheapest_skill",
+    "buy_best_skill"
+  ],
+  "capabilities": ["bridge:master-healer-kale"]
+}
