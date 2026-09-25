@@ -70,6 +70,13 @@ namespace IdleWarden.Kale.Decisions
             return Exponent == 0 ? Mantissa.ToString("R") : Mantissa.ToString("R") + "e" + Exponent;
         }
 
+        /// The base-ten scale of the value, so a ratio between two magnitudes can
+        /// be ordered as a difference of scales and never overflow a `double`.
+        public double Log10Magnitude()
+        {
+            return IsZero ? double.NegativeInfinity : Scale();
+        }
+
         private double Scale()
         {
             return Math.Log10(Math.Abs(Mantissa)) + Exponent;

@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- The game's own assemblies target netstandard2.1, and referencing them
+         from a 2.0 project fails to compile. IdleWarden.Bridge stays on 2.0,
+         which a 2.1 project consumes without trouble. -->
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <Version>26.9.1</Version>
+    <Product>IdleWarden Master Healer Kale bridge</Product>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>IdleWarden.Kale</AssemblyName>
+    <RootNamespace>IdleWarden.Kale</RootNamespace>
+    <Description>BepInEx mod exposing Master Healer Kale over the IdleWarden bridge.</Description>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <!-- Building this needs the game installed, because a BepInEx plugin compiles
+       against the title's own assemblies and those are not ours to redistribute.
+       CI therefore never builds this project; what CI does build and test is
+       IdleWarden.Kale.Decisions, which holds every judgement this file makes. -->
+  <PropertyGroup>
+    <KaleGameDir Condition="'$(KaleGameDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Master Healer Kale\Master Healer Kale</KaleGameDir>
+    <KaleManagedDir>$(KaleGameDir)\MasterHealerKale_Data\Managed</KaleManagedDir>
+  </PropertyGroup>
+
+  <Target Name="SayWhereTheGameIs" BeforeTargets="ResolveAssemblyReferences">
+    <Error
+      Condition="!Exists('$(KaleManagedDir)\Assembly-CSharp.dll')"
+      Text="Master Healer Kale was not found. Pass -p:KaleGameDir=&quot;...\Master Healer Kale&quot; pointing at the folder holding MasterHealerKale.exe. Looked in $(KaleManagedDir)." />
+  </Target>
+
+  <ItemGroup>
+    <PackageReference Include="BepInEx.Core" Version="5.4.21" />
+    <PackageReference Include="BepInEx.PluginInfoProps" Version="2.1.0" />
+    <ProjectReference Include="../IdleWarden.Bridge/IdleWarden.Bridge.csproj" />
+    <ProjectReference Include="../IdleWarden.Kale.Decisions/IdleWarden.Kale.Decisions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(KaleManagedDir)\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>$(KaleManagedDir)\UnityEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(KaleManagedDir)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>

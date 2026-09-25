@@ -11,4 +11,8 @@
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="../IdleWarden.Bridge/IdleWarden.Bridge.csproj" />
+  </ItemGroup>
+
 </Project>
