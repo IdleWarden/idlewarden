@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Version>26.9.1</Version>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>IdleWarden.Kale.Decisions</AssemblyName>
+    <RootNamespace>IdleWarden.Kale.Decisions</RootNamespace>
+    <Description>Target and purchase decisions for the Master Healer Kale mod, with no reference to the game.</Description>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../IdleWarden.Bridge/IdleWarden.Bridge.csproj" />
+  </ItemGroup>
+
+</Project>
