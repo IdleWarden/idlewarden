@@ -38,6 +38,22 @@ jobs:
       - name: Test the protocol
         run: dotnet test tests/IdleWarden.Bridge.Tests --configuration Release
 
+      # The Kale mod itself cannot be built here: a BepInEx plugin compiles
+      # against the game's own assemblies, which are not ours to ship. Its
+      # decisions are therefore a separate project that references nothing from
+      # the game, so the part where bugs actually live is tested on every
+      # commit rather than only on a machine that owns the game.
+      - name: Test the Kale decisions
+        run: dotnet test tests/IdleWarden.Kale.Decisions.Tests --configuration Release
+
+      - name: The decisions stay independent of any game assembly
+        run: |
+          if grep -rnE "UnityEngine|Assembly-CSharp|BepInEx" src/IdleWarden.Kale.Decisions; then
+            echo "::error::the decisions project must stay buildable without the game"
+            exit 1
+          fi
+          echo "ok"
+
       - name: Build the reference mod
         run: dotnet build src/IdleWarden.Reference --configuration Release --output out
 
