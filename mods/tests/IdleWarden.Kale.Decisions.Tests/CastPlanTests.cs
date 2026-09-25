@@ -25,7 +25,7 @@ namespace IdleWarden.Kale.Decisions.Tests
                 Magnitude.Zero, Magnitude.Zero, Magnitude.Zero,
                 0, 0, null,
                 true, 1, mana, 100,
-                party, spells);
+                party, spells, 600);
         }
 
         private static SpellSnapshot Spell(

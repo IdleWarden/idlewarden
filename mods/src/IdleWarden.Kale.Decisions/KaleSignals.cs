@@ -15,7 +15,8 @@ namespace IdleWarden.Kale.Decisions
         {
             var signals = new List<Signal>
             {
-                new Signal("ui.screen_id", Value.Enum(state.Scene ?? "unknown")),
+                new Signal("ui.screen_id", Value.Enum(Slug(state.Scene ?? "unknown"))),
+                new Signal("save.loaded", Value.Bool(state.SaveLoaded)),
                 new Signal("progress.tutorial_done", Value.Bool(state.TutorialDone)),
                 new Signal("progress.highest_level_clear", Value.Int(state.HighestLevelClear)),
 

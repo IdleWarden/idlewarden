@@ -55,7 +55,8 @@ namespace IdleWarden.Kale.Decisions
             int mana,
             int manaMax,
             IReadOnlyList<UnitSnapshot> party,
-            IReadOnlyList<SpellSnapshot> spells)
+            IReadOnlyList<SpellSnapshot> spells,
+            int playtimeSeconds)
         {
             Scene = scene;
             TutorialStep = tutorialStep;
@@ -71,6 +72,7 @@ namespace IdleWarden.Kale.Decisions
             ManaMax = manaMax;
             Party = party ?? new UnitSnapshot[0];
             Spells = spells ?? new SpellSnapshot[0];
+            PlaytimeSeconds = playtimeSeconds;
         }
 
         public string Scene { get; }
@@ -103,6 +105,17 @@ namespace IdleWarden.Kale.Decisions
         public IReadOnlyList<UnitSnapshot> Party { get; }
 
         public IReadOnlyList<SpellSnapshot> Spells { get; }
+
+        /// Zero until the title screen hands over. The game builds a default
+        /// database before that, and its defaults look like a real save: one gold,
+        /// no progress. Reporting those as fact would have rules act on a state
+        /// the player does not have.
+        public int PlaytimeSeconds { get; }
+
+        /// False while the numbers above describe that default database rather
+        /// than the player's save. A genuinely new game reads false too, and there
+        /// the defaults are the truth.
+        public bool SaveLoaded => PlaytimeSeconds > 0;
 
         public bool TutorialDone => TutorialStep >= TutorialDoneAt;
 

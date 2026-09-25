@@ -38,7 +38,8 @@ namespace IdleWarden.Kale
                 Mana(),
                 database.GetPlayerMaxMana(),
                 Party(),
-                Spells());
+                Spells(),
+                database.Playtime);
         }
 
         internal static string Scene()
@@ -208,7 +209,7 @@ namespace IdleWarden.Kale
                 Magnitude.Zero, Magnitude.Zero, Magnitude.Zero,
                 0, 0, null,
                 false, 0, 0, 0,
-                null, null);
+                null, null, 0);
         }
     }
 }

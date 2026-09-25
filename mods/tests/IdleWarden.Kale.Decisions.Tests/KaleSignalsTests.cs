@@ -33,7 +33,8 @@ namespace IdleWarden.Kale.Decisions.Tests
             int mana = 100,
             int manaMax = 100,
             int tavernCompletion = 40,
-            string scene = "BATTLE")
+            string scene = "BATTLE",
+            int playtime = 120)
         {
             return new KaleSnapshot(
                 scene,
@@ -49,12 +50,28 @@ namespace IdleWarden.Kale.Decisions.Tests
                 mana,
                 manaMax,
                 party ?? new[] { Unit("solo", 100.0, 100.0) },
-                spells ?? new[] { Spell("Heal") });
+                spells ?? new[] { Spell("Heal") },
+                playtime);
         }
 
         private static Value Find(IReadOnlyList<Signal> signals, string id)
         {
             return signals.FirstOrDefault(signal => signal.Id == id)?.Value;
+        }
+
+        [Fact]
+        public void TheTitleScreenSaysItsNumbersAreNotTheSaveYet()
+        {
+            var menu = KaleSignals.From(State(scene: "MAIN MENU", playtime: 0));
+
+            Assert.False(
+                Find(menu, "save.loaded").AsBool(),
+                "before the save loads the game reports its defaults, one gold and no progress");
+            Assert.Equal("main_menu", Find(menu, "ui.screen_id").AsString());
+
+            var playing = KaleSignals.From(State(scene: "TAVERN", playtime: 4200));
+            Assert.True(Find(playing, "save.loaded").AsBool());
+            Assert.Equal("tavern", Find(playing, "ui.screen_id").AsString());
         }
 
         [Fact]
