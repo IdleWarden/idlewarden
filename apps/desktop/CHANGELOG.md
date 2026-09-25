@@ -4,6 +4,12 @@ All notable changes to `desktop` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.28] - 2026-09-25
+
+### Features
+
+- feat(desktop): let a bridged session run on linux (#79)
+
 ## [26.9.27] - 2026-09-24
 
 ## [26.9.26] - 2026-09-24

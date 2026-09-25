@@ -29,7 +29,7 @@ idlewarden-bridge     = { path = "crates/bridge", version = "26.9.3" }
 idlewarden-mod-install = { path = "crates/mod-install", version = "26.9.2" }
 idlewarden-plugin-host = { path = "crates/plugin-host", version = "26.8.26" }
 idlewarden-agent      = { path = "crates/agent", version = "26.9.6" }
-idlewarden-core       = { path = "crates/core", version = "26.9.24" }
+idlewarden-core       = { path = "crates/core", version = "26.9.25" }
 
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
