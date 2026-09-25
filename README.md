@@ -14,8 +14,14 @@ screen, decides what to do, and does it: mouse, keyboard, nothing exotic. New
 games are added as plugins; the engine itself never learns about any particular
 game.
 
-> **Status: pre-alpha.** Nothing here is usable yet. The architecture is
-> settled (see [`docs/adr/`](docs/adr/)); the implementation is not.
+> **Status: pre-alpha.** On Windows the whole loop runs: the desktop app
+> captures the game window, reads it, and clicks through the Governor, with a
+> dry-run mode that decides without touching the mouse. Expect rough edges and
+> breaking changes. Linux has input and window listing but no capture yet
+> ([#11](https://github.com/IdleWarden/idlewarden/issues/11)), and the app checks
+> for updates but does not install them
+> ([#20](https://github.com/IdleWarden/idlewarden/issues/20)). The architecture
+> is in [`docs/adr/`](docs/adr/).
 
 ---
 
@@ -47,7 +53,7 @@ already give you, while contaminating the entire security model.
     Capture ──────────► Frame (Arc, never cloned)
         │
         ▼
-     Vision ──────────► anchored ROIs · template match · OCR · colour probe
+     Vision ──────────► anchored ROIs · template match · digits · colour probe
         │
         ▼
    Observation ───────► typed signals, each with a confidence and an age
@@ -104,7 +110,7 @@ idlewarden/
 ├── crates/
 │   ├── plugin-api/    ← the contract. Apache-2.0, not MPL. Depend on this.
 │   ├── capture/       ← Windows Graphics Capture of the game window
-│   ├── vision/        ← anchored ROI matching, OCR, colour probes
+│   ├── vision/        ← anchored ROI matching, digit reading, colour probes
 │   ├── input/         ← SendInput, humanised timing, kill switch
 │   ├── bridge/        ← client for a user-installed game mod (ADR-0014)
 │   ├── plugin-host/   ← loads plugins. Never loads native third-party code.
@@ -134,8 +140,9 @@ cd apps/desktop && pnpm install && pnpm tauri dev
 
 The desktop app is the only front end. The pipeline underneath it is also
 exercised headless by `crates/core/tests/pipeline.rs`, which runs on any OS
-against the stub capture backend. The real capture and input backends do not
-exist yet, so a session stays in `searching`.
+against the stub capture backend. A real session needs Windows: capture goes
+through Windows Graphics Capture and input through `SendInput`. On Linux the
+crates have `uinput` input and X11 window listing, but no capture backend yet.
 
 ---
 
