@@ -98,12 +98,12 @@ fn target(
     Ok((bridge, game))
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 fn locate(window: WindowHandle) -> Option<PathBuf> {
     idlewarden_capture::game_directory(window)
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "linux")))]
 fn locate(_window: WindowHandle) -> Option<PathBuf> {
     None
 }
