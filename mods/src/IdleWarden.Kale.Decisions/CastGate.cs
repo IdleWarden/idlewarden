@@ -5,6 +5,7 @@ namespace IdleWarden.Kale.Decisions
     public enum CastRefusal
     {
         None,
+        NoBattle,
         NoSpell,
         NoTarget,
         OnCooldown,
@@ -18,7 +19,12 @@ namespace IdleWarden.Kale.Decisions
         /// player's face: a chat error and a shaking mana bar. Asking first keeps
         /// those out of a session that ticks several times a second, and gives
         /// the host a reason to report instead of a silent no-op.
+        /// A battle that is not playing comes first because the game checks it
+        /// first, and drops the cast without a message when it fails. Anything a
+        /// rule proposes then never lands and never goes on cooldown, so it keeps
+        /// winning the priority race against every rule below it.
         public static CastRefusal Check(
+            bool battleActive,
             bool spellKnown,
             bool hasTarget,
             double cooldownRemaining,
@@ -26,6 +32,10 @@ namespace IdleWarden.Kale.Decisions
             int manaAvailable,
             bool alreadyQueued)
         {
+            if (!battleActive)
+            {
+                return CastRefusal.NoBattle;
+            }
             if (!spellKnown)
             {
                 return CastRefusal.NoSpell;
@@ -51,6 +61,8 @@ namespace IdleWarden.Kale.Decisions
             {
                 case CastRefusal.None:
                     return null;
+                case CastRefusal.NoBattle:
+                    return "no battle is playing, and the game drops `" + spell + "` without a word outside one";
                 case CastRefusal.NoSpell:
                     return "`" + spell + "` is not unlocked in this save";
                 case CastRefusal.NoTarget:

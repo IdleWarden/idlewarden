@@ -8,6 +8,7 @@ namespace IdleWarden.Kale.Decisions.Tests
     public class CastGateTests
     {
         private static CastRefusal Check(
+            bool battle = true,
             bool known = true,
             bool target = true,
             double cooldown = 0.0,
@@ -15,7 +16,7 @@ namespace IdleWarden.Kale.Decisions.Tests
             int mana = 50,
             bool queued = false)
         {
-            return CastGate.Check(known, target, cooldown, cost, mana, queued);
+            return CastGate.Check(battle, known, target, cooldown, cost, mana, queued);
         }
 
         [Fact]
@@ -41,11 +42,20 @@ namespace IdleWarden.Kale.Decisions.Tests
         }
 
         [Fact]
-        public void AMissingSpellIsReportedBeforeAnythingElseIsInspected()
+        public void AMissingSpellIsReportedBeforeTheSpellsOwnObstacles()
         {
             Assert.Equal(
                 CastRefusal.NoSpell,
                 Check(known: false, target: false, cooldown: 9.0, cost: 99, mana: 0, queued: true));
+        }
+
+        [Fact]
+        public void NoBattleIsReportedBeforeAnythingElseBecauseTheGameChecksItFirst()
+        {
+            Assert.Equal(
+                CastRefusal.NoBattle,
+                Check(battle: false, known: false, target: false, cooldown: 9.0, cost: 99, mana: 0, queued: true));
+            Assert.Equal(CastRefusal.NoBattle, Check(battle: false));
         }
 
         [Fact]
