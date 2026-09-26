@@ -130,6 +130,40 @@ namespace IdleWarden.Bridge.Tests
         }
 
         [Fact]
+        public void ClosingThePipeWhileItAwaitsAHostReturnsPromptly()
+        {
+            if (!Endpoints.OnWindows)
+            {
+                return;
+            }
+
+            var endpoint = Endpoints.ForThisPlatform("closing-" + Environment.ProcessId);
+            var awaiting = new Thread(() =>
+            {
+                try
+                {
+                    endpoint.Accept();
+                }
+                catch (Exception)
+                {
+                }
+            }) { IsBackground = true };
+            awaiting.Start();
+            Thread.Sleep(300);
+
+            // Disposed from its own thread so a hang fails this test instead of
+            // freezing the runner. In the game this call happens on Unity's main
+            // thread as it quits, and a hang there is a game that never closes.
+            var closing = new Thread(endpoint.Dispose) { IsBackground = true };
+            closing.Start();
+
+            Assert.True(
+                closing.Join(TimeSpan.FromSeconds(3)),
+                "closing the pipe blocked on the pending wait for a host, which freezes the game on exit");
+            Assert.True(awaiting.Join(TimeSpan.FromSeconds(3)), "the wait for a host never gave up");
+        }
+
+        [Fact]
         public void TheSocketFileGoesAwayWithTheServer()
         {
             if (Endpoints.OnWindows)

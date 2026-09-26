@@ -65,6 +65,11 @@ namespace IdleWarden.Bridge
 
         public string Description => @"\\.\pipe\" + name;
 
+        /// Asynchronous, although nothing here awaits: closing a synchronous pipe
+        /// does not cancel a pending wait for a host, it waits for it. Under the
+        /// Mono runtime Unity ships, that wait happens on the main thread while the
+        /// game quits, and the game never closes. An asynchronous pipe has its
+        /// pending wait cancelled when it is closed.
         public Stream Accept()
         {
             var pipe = new NamedPipeServerStream(
@@ -72,7 +77,7 @@ namespace IdleWarden.Bridge
                 PipeDirection.InOut,
                 1,
                 PipeTransmissionMode.Byte,
-                PipeOptions.None);
+                PipeOptions.Asynchronous);
 
             waiting = pipe;
             try
