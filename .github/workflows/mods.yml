@@ -64,17 +64,21 @@ jobs:
       # compiles against the game's own assemblies, which are not ours to ship, so
       # without the stubs CI could not build this mod at all and the release would
       # have to be made by hand.
+      # No `--output` here, unlike the reference mod above. That flag sends every
+      # project in the graph to one folder and overrides the `Private="false"` that
+      # keeps the stub out, so the mod would ship an Assembly-CSharp of its own.
       - name: Build the Kale mod against the game stubs
-        run: dotnet build src/IdleWarden.Kale --configuration Release --output kale-out
+        run: dotnet build src/IdleWarden.Kale --configuration Release
 
       - name: The stub never ships next to the mod
         run: |
-          if [ -f kale-out/Assembly-CSharp.dll ]; then
+          out=src/IdleWarden.Kale/bin/Release/netstandard2.1
+          if [ -f "$out/Assembly-CSharp.dll" ]; then
             echo "::error::a stub named Assembly-CSharp beside the mod shadows the game's own, and every call throws"
             exit 1
           fi
           for name in IdleWarden.Kale.dll IdleWarden.Kale.Decisions.dll IdleWarden.Bridge.dll; do
-            test -f "kale-out/$name" || { echo "::error::$name missing from the mod output"; exit 1; }
+            test -f "$out/$name" || { echo "::error::$name missing from the mod output"; exit 1; }
           done
           echo "ok"
 

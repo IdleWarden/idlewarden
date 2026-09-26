@@ -172,13 +172,16 @@ jobs:
       # Built against IdleWarden.Kale.GameStubs, which declares the game's
       # signatures and nothing else. The runner does not own the game, and the
       # game's assemblies are not ours to redistribute.
+      # Deliberately without `--output`: that flag would drop the stub's
+      # Assembly-CSharp into the same folder and it would end up in the archive,
+      # shadowing the game's own assembly at run time.
       - name: Build
         working-directory: mods
-        run: dotnet build src/IdleWarden.Kale --configuration Release --output out
+        run: dotnet build src/IdleWarden.Kale --configuration Release
 
       - name: Package the three assemblies BepInEx loads
         id: package
-        working-directory: mods/out
+        working-directory: mods/src/IdleWarden.Kale/bin/Release/netstandard2.1
         run: |
           set -euo pipefail
           if [ -f Assembly-CSharp.dll ]; then
