@@ -4,6 +4,12 @@ All notable changes to `mod-bridge` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.2] - 2026-09-26
+
+### Bug Fixes
+
+- fix(mods): the bridge no longer freezes the game on exit (#87)
+
 ## [26.9.1] - 2026-09-24
 
 ### Features

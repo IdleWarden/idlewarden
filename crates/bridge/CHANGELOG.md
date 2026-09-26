@@ -4,6 +4,12 @@ All notable changes to `bridge` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.4] - 2026-09-26
+
+### Bug Fixes
+
+- fix(bridge): keep looking for the pipe while waiting for a mod (#89)
+
 ## [26.9.3] - 2026-09-20
 
 ### Features

@@ -25,11 +25,11 @@ idlewarden-plugin-api = { path = "crates/plugin-api", version = "26.9.5" }
 idlewarden-capture    = { path = "crates/capture", version = "26.9.9" }
 idlewarden-vision     = { path = "crates/vision", version = "26.9.19" }
 idlewarden-input      = { path = "crates/input", version = "26.9.8" }
-idlewarden-bridge     = { path = "crates/bridge", version = "26.9.3" }
+idlewarden-bridge     = { path = "crates/bridge", version = "26.9.4" }
 idlewarden-mod-install = { path = "crates/mod-install", version = "26.9.2" }
 idlewarden-plugin-host = { path = "crates/plugin-host", version = "26.8.26" }
 idlewarden-agent      = { path = "crates/agent", version = "26.9.6" }
-idlewarden-core       = { path = "crates/core", version = "26.9.26" }
+idlewarden-core       = { path = "crates/core", version = "26.9.27" }
 
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
