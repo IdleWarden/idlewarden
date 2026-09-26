@@ -1,5 +1,5 @@
 {
-  "$comment": "Declaration order is priority. A death costs the most and mends the worst, a group heal covers several members for one cast, a single heal is the common case, and mana gates everything else so it is topped up last. Shopping only matters out of combat.",
+  "$comment": "Declaration order is priority. A death costs the most and mends the worst, a group heal covers several members for one cast, a single heal is the common case, and mana gates everything else so it is topped up last. Shopping only matters out of combat. Every cast requires `battle.active`: outside a playing battle the game drops a cast without a word, so a rule that fires there never lands, never puts its spell on cooldown, and keeps winning the priority race against every rule below it.",
   "intents": [
     {
       "$comment": "Each of these carries its own name because the host resolves a post-condition by intent name and takes the first match. Reviving proves the count of the fallen fell; healing proves health rose. One shared name would give them all the same proof.",
@@ -9,6 +9,7 @@
         "target": { "type": "text", "value": "down" }
       },
       "when": [
+        { "op": "is_true", "signal": "battle.active" },
         { "op": "at_least", "signal": "party.down", "value": 1 },
         { "op": "is_true", "signal": "spell.raise.ready" }
       ],
@@ -22,6 +23,7 @@
         "target": { "type": "text", "value": "none" }
       },
       "when": [
+        { "op": "is_true", "signal": "battle.active" },
         { "op": "at_most", "signal": "party.average_hp_ratio", "value": 0.6 },
         { "op": "is_true", "signal": "spell.party_heal.ready" }
       ],
@@ -35,6 +37,7 @@
         "target": { "type": "text", "value": "lowest_hp" }
       },
       "when": [
+        { "op": "is_true", "signal": "battle.active" },
         { "op": "at_most", "signal": "party.lowest_hp_ratio", "value": 0.75 },
         { "op": "is_true", "signal": "spell.heal.ready" }
       ],
@@ -49,6 +52,7 @@
         "target": { "type": "text", "value": "none" }
       },
       "when": [
+        { "op": "is_true", "signal": "battle.active" },
         { "op": "at_most", "signal": "player.mana_ratio", "value": 0.2 },
         { "op": "is_true", "signal": "spell.meditate.ready" }
       ],

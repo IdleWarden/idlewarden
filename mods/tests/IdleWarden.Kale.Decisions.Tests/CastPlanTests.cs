@@ -18,13 +18,14 @@ namespace IdleWarden.Kale.Decisions.Tests
         private static KaleSnapshot State(
             IReadOnlyList<UnitSnapshot> party,
             IReadOnlyList<SpellSnapshot> spells,
-            int mana = 100)
+            int mana = 100,
+            bool battle = true)
         {
             return new KaleSnapshot(
                 "BATTLE", 9999,
                 Magnitude.Zero, Magnitude.Zero, Magnitude.Zero,
                 0, 0, null,
-                true, 1, mana, 100,
+                battle, 1, mana, 100,
                 party, spells, 600);
         }
 
@@ -49,6 +50,20 @@ namespace IdleWarden.Kale.Decisions.Tests
 
             Assert.True(plan.Allowed);
             Assert.Equal("corpse", plan.Target.Name);
+        }
+
+        [Fact]
+        public void AReviveBetweenBattlesIsRefusedByNameInsteadOfDroppedInSilence()
+        {
+            var state = State(
+                new[] { Unit("standing", 60.0), Unit("corpse", 0.0, alive: false) },
+                new[] { Spell("Raise", mana: 40, canTargetDown: true) },
+                battle: false);
+
+            var plan = CastPlan.For(state, "Raise", TargetPolicy.Down, Below);
+
+            Assert.False(plan.Allowed, "the game returns early when no battle is playing, so the cast would never land");
+            Assert.Equal(CastRefusal.NoBattle, plan.Refusal);
         }
 
         [Fact]

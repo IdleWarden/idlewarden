@@ -61,6 +61,7 @@ namespace IdleWarden.Kale.Decisions
             var needsTarget = policy != TargetPolicy.None;
 
             var refusal = CastGate.Check(
+                state.BattleActive,
                 spell != null,
                 !needsTarget || target != null,
                 spell?.CooldownRemaining ?? 0.0,
