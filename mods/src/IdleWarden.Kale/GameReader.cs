@@ -72,19 +72,30 @@ namespace IdleWarden.Kale
             tavern.RefreshSkillTree();
         }
 
+        // `FindObjectsByType` replaced this in Unity 2023, and the game runs
+        // Unity 6, but the newest UnityEngine on NuGet is 2021 and that is what
+        // CI compiles against. Using the newer call would mean CI could no longer
+        // build this mod at all, which is the whole point of the stubs. The
+        // deprecated overload is still there in Unity 6, so one source compiles
+        // against both and ships as one binary.
+#pragma warning disable CS0618
+
+        /// Inactive ones included: the tree deactivates a node's children as it
+        /// refreshes, and a node that is not drawn is still one the game will
+        /// accept a click on.
         internal static IReadOnlyList<PrefabSkillTree> LiveNodes()
         {
-            return Object.FindObjectsByType<PrefabSkillTree>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None);
+            return Object.FindObjectsOfType<PrefabSkillTree>(true);
         }
 
+        /// Inactive ones excluded here, because a party member that is not in the
+        /// scene is not in the fight.
         internal static IReadOnlyList<PrefabUnit> LiveParty()
         {
-            return Object.FindObjectsByType<PrefabUnit>(
-                FindObjectsInactive.Exclude,
-                FindObjectsSortMode.None);
+            return Object.FindObjectsOfType<PrefabUnit>(false);
         }
+
+#pragma warning restore CS0618
 
         internal static SkillCandidate Describe(PrefabSkillTree node)
         {

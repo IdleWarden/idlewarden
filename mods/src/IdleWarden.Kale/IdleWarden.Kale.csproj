@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <!-- The game's own assemblies target netstandard2.1, and referencing them
-         from a 2.0 project fails to compile. IdleWarden.Bridge stays on 2.0,
-         which a 2.1 project consumes without trouble. -->
+         from a 2.0 project fails to compile. Everything else here is 2.0, which
+         a 2.1 project consumes without trouble. -->
     <TargetFramework>netstandard2.1</TargetFramework>
     <Version>26.9.1</Version>
     <Product>IdleWarden Master Healer Kale bridge</Product>
@@ -14,19 +14,23 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
-  <!-- Building this needs the game installed, because a BepInEx plugin compiles
-       against the title's own assemblies and those are not ours to redistribute.
-       CI therefore never builds this project; what CI does build and test is
-       IdleWarden.Kale.Decisions, which holds every judgement this file makes. -->
+  <!-- Two ways to build the same source.
+       Without arguments it compiles against IdleWarden.Kale.GameStubs, which
+       declares the game's signatures and nothing else, so CI can build and
+       release this mod on a machine that does not own the game.
+       With `-p:KaleGameDir=...` it compiles against the installed game instead.
+       That second mode is the only thing that catches a stub having drifted from
+       what the game now looks like, so it is worth running before a release. -->
   <PropertyGroup>
-    <KaleGameDir Condition="'$(KaleGameDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Master Healer Kale\Master Healer Kale</KaleGameDir>
-    <KaleManagedDir>$(KaleGameDir)\MasterHealerKale_Data\Managed</KaleManagedDir>
+    <KaleManagedDir Condition="'$(KaleGameDir)' != ''">$(KaleGameDir)\MasterHealerKale_Data\Managed</KaleManagedDir>
+    <UseInstalledGame>false</UseInstalledGame>
+    <UseInstalledGame Condition="'$(KaleGameDir)' != ''">true</UseInstalledGame>
   </PropertyGroup>
 
-  <Target Name="SayWhereTheGameIs" BeforeTargets="ResolveAssemblyReferences">
+  <Target Name="SayWhereTheGameIs" BeforeTargets="ResolveAssemblyReferences" Condition="'$(UseInstalledGame)' == 'true'">
     <Error
       Condition="!Exists('$(KaleManagedDir)\Assembly-CSharp.dll')"
-      Text="Master Healer Kale was not found. Pass -p:KaleGameDir=&quot;...\Master Healer Kale&quot; pointing at the folder holding MasterHealerKale.exe. Looked in $(KaleManagedDir)." />
+      Text="KaleGameDir must point at the folder holding MasterHealerKale.exe. Looked for $(KaleManagedDir)\Assembly-CSharp.dll." />
   </Target>
 
   <ItemGroup>
@@ -36,7 +40,15 @@
     <ProjectReference Include="../IdleWarden.Kale.Decisions/IdleWarden.Kale.Decisions.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(UseInstalledGame)' != 'true'">
+    <!-- `Private=false` keeps the stub out of the output folder. Shipping an
+         assembly called Assembly-CSharp next to the mod would shadow the game's
+         own, and every call would throw. -->
+    <ProjectReference Include="../IdleWarden.Kale.GameStubs/IdleWarden.Kale.GameStubs.csproj" Private="false" />
+    <PackageReference Include="UnityEngine.Modules" Version="2021.3.33" IncludeAssets="compile" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UseInstalledGame)' == 'true'">
     <Reference Include="Assembly-CSharp">
       <HintPath>$(KaleManagedDir)\Assembly-CSharp.dll</HintPath>
       <Private>false</Private>
