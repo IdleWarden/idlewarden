@@ -2,7 +2,7 @@
   "$schema": "https://idlewarden.github.io/registry/schema/plugin-manifest.schema.json",
   "id": "dev.idlewarden.master-healer-kale",
   "name": "Master Healer Kale",
-  "version": "26.9.2",
+  "version": "26.9.3",
   "api_version": "^0.1",
   "game": {
     "executable": "MasterHealerKale.exe",
