@@ -60,6 +60,24 @@ jobs:
       - name: The build holds the two files the release archive ships
         run: test -f out/IdleWarden.Reference.dll && test -f out/IdleWarden.Bridge.dll
 
+      # This is why IdleWarden.Kale.GameStubs exists: a BepInEx plugin normally
+      # compiles against the game's own assemblies, which are not ours to ship, so
+      # without the stubs CI could not build this mod at all and the release would
+      # have to be made by hand.
+      - name: Build the Kale mod against the game stubs
+        run: dotnet build src/IdleWarden.Kale --configuration Release --output kale-out
+
+      - name: The stub never ships next to the mod
+        run: |
+          if [ -f kale-out/Assembly-CSharp.dll ]; then
+            echo "::error::a stub named Assembly-CSharp beside the mod shadows the game's own, and every call throws"
+            exit 1
+          fi
+          for name in IdleWarden.Kale.dll IdleWarden.Kale.Decisions.dll IdleWarden.Bridge.dll; do
+            test -f "kale-out/$name" || { echo "::error::$name missing from the mod output"; exit 1; }
+          done
+          echo "ok"
+
       - name: The plugin version comes from the project, never a literal
         run: |
           if grep -rnE '\[BepInPlugin\([^)]*"[0-9]+\.[0-9]+' src; then

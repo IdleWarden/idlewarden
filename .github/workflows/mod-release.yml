@@ -149,3 +149,58 @@ jobs:
             echo
             echo "sha256 for the registry entry: \`$(sha256sum "$ARCHIVE" | cut -d' ' -f1)\`"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  package-kale:
+    if: startsWith(github.event.release.tag_name || inputs.tag, 'mod/kale@v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      # Built against IdleWarden.Kale.GameStubs, which declares the game's
+      # signatures and nothing else. The runner does not own the game, and the
+      # game's assemblies are not ours to redistribute.
+      - name: Build
+        working-directory: mods
+        run: dotnet build src/IdleWarden.Kale --configuration Release --output out
+
+      - name: Package the three assemblies BepInEx loads
+        id: package
+        working-directory: mods/out
+        run: |
+          set -euo pipefail
+          if [ -f Assembly-CSharp.dll ]; then
+            echo "::error::the stub would ship and shadow the game's own assembly" >&2
+            exit 1
+          fi
+          archive="IdleWarden.Kale-${TAG#mod/kale@v}.zip"
+          zip -X "$GITHUB_WORKSPACE/$archive"             IdleWarden.Kale.dll IdleWarden.Kale.Decisions.dll IdleWarden.Bridge.dll
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: ${{ steps.package.outputs.archive }}
+
+      - name: Attach to the release
+        env:
+          ARCHIVE: ${{ steps.package.outputs.archive }}
+        run: |
+          set -euo pipefail
+          gh release upload "$TAG" "$ARCHIVE" --clobber
+          {
+            echo "### $ARCHIVE"
+            echo
+            echo "sha256 for the registry entry: \`$(sha256sum "$ARCHIVE" | cut -d' ' -f1)\`"
+          } >> "$GITHUB_STEP_SUMMARY"

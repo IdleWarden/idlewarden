@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <!-- The game's assembly is called this, and the name is the whole point: the
+         mod records a reference to `Assembly-CSharp` at build time and the game's
+         own assembly of that name answers it at run time. -->
+    <AssemblyName>Assembly-CSharp</AssemblyName>
+    <RootNamespace></RootNamespace>
+    <Description>Reference-only signatures of Master Healer Kale, so the mod compiles where the game is not installed. Never shipped.</Description>
+    <IsPackable>false</IsPackable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!-- The game's types live in the global namespace. -->
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="UnityEngine.Modules" Version="2021.3.33" IncludeAssets="compile" />
+  </ItemGroup>
+
+</Project>

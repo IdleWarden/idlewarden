@@ -311,6 +311,49 @@
           "format": "json"
         }
       ]
+    },
+    {
+      "name": "mod-kale-decisions",
+      "path": "mods/src/IdleWarden.Kale.Decisions",
+      "dependsOn": [
+        "mod-bridge"
+      ],
+      "tagTemplate": "mod/kale-decisions@v{version}",
+      "changelog": "mods/src/IdleWarden.Kale.Decisions/CHANGELOG.md",
+      "versionedFiles": [
+        {
+          "path": "mods/src/IdleWarden.Kale.Decisions/IdleWarden.Kale.Decisions.csproj",
+          "format": "csproj"
+        }
+      ]
+    },
+    {
+      "name": "mod-kale",
+      "path": "mods/src/IdleWarden.Kale",
+      "dependsOn": [
+        "mod-bridge",
+        "mod-kale-decisions"
+      ],
+      "tagTemplate": "mod/kale@v{version}",
+      "changelog": "mods/src/IdleWarden.Kale/CHANGELOG.md",
+      "versionedFiles": [
+        {
+          "path": "mods/src/IdleWarden.Kale/IdleWarden.Kale.csproj",
+          "format": "csproj"
+        }
+      ]
+    },
+    {
+      "name": "plugin-master-healer-kale",
+      "path": "plugins/master-healer-kale",
+      "tagTemplate": "plugin/master-healer-kale@v{version}",
+      "changelog": "plugins/master-healer-kale/CHANGELOG.md",
+      "versionedFiles": [
+        {
+          "path": "plugins/master-healer-kale/plugin.json",
+          "format": "json"
+        }
+      ]
     }
   ]
 }
