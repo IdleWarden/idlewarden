@@ -7,7 +7,7 @@ namespace IdleWarden.Kale.Decisions
     public sealed class SkillCandidate
     {
         public SkillCandidate(string name, string currency, Magnitude cost, bool levelable)
-            : this(name, currency, cost, levelable, "unknown", Magnitude.Zero)
+            : this(name, currency, cost, levelable, "unknown", Magnitude.Zero, 0)
         {
         }
 
@@ -17,8 +17,10 @@ namespace IdleWarden.Kale.Decisions
             Magnitude cost,
             bool levelable,
             string kind,
-            Magnitude gain)
+            Magnitude gain,
+            int level = 0)
         {
+            Level = level;
             Name = name;
             Currency = currency;
             Cost = cost;
@@ -40,6 +42,11 @@ namespace IdleWarden.Kale.Decisions
 
         /// `Passive`, `ActiveAbility` or `Weapon`.
         public string Kind { get; }
+
+        /// How many levels of this node the save already holds. Summed across the
+        /// tree it is the only proof a purchase went through that holds for all
+        /// three currencies.
+        public int Level { get; }
 
         /// What the next level adds to this node's effect. Its unit is whatever
         /// the node measures, which is why it is only ever compared against nodes
@@ -115,6 +122,24 @@ namespace IdleWarden.Kale.Decisions
                 }
             }
             return best;
+        }
+
+        public static int LevelsOwned(IEnumerable<SkillCandidate> candidates)
+        {
+            if (candidates == null)
+            {
+                return 0;
+            }
+
+            var owned = 0;
+            foreach (var candidate in candidates)
+            {
+                if (candidate != null && candidate.Level > 0)
+                {
+                    owned += candidate.Level;
+                }
+            }
+            return owned;
         }
 
         public static int LevelableCount(IEnumerable<SkillCandidate> candidates)

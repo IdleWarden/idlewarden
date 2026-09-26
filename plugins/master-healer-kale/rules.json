@@ -1,0 +1,71 @@
+{
+  "$comment": "Declaration order is priority. A death costs the most and mends the worst, a group heal covers several members for one cast, a single heal is the common case, and mana gates everything else so it is topped up last. Shopping only matters out of combat.",
+  "intents": [
+    {
+      "$comment": "Each of these carries its own name because the host resolves a post-condition by intent name and takes the first match. Reviving proves the count of the fallen fell; healing proves health rose. One shared name would give them all the same proof.",
+      "name": "revive_fallen",
+      "params": {
+        "spell": { "type": "text", "value": "Raise" },
+        "target": { "type": "text", "value": "down" }
+      },
+      "when": [
+        { "op": "at_least", "signal": "party.down", "value": 1 },
+        { "op": "is_true", "signal": "spell.raise.ready" }
+      ],
+      "post_condition": [{ "op": "decreased", "signal": "party.down" }],
+      "min_confidence": 0.9
+    },
+    {
+      "name": "heal_party",
+      "params": {
+        "spell": { "type": "text", "value": "Party Heal" },
+        "target": { "type": "text", "value": "none" }
+      },
+      "when": [
+        { "op": "at_most", "signal": "party.average_hp_ratio", "value": 0.6 },
+        { "op": "is_true", "signal": "spell.party_heal.ready" }
+      ],
+      "post_condition": [{ "op": "increased", "signal": "party.average_hp_ratio" }],
+      "min_confidence": 0.9
+    },
+    {
+      "name": "heal_lowest",
+      "params": {
+        "spell": { "type": "text", "value": "Heal" },
+        "target": { "type": "text", "value": "lowest_hp" }
+      },
+      "when": [
+        { "op": "at_most", "signal": "party.lowest_hp_ratio", "value": 0.75 },
+        { "op": "is_true", "signal": "spell.heal.ready" }
+      ],
+      "post_condition": [{ "op": "increased", "signal": "party.lowest_hp_ratio" }],
+      "min_confidence": 0.9
+    },
+    {
+      "$comment": "Last, because mana buys every other line above and there is no point hoarding it while somebody is dying.",
+      "name": "restore_mana",
+      "params": {
+        "spell": { "type": "text", "value": "Meditate" },
+        "target": { "type": "text", "value": "none" }
+      },
+      "when": [
+        { "op": "at_most", "signal": "player.mana_ratio", "value": 0.2 },
+        { "op": "is_true", "signal": "spell.meditate.ready" }
+      ],
+      "post_condition": [{ "op": "increased", "signal": "player.mana" }],
+      "min_confidence": 0.9
+    },
+    {
+      "$comment": "`tavern.levels_owned` is the only honest proof here: the three currencies mean a falling balance does not identify a purchase, and `levelable_nodes` can hold steady when taking one node unlocks the next.",
+      "name": "buy_cheapest_skill",
+      "when": [
+        { "op": "equals", "signal": "ui.screen_id", "value": { "type": "enum", "value": "tavern" } },
+        { "op": "is_true", "signal": "save.loaded" },
+        { "op": "is_true", "signal": "progress.tutorial_done" },
+        { "op": "at_least", "signal": "tavern.levelable_nodes", "value": 1 }
+      ],
+      "post_condition": [{ "op": "increased", "signal": "tavern.levels_owned" }],
+      "min_confidence": 0.9
+    }
+  ]
+}

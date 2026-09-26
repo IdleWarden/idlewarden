@@ -26,6 +26,7 @@ namespace IdleWarden.Kale.Decisions
 
                 new Signal("tavern.completion", Value.Ratio(Percent(state.TavernCompletion))),
                 new Signal("tavern.levelable_nodes", Value.Int(SkillChoice.LevelableCount(state.Nodes))),
+                new Signal("tavern.levels_owned", Value.Int(SkillChoice.LevelsOwned(state.Nodes))),
 
                 new Signal("battle.active", Value.Bool(state.BattleActive)),
                 new Signal("battle.floor", Value.Int(state.Floor)),

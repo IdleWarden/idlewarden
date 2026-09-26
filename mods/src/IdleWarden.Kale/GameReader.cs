@@ -102,7 +102,8 @@ namespace IdleWarden.Kale
                 cost,
                 node.CanLevelup,
                 skill.NodeType.ToString(),
-                Gain(skill, level));
+                Gain(skill, level),
+                level);
         }
 
         private static Magnitude Cost(SkillNode skill, int level)

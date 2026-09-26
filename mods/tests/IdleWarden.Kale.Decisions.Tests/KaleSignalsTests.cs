@@ -168,6 +168,36 @@ namespace IdleWarden.Kale.Decisions.Tests
         }
 
         [Fact]
+        public void LevelsOwnedIsWhatProvesAPurchaseWentThrough()
+        {
+            var before = new[]
+            {
+                new SkillCandidate("heal", "Gold", new Magnitude(1.0, 0), true, "Passive", Magnitude.Zero, 2),
+                new SkillCandidate("mana", "SkillPoint", new Magnitude(1.0, 0), true, "Passive", Magnitude.Zero, 3),
+                new SkillCandidate("untaken", "Gold", new Magnitude(1.0, 0), true, "Passive", Magnitude.Zero, 0),
+            };
+
+            Assert.Equal(5L, Find(KaleSignals.From(State(nodes: before)), "tavern.levels_owned").AsInt());
+
+            var after = new[]
+            {
+                new SkillCandidate("heal", "Gold", new Magnitude(1.0, 0), true, "Passive", Magnitude.Zero, 2),
+                new SkillCandidate("mana", "SkillPoint", new Magnitude(1.0, 0), true, "Passive", Magnitude.Zero, 3),
+                new SkillCandidate("untaken", "Gold", new Magnitude(1.0, 0), true, "Passive", Magnitude.Zero, 1),
+            };
+
+            Assert.Equal(
+                6L,
+                Find(KaleSignals.From(State(nodes: after)), "tavern.levels_owned").AsInt());
+        }
+
+        [Fact]
+        public void LevelsOwnedCountsNothingOutsideTheTavern()
+        {
+            Assert.Equal(0L, Find(KaleSignals.From(State(nodes: null)), "tavern.levels_owned").AsInt());
+        }
+
+        [Fact]
         public void TheLevelableCountIsWhatKeepsAnAgentFromBuyingIntoAWall()
         {
             var nodes = new[]
