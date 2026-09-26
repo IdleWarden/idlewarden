@@ -77,16 +77,43 @@ pub fn connect(name: &str) -> Result<Bridge, BridgeError> {
 /// The pipe first, because a mod that serves one is already listening and says
 /// no immediately. A page mod cannot serve anything, so it connects to us
 /// instead, and that side has to be waited for (ADR-0018).
+///
+/// The pipe is tried again throughout the wait, not only once. A mod has no pipe
+/// open for a moment between two hosts, and none at all until the game has
+/// loaded it, so a single miss is not an answer. A mod that does answer, even to
+/// refuse, is returned at once: its reason is the one the user needs, not a
+/// timeout about a socket nobody was going to use.
 pub fn connect_or_listen(name: &str, wait: std::time::Duration) -> Result<Bridge, BridgeError> {
     match connect(name) {
-        Ok(bridge) => Ok(bridge),
-        Err(BridgeError::InvalidEndpoint { endpoint }) => {
-            Err(BridgeError::InvalidEndpoint { endpoint })
+        Err(BridgeError::Connect { .. }) => {}
+        answered => return answered,
+    }
+
+    tracing::info!("no pipe yet, watching for one while a page may connect over the socket");
+    let listener = websocket::bind(websocket::DEFAULT_PORT)?;
+    let deadline = std::time::Instant::now() + wait;
+    loop {
+        match websocket::accept(&listener, name, websocket::POLL) {
+            Err(BridgeError::Connect { .. }) => {}
+            accepted => return Bridge::open(accepted?),
         }
-        Err(piped) => {
-            tracing::info!(%piped, "no pipe, waiting for a mod to connect over the socket");
-            let listener = websocket::bind(websocket::DEFAULT_PORT)?;
-            Bridge::open(websocket::accept(&listener, name, wait)?)
+
+        match connect(name) {
+            Err(BridgeError::Connect { .. }) => {}
+            answered => return answered,
+        }
+
+        if std::time::Instant::now() >= deadline {
+            return Err(BridgeError::Connect {
+                endpoint: format!(
+                    "{} or ws://127.0.0.1/{name}",
+                    transport::endpoint_path(name)
+                ),
+                source: std::io::Error::new(
+                    std::io::ErrorKind::TimedOut,
+                    "no mod answered before the wait expired",
+                ),
+            });
         }
     }
 }
