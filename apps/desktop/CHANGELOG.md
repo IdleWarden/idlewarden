@@ -4,6 +4,12 @@ All notable changes to `desktop` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.9.31] - 2026-09-26
+
+### Bug Fixes
+
+- fix(desktop): keep the sidebar still and draw the window controls ourselves (#90)
+
 ## [26.9.30] - 2026-09-26
 
 ## [26.9.29] - 2026-09-26
