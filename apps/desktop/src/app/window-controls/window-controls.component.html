@@ -1,0 +1,52 @@
+<button
+  type="button"
+  class="control"
+  (click)="minimize()"
+  title="Réduire"
+  aria-label="Réduire"
+>
+  <svg viewBox="0 0 10 10" aria-hidden="true">
+    <rect x="0" y="5" width="10" height="1" />
+  </svg>
+</button>
+
+<button
+  type="button"
+  class="control"
+  (click)="toggleMaximize()"
+  [attr.title]="maximized() ? 'Restaurer' : 'Agrandir'"
+  [attr.aria-label]="maximized() ? 'Restaurer' : 'Agrandir'"
+>
+  <svg viewBox="0 0 10 10" aria-hidden="true">
+    @if (maximized()) {
+      <rect x="0" y="2" width="8" height="1" />
+      <rect x="0" y="9" width="8" height="1" />
+      <rect x="0" y="2" width="1" height="8" />
+      <rect x="7" y="2" width="1" height="8" />
+      <rect x="2" y="0" width="8" height="1" />
+      <rect x="9" y="0" width="1" height="8" />
+      <rect x="2" y="0" width="1" height="2" />
+      <rect x="8" y="7" width="2" height="1" />
+    } @else {
+      <rect x="0" y="0" width="10" height="1" />
+      <rect x="0" y="9" width="10" height="1" />
+      <rect x="0" y="0" width="1" height="10" />
+      <rect x="9" y="0" width="1" height="10" />
+    }
+  </svg>
+</button>
+
+<button
+  type="button"
+  class="control close"
+  (click)="close()"
+  title="Fermer"
+  aria-label="Fermer"
+>
+  <svg viewBox="0 0 10 10" aria-hidden="true">
+    @for (step of cross; track step) {
+      <rect [attr.x]="step" [attr.y]="step" width="1" height="1" />
+      <rect [attr.x]="9 - step" [attr.y]="step" width="1" height="1" />
+    }
+  </svg>
+</button>

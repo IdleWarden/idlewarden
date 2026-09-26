@@ -1,0 +1,36 @@
+:host {
+  display: flex;
+  align-self: stretch;
+}
+
+.control {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  padding: 0;
+  border: none;
+  border-left: 2px solid var(--line);
+  color: var(--muted);
+}
+
+.control:hover:not(:disabled) {
+  color: var(--accent);
+  background: var(--rule);
+}
+
+.control.close:hover:not(:disabled) {
+  color: var(--bright);
+  background: var(--danger);
+}
+
+.control:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -4px;
+}
+
+svg {
+  width: 10px;
+  height: 10px;
+  fill: currentColor;
+  shape-rendering: crispEdges;
+}

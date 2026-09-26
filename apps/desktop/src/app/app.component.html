@@ -1,5 +1,5 @@
-<div class="chrome">
-  <span class="brand">
+<header class="chrome" data-tauri-drag-region>
+  <span class="brand" data-tauri-drag-region>
     <svg class="owl" viewBox="0 0 16 13" aria-hidden="true">
       @for (cell of owl(); track $index) {
         <rect
@@ -13,27 +13,30 @@
     </svg>
     IDLEWARDEN
   </span>
-</div>
+  <app-window-controls />
+</header>
 
 <div class="shell">
   <aside>
-    <p class="label">Mes jeux</p>
-    <ul class="games">
-      @for (plugin of plugins(); track plugin.id) {
-        <li [class.active]="plugin.detected">
-          <span class="thumb"></span>
-          <span class="name">
-            {{ plugin.id }}
-            <small [attr.data-state]="stateOf(plugin)">{{ stateOf(plugin) }}</small>
-          </span>
-        </li>
-      } @empty {
-        <li class="empty">Aucun plugin installé</li>
-      }
-    </ul>
-    <p class="hint">
-      Les plugins se lisent dans le dossier de données de l'application.
-    </p>
+    <div class="library">
+      <p class="label">Mes jeux</p>
+      <ul class="games">
+        @for (plugin of plugins(); track plugin.id) {
+          <li [class.active]="plugin.detected">
+            <span class="thumb"></span>
+            <span class="name">
+              {{ plugin.id }}
+              <small [attr.data-state]="stateOf(plugin)">{{ stateOf(plugin) }}</small>
+            </span>
+          </li>
+        } @empty {
+          <li class="empty">Aucun plugin installé</li>
+        }
+      </ul>
+      <p class="hint">
+        Les plugins se lisent dans le dossier de données de l'application.
+      </p>
+    </div>
     <p class="label bottom">Écrans</p>
     <nav>
       @for (screen of screens; track screen.path) {
@@ -47,5 +50,7 @@
     </nav>
   </aside>
 
-  <router-outlet />
+  <main class="content">
+    <router-outlet />
+  </main>
 </div>

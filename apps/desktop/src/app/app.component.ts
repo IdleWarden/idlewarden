@@ -4,10 +4,11 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
 import { OWL } from "./owl";
 import { PluginSummary } from "./session/session.model";
 import { SessionService } from "./session/session.service";
+import { WindowControlsComponent } from "./window-controls/window-controls.component";
 
 @Component({
   selector: "app-root",
-  imports: [RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, WindowControlsComponent],
   templateUrl: "./app.component.html",
   styleUrl: "./app.component.css",
 })
