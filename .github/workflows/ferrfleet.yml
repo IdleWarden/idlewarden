@@ -1,0 +1,32 @@
+name: ferrfleet
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      agent:
+        description: Agent id to run
+        required: false
+        default: pr-review
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ferrfleet-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: FerrLabs/FerrFleet-Runner@v1
+        with:
+          mode: binary
+          agent: ${{ inputs.agent || 'pr-review' }}
+          token: ${{ secrets.FERRFLEET_ORG_TOKEN }}
+          claude-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
