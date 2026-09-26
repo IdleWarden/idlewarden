@@ -11,7 +11,7 @@ use crate::BridgeError;
 
 pub const DEFAULT_PORT: u16 = 47825;
 
-const POLL: Duration = Duration::from_millis(50);
+pub(crate) const POLL: Duration = Duration::from_millis(50);
 
 pub struct WebSocketTransport(WebSocket<TcpStream>);
 

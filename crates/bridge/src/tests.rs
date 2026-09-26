@@ -206,9 +206,17 @@ fn an_endpoint_lives_in_the_pipe_namespace_the_mod_serves_from() {
     );
 }
 
+/// Tests that start a host bind the one websocket port the bridge listens on,
+/// so they take turns rather than failing on whichever lost the race.
+pub(crate) fn shared_port() -> std::sync::MutexGuard<'static, ()> {
+    static PORT: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    PORT.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+/// A mod on a real named pipe that answers one hello with `answer`, once the
+/// host connects. Returns the request it received.
 #[cfg(windows)]
-#[test]
-fn a_client_reaches_a_real_named_pipe_and_completes_the_handshake() {
+fn a_pipe_mod(name: &str, answer: String) -> std::thread::JoinHandle<String> {
     use std::io::{BufRead, BufReader, Write};
     use std::os::windows::io::FromRawHandle;
 
@@ -218,8 +226,7 @@ fn a_client_reaches_a_real_named_pipe_and_completes_the_handshake() {
         ConnectNamedPipe, CreateNamedPipeW, PIPE_READMODE_BYTE, PIPE_TYPE_BYTE, PIPE_WAIT,
     };
 
-    let name = format!("bridge-test-{}", std::process::id());
-    let path = crate::transport::endpoint_path(&name);
+    let path = crate::transport::endpoint_path(name);
     let server = unsafe {
         CreateNamedPipeW(
             &HSTRING::from(path.as_str()),
@@ -235,7 +242,7 @@ fn a_client_reaches_a_real_named_pipe_and_completes_the_handshake() {
     assert!(!server.is_invalid(), "the test pipe could not be created");
     let raw = server.0 as usize;
 
-    let mod_side = std::thread::spawn(move || {
+    std::thread::spawn(move || {
         let handle = windows::Win32::Foundation::HANDLE(raw as *mut std::ffi::c_void);
         let _ = unsafe { ConnectNamedPipe(handle, None) };
         let pipe = unsafe { std::fs::File::from_raw_handle(raw as *mut std::ffi::c_void) };
@@ -244,16 +251,75 @@ fn a_client_reaches_a_real_named_pipe_and_completes_the_handshake() {
 
         let mut request = String::new();
         reader.read_line(&mut request).expect("the hello arrives");
-        writeln!(writer, "{}", hello()).expect("the hello is answered");
+        writeln!(writer, "{answer}").expect("the hello is answered");
         writer.flush().expect("flushed");
         request
-    });
+    })
+}
+
+#[cfg(windows)]
+#[test]
+fn a_client_reaches_a_real_named_pipe_and_completes_the_handshake() {
+    let name = format!("bridge-test-{}", std::process::id());
+    let mod_side = a_pipe_mod(&name, hello());
 
     let bridge = connect(&name).expect("the client finds the pipe the server created");
     let received = mod_side.join().expect("the mod side finishes");
 
     assert_eq!(bridge.plugin().as_str(), "dev.example.game");
     assert!(received.contains("\"request\":\"hello\""));
+}
+
+/// A mod briefly has no pipe open: between two hosts it takes a moment to open
+/// the next one, and at game start it may not be listening yet. The host used to
+/// try the pipe once and then wait on the websocket alone, so it never saw the
+/// pipe that opened a moment later.
+#[cfg(windows)]
+#[test]
+fn a_pipe_that_opens_after_the_host_started_waiting_is_still_found() {
+    let _port = shared_port();
+    let name = format!("late-pipe-{}", std::process::id());
+
+    let late = {
+        let name = name.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(400));
+            a_pipe_mod(&name, hello()).join()
+        })
+    };
+
+    let bridge = crate::connect_or_listen(&name, std::time::Duration::from_secs(5))
+        .expect("the pipe that opened late is found");
+
+    assert_eq!(bridge.plugin().as_str(), "dev.example.game");
+    drop(bridge);
+    let _ = late.join();
+}
+
+/// A mod that answers is a mod that was found. Treating its refusal as "no pipe"
+/// sent the host off to wait for a websocket, and the user read a timeout about a
+/// socket instead of the reason the mod gave.
+#[cfg(windows)]
+#[test]
+fn a_mod_that_answers_with_a_refusal_is_reported_rather_than_waited_past() {
+    let _port = shared_port();
+    let name = format!("refusing-pipe-{}", std::process::id());
+    let incompatible =
+        r#"{"response":"hello","plugin":"dev.example.game","api_version":"^99.0"}"#.to_owned();
+    let mod_side = a_pipe_mod(&name, incompatible);
+
+    let started = std::time::Instant::now();
+    let error = crate::connect_or_listen(&name, std::time::Duration::from_secs(5)).unwrap_err();
+
+    assert!(
+        matches!(error, BridgeError::IncompatibleApi { .. }),
+        "the mod's own answer must come back, got {error:?}"
+    );
+    assert!(
+        started.elapsed() < std::time::Duration::from_secs(2),
+        "a refusal is an answer; nothing should have been waited for"
+    );
+    let _ = mod_side.join();
 }
 
 mod over_a_local_websocket {
@@ -405,6 +471,7 @@ mod over_a_local_websocket {
 
     #[test]
     fn with_no_pipe_to_be_found_the_host_waits_for_the_page_to_connect() {
+        let _port = super::shared_port();
         let name = format!("ws-fallback-{}", std::process::id());
         let listener = bind(crate::websocket::DEFAULT_PORT).expect("the shared port is free");
         let page = a_mod_page(port(&listener), &format!("/{name}"), Some("file://"));
