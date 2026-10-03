@@ -22,6 +22,12 @@ pub struct IntentRule {
     pub params: BTreeMap<String, Value>,
     #[serde(default = "default_floor")]
     pub min_confidence: f64,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub within_ms: u64,
+}
+
+fn is_zero(value: &u64) -> bool {
+    *value == 0
 }
 
 fn default_floor() -> f64 {
@@ -136,6 +142,7 @@ impl PluginRules {
                 commands: intent.commands.clone(),
                 post_condition: intent.post_condition.clone(),
                 min_confidence: intent.min_confidence,
+                within_ms: intent.within_ms,
             })
             .collect()
     }
@@ -323,6 +330,41 @@ mod tests {
         assert_eq!(collect.commands.len(), 2);
         assert_eq!(collect.post_condition.len(), 1);
         assert_eq!(collect.min_confidence, 0.8);
+    }
+
+    #[test]
+    fn a_recipe_waits_as_long_as_its_rule_allows_and_no_longer_by_default() {
+        let rules = PluginRules::parse(
+            r#"{
+              "intents": [
+                {
+                  "name": "heal_party",
+                  "params": { "spell": { "type": "text", "value": "Party Heal" } },
+                  "when": [{ "op": "is_true", "signal": "battle.active" }],
+                  "post_condition": [{ "op": "increased", "signal": "party.average_hp_ratio" }],
+                  "within_ms": 4000
+                },
+                {
+                  "name": "revive_fallen",
+                  "when": [{ "op": "is_true", "signal": "battle.active" }],
+                  "post_condition": [{ "op": "decreased", "signal": "party.down" }]
+                }
+              ]
+            }"#,
+        )
+        .expect("valid rules");
+        let recipes = rules.recipes();
+        let actuator = crate::recipe::RecipeActuator::new(recipes.clone());
+
+        assert_eq!(recipes[0].within_ms, 4000);
+        assert_eq!(recipes[1].within_ms, 0);
+        assert_eq!(
+            crate::runner::Actuator::patience_ms(
+                &actuator,
+                &idlewarden_plugin_api::Intent::new("heal_party")
+            ),
+            4000
+        );
     }
 
     #[test]

@@ -40,6 +40,16 @@ pub trait Actuator: Send {
         before: &Observation,
         after: &Observation,
     ) -> ActionOutcome;
+
+    fn patience_ms(&self, _intent: &Intent) -> u64 {
+        0
+    }
+}
+
+struct InFlight {
+    intent: Intent,
+    before: Observation,
+    until_ms: u64,
 }
 
 pub struct Runner {
@@ -51,7 +61,7 @@ pub struct Runner {
     session: Session,
     /// An intent whose commands have run and whose post-condition is waiting on
     /// the next observation.
-    in_flight: Option<(Intent, Observation)>,
+    in_flight: Option<InFlight>,
     events: Vec<Event>,
 }
 
@@ -139,7 +149,7 @@ impl Runner {
 
         self.settle_in_flight(&observation);
 
-        if !self.session.can_act() {
+        if self.in_flight.is_some() || !self.session.can_act() {
             return;
         }
 
@@ -180,11 +190,29 @@ impl Runner {
     }
 
     fn settle_in_flight(&mut self, observation: &Observation) {
-        let Some((intent, before)) = self.in_flight.take() else {
+        let Some(pending) = self.in_flight.take() else {
             return;
         };
-        let outcome = self.actuator.verify(&intent, &before, observation);
-        self.emit(Event::ActionFinished { intent, outcome });
+        let outcome = self
+            .actuator
+            .verify(&pending.intent, &pending.before, observation);
+        if outcome != ActionOutcome::Succeeded && observation.captured_at_ms < pending.until_ms {
+            self.in_flight = Some(pending);
+            return;
+        }
+        self.emit(Event::ActionFinished {
+            intent: pending.intent,
+            outcome,
+        });
+    }
+
+    fn await_proof(&mut self, intent: Intent, before: Observation) {
+        let until_ms = before.captured_at_ms + self.actuator.patience_ms(&intent);
+        self.in_flight = Some(InFlight {
+            intent,
+            before,
+            until_ms,
+        });
     }
 
     fn act(&mut self, intent: Intent, before: Observation) {
@@ -216,7 +244,7 @@ impl Runner {
                 "dry-run: not sending to the mod"
             );
             self.session.actions_taken += 1;
-            self.in_flight = Some((intent, before));
+            self.await_proof(intent, before);
             return;
         }
 
@@ -226,7 +254,7 @@ impl Runner {
         match bridge.act(&intent) {
             Ok(ActionOutcome::Succeeded) => {
                 self.session.actions_taken += 1;
-                self.in_flight = Some((intent, before));
+                self.await_proof(intent, before);
             }
             Ok(outcome) => self.emit(Event::ActionFinished { intent, outcome }),
             Err(error) if is_lost(&error) => {
@@ -296,7 +324,7 @@ impl Runner {
         // Nothing is called succeeded here. The post-condition is checked
         // against the next observation, which is the only thing that can say
         // whether the world actually changed.
-        self.in_flight = Some((intent, before));
+        self.await_proof(intent, before);
     }
 
     fn pause_for(&mut self, reason: String) {

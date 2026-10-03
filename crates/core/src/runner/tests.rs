@@ -108,7 +108,49 @@ impl InputBackend for RefusingInput {
     }
 }
 
+struct PatientActuator {
+    patience_ms: u64,
+    outcomes: std::collections::VecDeque<ActionOutcome>,
+}
+
+impl Actuator for PatientActuator {
+    fn plan(&mut self, _intent: &Intent) -> Vec<InputCommand> {
+        StubActuator::new().commands
+    }
+
+    fn verify(
+        &mut self,
+        _intent: &Intent,
+        _before: &Observation,
+        _after: &Observation,
+    ) -> ActionOutcome {
+        self.outcomes
+            .pop_front()
+            .unwrap_or_else(|| ActionOutcome::Failed {
+                reason: "the effect never showed".to_owned(),
+            })
+    }
+
+    fn patience_ms(&self, _intent: &Intent) -> u64 {
+        self.patience_ms
+    }
+}
+
+fn patient(patience_ms: u64, outcomes: Vec<ActionOutcome>) -> Box<dyn Actuator> {
+    Box::new(PatientActuator {
+        patience_ms,
+        outcomes: outcomes.into(),
+    })
+}
+
+fn not_yet() -> ActionOutcome {
+    ActionOutcome::Failed {
+        reason: "health has not risen yet".to_owned(),
+    }
+}
+
 struct Build {
+    actuator: Box<dyn Actuator>,
     capture: Box<dyn CaptureBackend>,
     perceiver: StubPerceiver,
     tree: Box<dyn Node>,
@@ -120,6 +162,7 @@ struct Build {
 impl Build {
     fn new() -> Self {
         Build {
+            actuator: Box::new(StubActuator::new()),
             capture: Box::new(NullBackend::new(Size {
                 width: 640,
                 height: 480,
@@ -152,7 +195,7 @@ impl Build {
                 input: self.input,
             },
             tree: self.tree,
-            actuator: Box::new(StubActuator::new()),
+            actuator: self.actuator,
             kill: kill.clone(),
             governor: Governor::new(self.config, 0),
             session,
@@ -213,6 +256,64 @@ fn the_post_condition_is_checked_against_the_next_observation() {
         panic!("expected the previous action to finish");
     };
     assert_eq!(*outcome, ActionOutcome::Succeeded);
+}
+
+#[test]
+fn an_effect_given_time_to_land_is_waited_for_instead_of_failing_on_the_next_look() {
+    let (mut runner, _kill) = Build {
+        actuator: patient(1000, vec![not_yet(), not_yet(), ActionOutcome::Succeeded]),
+        ..Build::new()
+    }
+    .build();
+
+    runner.tick(1000);
+    runner.drain_events();
+
+    runner.tick(1250);
+    assert_eq!(names(&runner.drain_events()), ["observed"]);
+    runner.tick(1500);
+    assert_eq!(
+        names(&runner.drain_events()),
+        ["observed"],
+        "nothing new starts while the last action still owes its proof"
+    );
+
+    runner.tick(1750);
+    let events = runner.drain_events();
+    assert_eq!(
+        names(&events),
+        ["observed", "finished", "proposed", "started"]
+    );
+    let Event::ActionFinished { outcome, .. } = &events[1] else {
+        panic!("expected the action to finish");
+    };
+    assert_eq!(*outcome, ActionOutcome::Succeeded);
+}
+
+#[test]
+fn an_effect_that_never_lands_is_reported_once_the_window_closes() {
+    let (mut runner, _kill) = Build {
+        actuator: patient(500, Vec::new()),
+        ..Build::new()
+    }
+    .build();
+
+    runner.tick(1000);
+    runner.drain_events();
+
+    runner.tick(1250);
+    assert_eq!(names(&runner.drain_events()), ["observed"]);
+
+    runner.tick(1500);
+    let events = runner.drain_events();
+    assert_eq!(
+        names(&events),
+        ["observed", "finished", "proposed", "started"]
+    );
+    let Event::ActionFinished { outcome, .. } = &events[1] else {
+        panic!("expected the action to finish");
+    };
+    assert!(matches!(outcome, ActionOutcome::Failed { .. }));
 }
 
 #[test]

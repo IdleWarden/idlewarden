@@ -99,6 +99,7 @@ pub(super) fn rules(intents: &[IntentDraft]) -> Vec<IntentRule> {
             post_condition: intent.post_condition.clone(),
             params: BTreeMap::new(),
             min_confidence: MIN_CONFIDENCE,
+            within_ms: 0,
         })
         .collect()
 }
