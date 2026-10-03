@@ -4,6 +4,12 @@ All notable changes to the Master Healer Kale mod will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.10.4] - 2026-10-03
+
+### Bug Fixes
+
+- fix(kale): hold casts while Kale walks to the next floor (#101)
+
 ## [26.10.3] - 2026-10-03
 
 ### Refactoring
