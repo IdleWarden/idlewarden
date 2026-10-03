@@ -1,4 +1,5 @@
 import { Component, computed, inject } from "@angular/core";
+import { Router } from "@angular/router";
 
 import { WindowCandidate } from "../session/session.model";
 import { SessionService } from "../session/session.service";
@@ -10,6 +11,7 @@ import { SessionService } from "../session/session.service";
 })
 export class DetectComponent {
   private readonly sessions = inject(SessionService);
+  private readonly router = inject(Router);
 
   readonly candidates = this.sessions.candidates;
   readonly claimed = computed(() =>
@@ -27,6 +29,13 @@ export class DetectComponent {
       return candidate.plugins[0];
     }
     return `${candidate.plugins.length} plugins revendiquent cette fenêtre`;
+  }
+
+  async start(plugin: string): Promise<void> {
+    await this.sessions.dispatch({ command: "start", plugin, profile: "default" });
+    if (this.sessions.refusal() === null) {
+      await this.router.navigateByUrl("/");
+    }
   }
 
   ambiguous(candidate: WindowCandidate): boolean {

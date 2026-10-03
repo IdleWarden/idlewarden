@@ -25,7 +25,9 @@ pub struct Candidate {
 pub struct Detector {
     source: Box<dyn WindowSource>,
     plugins: Vec<(PluginId, GameMatcher)>,
-    current: Option<WindowHandle>,
+    current: Option<(PluginId, WindowHandle)>,
+    chosen: Option<PluginId>,
+    reported: Vec<PluginId>,
     /// What the last poll enumerated. Kept so the UI can show the same list
     /// detection ruled on, rather than enumerating the desktop a second time
     /// and describing a different moment.
@@ -38,6 +40,8 @@ impl Detector {
             source,
             plugins,
             current: None,
+            chosen: None,
+            reported: Vec::new(),
             seen: Vec::new(),
         }
     }
@@ -47,6 +51,14 @@ impl Detector {
     pub fn set_plugins(&mut self, plugins: Vec<(PluginId, GameMatcher)>) {
         self.plugins = plugins;
         self.current = None;
+    }
+
+    pub fn choose(&mut self, plugin: PluginId) {
+        self.chosen = Some(plugin);
+    }
+
+    pub fn plugin(&self) -> Option<&PluginId> {
+        self.current.as_ref().map(|(plugin, _)| plugin)
     }
 
     pub fn candidates(&self) -> Vec<Candidate> {
@@ -67,7 +79,7 @@ impl Detector {
     /// The window the session is currently bound to, which is what a capture
     /// backend has to be built against.
     pub fn window(&self) -> Option<WindowHandle> {
-        self.current
+        self.current.as_ref().map(|(_, window)| *window)
     }
 
     pub fn poll(&mut self, session: &mut Session) -> Vec<Event> {
@@ -76,13 +88,20 @@ impl Detector {
         }
 
         self.seen = self.source.windows();
-        let windows = &self.seen;
-        match detect(&self.plugins, windows) {
+        let detection = match self.chosen_entry() {
+            Some(chosen) => chosen,
+            None => detect(&self.plugins, &self.seen),
+        };
+        if !matches!(detection, Detection::Ambiguous { .. }) {
+            self.reported.clear();
+        }
+        match detection {
             Detection::Found { plugin, window } => {
-                if self.current == Some(window) {
+                let found = Some((plugin.clone(), window));
+                if self.current == found {
                     return Vec::new();
                 }
-                self.current = Some(window);
+                self.current = found;
                 let window_title = self
                     .seen
                     .iter()
@@ -103,15 +122,28 @@ impl Detector {
                 vec![Event::GameLost]
             }
             Detection::Ambiguous { plugins } => {
+                if self.reported == plugins {
+                    return Vec::new();
+                }
+                self.reported = plugins.clone();
                 let names: Vec<&str> = plugins.iter().map(|plugin| plugin.0.as_str()).collect();
                 vec![Event::Error {
                     message: format!(
-                        "{} plugins claim a running game ({}); refusing to pick one",
+                        "{} plugins claim a running game ({}); start one to choose it",
                         plugins.len(),
                         names.join(", ")
                     ),
                 }]
             }
+        }
+    }
+
+    fn chosen_entry(&self) -> Option<Detection> {
+        let chosen = self.chosen.as_ref()?;
+        let entry = self.plugins.iter().find(|(id, _)| id == chosen)?;
+        match detect(std::slice::from_ref(entry), &self.seen) {
+            Detection::None => None,
+            found => Some(found),
         }
     }
 }
@@ -391,6 +423,87 @@ mod tests {
             session.plugin,
             Some(PluginId("rewrite".to_owned())),
             "the window must be re-attributed, not kept on a plugin that no longer claims it"
+        );
+    }
+
+    #[test]
+    fn two_known_games_wait_for_a_choice_then_bind_the_chosen_one() {
+        let mut session = Session::default();
+        let mut detector = detector(
+            vec![
+                window(7, "Idle Quest", "game.exe"),
+                window(8, "Bongo Cat", "bongo.exe"),
+            ],
+            &[("quest", "game.exe"), ("cat", "bongo.exe")],
+        );
+        detector.poll(&mut session);
+        assert_eq!(session.state, SessionState::Searching);
+
+        detector.choose(PluginId("cat".to_owned()));
+        let events = detector.poll(&mut session);
+
+        assert_eq!(session.state, SessionState::Ready);
+        assert_eq!(session.plugin, Some(PluginId("cat".to_owned())));
+        assert_eq!(detector.window(), Some(WindowHandle(8)));
+        assert!(matches!(
+            events.as_slice(),
+            [Event::GameDetected { window_title, .. }] if window_title == "Bongo Cat"
+        ));
+    }
+
+    #[test]
+    fn choosing_the_other_plugin_of_a_shared_window_rebinds_it() {
+        let mut session = Session::default();
+        let mut detector = detector(
+            vec![window(7, "Idle Quest", "game.exe")],
+            &[("quest", "game.exe"), ("clone", "game.exe")],
+        );
+        detector.choose(PluginId("quest".to_owned()));
+        detector.poll(&mut session);
+
+        detector.choose(PluginId("clone".to_owned()));
+        let events = detector.poll(&mut session);
+
+        assert_eq!(
+            session.plugin,
+            Some(PluginId("clone".to_owned())),
+            "the same window under another plugin is a different binding"
+        );
+        assert!(matches!(events.as_slice(), [Event::GameDetected { .. }]));
+    }
+
+    #[test]
+    fn the_chosen_game_closing_falls_back_to_the_one_still_open() {
+        let mut session = Session::default();
+        let mut detector = detector(
+            vec![
+                window(7, "Idle Quest", "game.exe"),
+                window(8, "Bongo Cat", "bongo.exe"),
+            ],
+            &[("quest", "game.exe"), ("cat", "bongo.exe")],
+        );
+        detector.choose(PluginId("cat".to_owned()));
+        detector.poll(&mut session);
+
+        detector.source = Box::new(Fixed(vec![window(7, "Idle Quest", "game.exe")]));
+        detector.poll(&mut session);
+
+        assert_eq!(session.plugin, Some(PluginId("quest".to_owned())));
+        assert_eq!(detector.window(), Some(WindowHandle(7)));
+    }
+
+    #[test]
+    fn an_unchanged_ambiguity_is_reported_once() {
+        let mut session = Session::default();
+        let mut detector = detector(
+            vec![window(7, "Idle Quest", "game.exe")],
+            &[("quest", "game.exe"), ("clone", "game.exe")],
+        );
+
+        assert_eq!(detector.poll(&mut session).len(), 1);
+        assert!(
+            detector.poll(&mut session).is_empty(),
+            "every poll repeating the same error buries the rest of the event log"
         );
     }
 

@@ -32,7 +32,7 @@ section {
 
 .windows li {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 15em) minmax(0, 16em);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 15em) minmax(0, 16em) auto;
   gap: 14px;
   align-items: baseline;
   padding: 10px 12px;
@@ -86,4 +86,15 @@ section {
 
 .footnote {
   font-size: 11px;
+}
+
+.start {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.start button {
+  padding: 5px 10px;
 }
