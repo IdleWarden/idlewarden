@@ -242,6 +242,13 @@ impl Inner {
             return;
         }
 
+        if self.detector.lost_bound_window() {
+            self.service = None;
+            self.session.game_lost();
+            self.publish([Event::GameLost]);
+            return;
+        }
+
         let published: Vec<Event> = self
             .service
             .as_ref()
@@ -861,6 +868,59 @@ mod tests {
             Some(PluginId("dev.idlewarden.test-game".to_owned())),
             "a refused start must not relabel the detected game"
         );
+    }
+
+    struct Shared(Arc<Mutex<Vec<GameWindow>>>);
+
+    impl WindowSource for Shared {
+        fn windows(&mut self) -> Vec<GameWindow> {
+            self.0.lock().expect("windows").clone()
+        }
+    }
+
+    fn game(handle: isize) -> GameWindow {
+        GameWindow {
+            handle: WindowHandle(handle),
+            title: "Test Game".to_owned(),
+            executable: "TestGame.exe".to_owned(),
+            steam_appid: None,
+        }
+    }
+
+    #[test]
+    fn a_game_restarted_mid_session_ends_it_and_the_new_window_is_detected() {
+        let mut inner = ready("restarted");
+        let desktop = Arc::new(Mutex::new(vec![game(WINDOW.0)]));
+        let matchers = inner
+            .plugins
+            .iter()
+            .map(|bundle| (bundle.id.clone(), bundle.matcher.clone()))
+            .collect();
+        inner.detector = Detector::new(Box::new(Shared(Arc::clone(&desktop))), matchers);
+        start_with(&mut inner, Painted::new(false), GovernorConfig::default());
+        inner.events.clear();
+
+        *desktop.lock().expect("windows") = vec![game(5150)];
+        inner.refresh();
+
+        assert!(
+            inner.service.is_none(),
+            "the runner was driving a window that no longer exists"
+        );
+        assert_eq!(inner.session.state, SessionState::Searching);
+        assert!(names(
+            &inner
+                .events
+                .iter()
+                .map(|p| p.event.clone())
+                .collect::<Vec<_>>()
+        )
+        .contains(&"game_lost"));
+
+        inner.refresh();
+
+        assert_eq!(inner.session.state, SessionState::Ready);
+        assert_eq!(inner.detector.window(), Some(WindowHandle(5150)));
     }
 
     #[test]
