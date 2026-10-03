@@ -4,6 +4,12 @@ All notable changes to the Master Healer Kale decisions library will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.10.3] - 2026-10-03
+
+### Refactoring
+
+- refactor(mods): group mod projects by game (#96)
+
 ## [26.10.2] - 2026-10-03
 
 ### Features

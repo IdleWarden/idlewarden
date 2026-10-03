@@ -4,6 +4,12 @@ All notable changes to `mod-bridge` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.10.1] - 2026-10-03
+
+### Refactoring
+
+- refactor(mods): group mod projects by game (#96)
+
 ## [26.9.2] - 2026-09-26
 
 ### Bug Fixes
