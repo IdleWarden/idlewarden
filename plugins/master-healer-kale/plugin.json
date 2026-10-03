@@ -11,7 +11,7 @@
   },
   "multiplayer": false,
   "presentation": {
-    "description": "Plays the healer: raises whoever went down, heals the party when it sags, heals whoever is closest to death, and meditates when mana runs dry. Buys the cheapest skill node while in the tavern. Reads the game through a BepInEx mod, so every value is exact. `buy_best_skill` is offered without a starter rule: it ranks effect per cost, and only within one currency and one kind of node, because this game gives no common unit across them.",
+    "description": "Plays the healer: raises whoever went down, heals the party when it sags, shields whoever is still uncovered, heals whoever is closest to death, and meditates when mana runs dry. Buys the cheapest skill node while in the tavern. Reads the game through a BepInEx mod, so every value is exact. `buy_best_skill` is offered without a starter rule: it ranks effect per cost, and only within one currency and one kind of node, because this game gives no common unit across them.",
     "tags": ["idle", "rpg", "bridge", "unity"]
   },
   "rights": {
@@ -44,6 +44,7 @@
     { "id": "party.down", "value_type": "int", "description": "Members who are down and need raising." },
     { "id": "party.lowest_hp_ratio", "value_type": "ratio", "description": "Health of the living member closest to death. Ignores the dead, or it would sit at zero." },
     { "id": "party.average_hp_ratio", "value_type": "ratio", "description": "Mean health across the living." },
+    { "id": "party.unshielded", "value_type": "int", "description": "Living members carrying no shield." },
 
     { "id": "spell.ready_count", "value_type": "int" },
 
@@ -77,6 +78,7 @@
   "intents": [
     "revive_fallen",
     "heal_party",
+    "shield_unprotected",
     "heal_lowest",
     "restore_mana",
     "buy_cheapest_skill",

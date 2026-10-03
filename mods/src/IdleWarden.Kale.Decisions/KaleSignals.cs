@@ -38,6 +38,7 @@ namespace IdleWarden.Kale.Decisions
                 new Signal("party.down", Value.Int(HealChoice.DownCount(state.Party))),
                 new Signal("party.lowest_hp_ratio", Value.Ratio(HealChoice.LowestRatio(state.Party))),
                 new Signal("party.average_hp_ratio", Value.Ratio(AverageAliveRatio(state.Party))),
+                new Signal("party.unshielded", Value.Int(HealChoice.UnshieldedCount(state.Party))),
             };
 
             var ready = 0;

@@ -86,7 +86,7 @@ namespace IdleWarden.Kale
             if (!CastPlan.TryPolicy(asked, out var policy))
             {
                 return ActionOutcome.Rejected(
-                    "`" + asked + "` is not a target policy; use `lowest_hp`, `down` or `none`");
+                    "`" + asked + "` is not a target policy; use `lowest_hp`, `down`, `unshielded` or `none`");
             }
 
             return GameActions.Cast(GameReader.Read(), spell.AsString(), policy, Hurt);
