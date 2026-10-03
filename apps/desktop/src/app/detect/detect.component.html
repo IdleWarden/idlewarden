@@ -27,13 +27,22 @@
               }
             </span>
             <span class="verdict">{{ verdict(candidate) }}</span>
+            <span class="start">
+              @for (plugin of candidate.plugins; track plugin) {
+                <button type="button" (click)="start(plugin)">
+                  {{
+                    candidate.plugins.length > 1 ? "Veiller avec " + plugin : "Veiller"
+                  }}
+                </button>
+              }
+            </span>
           </li>
         }
       </ul>
-      @if (claimed().length > 1) {
+      @if (claimed().length > 1 || ambiguous(claimed()[0])) {
         <p class="muted footnote">
-          Plusieurs jeux connus sont ouverts en même temps. Le Gardien refuse de choisir
-          tant qu'il y a une ambiguïté.
+          Plusieurs plugins reconnaissent un jeu ouvert. Le Gardien attend que tu en
+          choisisses un, puis s'y tient tant que ce jeu reste ouvert.
         </p>
       }
     }

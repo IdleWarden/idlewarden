@@ -318,6 +318,11 @@ impl Inner {
     /// connect to us, and that waits (ADR-0018). So planning happens under the
     /// lock and the connecting happens outside it.
     fn plan(&mut self, command: &Command) -> Result<Plan, Refusal> {
+        if let Command::Start { plugin, .. } = command {
+            if self.detector.plugin() != Some(plugin) {
+                return Err(Refusal::NoGameReady);
+            }
+        }
         self.session.apply(command)?;
 
         let Some(window) = self.detector.window() else {
@@ -450,6 +455,9 @@ pub async fn dispatch(
 ) -> Result<Session, Refused> {
     let plan = {
         let mut inner = handle.0.lock().expect("session lock");
+        if let Command::Start { plugin, .. } = &command {
+            inner.detector.choose(plugin.clone());
+        }
         inner.refresh();
 
         match &command {
@@ -816,6 +824,24 @@ mod tests {
         assert!(
             inner.session.actions_taken > 0,
             "the projection the UI renders has to move with the runner"
+        );
+    }
+
+    #[test]
+    fn starting_a_plugin_whose_game_is_not_the_one_detected_is_refused() {
+        let mut inner = ready("other-plugin");
+        inner.refresh();
+
+        let refused = inner.plan(&Command::Start {
+            plugin: PluginId("dev.idlewarden.someone-else".to_owned()),
+            profile: "default".to_owned(),
+        });
+
+        assert!(matches!(refused, Err(Refusal::NoGameReady)));
+        assert_eq!(
+            inner.session.plugin,
+            Some(PluginId("dev.idlewarden.test-game".to_owned())),
+            "a refused start must not relabel the detected game"
         );
     }
 
