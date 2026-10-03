@@ -62,7 +62,7 @@ namespace IdleWarden.Kale.Decisions
                 case CastRefusal.None:
                     return null;
                 case CastRefusal.NoBattle:
-                    return "no battle is playing, and the game drops `" + spell + "` without a word outside one";
+                    return "no battle is playing or Kale is walking to the next floor, and the game drops `" + spell + "` without a word then";
                 case CastRefusal.NoSpell:
                     return "`" + spell + "` is not unlocked in this save";
                 case CastRefusal.NoTarget:

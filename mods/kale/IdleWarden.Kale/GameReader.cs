@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 
 using System.Collections.Generic;
+using System.Reflection;
 using IdleWarden.Kale.Decisions;
 using UnityEngine;
 
@@ -12,6 +13,9 @@ namespace IdleWarden.Kale
 
         private static float nextTreeRefresh;
 
+        private static readonly FieldInfo Animation = typeof(PrefabHeroKale).GetField(
+            "CurrentAnimation", BindingFlags.Instance | BindingFlags.NonPublic);
+
         internal static KaleSnapshot Read()
         {
             var scene = Scene();
@@ -22,7 +26,8 @@ namespace IdleWarden.Kale
             }
 
             var battle = EngineBattle.SharedEngineBattle;
-            var fighting = battle != null && battle.Isplaying;
+            var playing = battle != null && battle.Isplaying;
+            var fighting = playing && !Moving();
 
             return new KaleSnapshot(
                 scene,
@@ -34,7 +39,7 @@ namespace IdleWarden.Kale
                 Completion(),
                 Nodes(scene),
                 fighting,
-                fighting ? battle.CurrentFloor : 0,
+                playing ? battle.CurrentFloor : 0,
                 Mana(),
                 database.GetPlayerMaxMana(),
                 Party(),
@@ -42,6 +47,12 @@ namespace IdleWarden.Kale
                 database.Playtime,
                 Research(scene, database),
                 Training(scene, database));
+        }
+
+        internal static bool Moving()
+        {
+            var kale = PrefabHeroKale.SharedPrefabHeroKale;
+            return kale != null && Animation?.GetValue(kale)?.ToString() == "Push";
         }
 
         internal static string Scene()
