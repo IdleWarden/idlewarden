@@ -35,3 +35,11 @@ and, critically, a **post-condition check**. Every action returns an
 * Plugins carry the translation burden. This is correct: it is game knowledge.
 * Every intent needs a defined post-condition. An intent without one is a bug,
   and reviewers should treat it as such.
+* A post-condition is judged on the next observation unless its rule grants
+  `within_ms`, in which case it is re-checked on every observation until it
+  holds or the window closes. Effects that take time to land need this: a
+  spell with a three-second cast cannot show its effect 250 ms after it was
+  queued, and judging it then reports a success as a failure.
+* While an action is still owed its proof, the runner starts nothing new. A new
+  action would overwrite the one being verified, and in the games this targets
+  the character is busy anyway.

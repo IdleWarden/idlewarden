@@ -17,6 +17,12 @@ pub struct Recipe {
     pub post_condition: Vec<Condition>,
     #[serde(default = "default_floor")]
     pub min_confidence: f64,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub within_ms: u64,
+}
+
+fn is_zero(value: &u64) -> bool {
+    *value == 0
 }
 
 fn default_floor() -> f64 {
@@ -41,6 +47,10 @@ impl RecipeActuator {
 }
 
 impl Actuator for RecipeActuator {
+    fn patience_ms(&self, intent: &Intent) -> u64 {
+        self.recipe(intent).map_or(0, |recipe| recipe.within_ms)
+    }
+
     fn plan(&mut self, intent: &Intent) -> Vec<InputCommand> {
         self.recipe(intent)
             .map(|recipe| recipe.commands.clone())
@@ -125,6 +135,7 @@ mod tests {
                 signal: "ui.reward_ready".to_owned(),
             }],
             min_confidence: 0.7,
+            within_ms: 0,
         }
     }
 
