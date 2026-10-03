@@ -1,18 +1,14 @@
 // SPDX-License-Identifier: MPL-2.0
-use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
 use idlewarden_capture::WindowHandle;
 use idlewarden_core::PluginId;
-use idlewarden_mod_install::{install, Index};
+use idlewarden_mod_install::install;
 use serde::Serialize;
 use tauri::State;
 
+use crate::registry;
 use crate::session::{ModRequest, SessionHandle};
-
-const REGISTRY_INDEX: &str = "https://idlewarden.github.io/registry/index.json";
-const LARGEST_INDEX: u64 = 8 * 1024 * 1024;
-const LARGEST_ARCHIVE: u64 = 128 * 1024 * 1024;
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct Installed {
@@ -109,9 +105,7 @@ fn locate(_window: WindowHandle) -> Option<PathBuf> {
 }
 
 fn fetch_and_install(plugin: &PluginId, bridge: &str, game: &Path) -> Result<Installed, Refused> {
-    let listing = registry_index(std::env::var_os("IDLEWARDEN_REGISTRY_INDEX"))?;
-    let index: Index = serde_json::from_slice(&listing)
-        .map_err(|error| Refused::failed(format!("the registry index is unreadable: {error}")))?;
+    let index = registry::index().map_err(Refused::failed)?;
     let release = index.release_for(plugin, bridge).ok_or_else(|| {
         Refused::failed(format!(
             "the registry lists no mod serving `{bridge}` for {}",
@@ -124,7 +118,8 @@ fn fetch_and_install(plugin: &PluginId, bridge: &str, game: &Path) -> Result<Ins
         .destination(game, reloaded.as_deref())
         .map_err(Refused::failed)?;
 
-    let archive = download(&release.version.url, LARGEST_ARCHIVE)?;
+    let archive = registry::download(&release.version.url, registry::LARGEST_ARCHIVE)
+        .map_err(Refused::failed)?;
     let path = install(
         &archive,
         &release.version.sha256,
@@ -145,35 +140,6 @@ fn fetch_and_install(plugin: &PluginId, bridge: &str, game: &Path) -> Result<Ins
         version: release.version.version.to_string(),
         path: path.display().to_string(),
     })
-}
-
-fn registry_index(local: Option<OsString>) -> Result<Vec<u8>, Refused> {
-    let Some(path) = local.map(PathBuf::from) else {
-        return download(REGISTRY_INDEX, LARGEST_INDEX);
-    };
-    tracing::warn!(path = %path.display(), "reading the registry index from a local file");
-    std::fs::read(&path).map_err(|error| {
-        Refused::failed(format!(
-            "cannot read the registry index at {}: {error}",
-            path.display()
-        ))
-    })
-}
-
-fn download(url: &str, limit: u64) -> Result<Vec<u8>, Refused> {
-    if !url.starts_with("https://") {
-        return Err(Refused::failed(format!(
-            "refusing to download over anything but https: {url}"
-        )));
-    }
-    ureq::get(url)
-        .call()
-        .map_err(|error| Refused::failed(format!("cannot download {url}: {error}")))?
-        .body_mut()
-        .with_config()
-        .limit(limit)
-        .read_to_vec()
-        .map_err(|error| Refused::failed(format!("cannot read {url}: {error}")))
 }
 
 #[cfg(test)]
@@ -273,36 +239,5 @@ mod tests {
         .unwrap_err();
 
         assert_eq!(refused.why, Why::GameUnknown);
-    }
-
-    #[test]
-    fn a_local_index_is_read_from_disk_instead_of_the_registry() {
-        let path = folder("local-index").join("index.json");
-        std::fs::write(&path, br#"{"mods": []}"#).expect("index written");
-
-        let listing = registry_index(Some(path.into_os_string())).expect("reads the file");
-
-        assert_eq!(listing, br#"{"mods": []}"#);
-    }
-
-    #[test]
-    fn a_local_index_that_is_missing_says_where_it_looked() {
-        let path = folder("absent-index").join("index.json");
-
-        let refused = registry_index(Some(path.clone().into_os_string())).unwrap_err();
-
-        assert!(
-            refused.message.contains(&path.display().to_string()),
-            "{}",
-            refused.message
-        );
-    }
-
-    #[test]
-    fn a_download_that_is_not_https_never_leaves_the_machine() {
-        let refused = download("http://example.com/mod.zip", LARGEST_ARCHIVE).unwrap_err();
-
-        assert_eq!(refused.why, Why::Failed);
-        assert!(refused.message.contains("https"), "{}", refused.message);
     }
 }

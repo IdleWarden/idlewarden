@@ -1,6 +1,7 @@
 import { Routes } from "@angular/router";
 
 import { ActivityComponent } from "./activity/activity.component";
+import { CatalogueComponent } from "./catalogue/catalogue.component";
 import { DetectComponent } from "./detect/detect.component";
 import { EditorComponent } from "./editor/editor.component";
 import { LogsComponent } from "./logs/logs.component";
@@ -13,5 +14,6 @@ export const routes: Routes = [
   { path: "activite", component: ActivityComponent },
   { path: "journaux", component: LogsComponent },
   { path: "profils", component: ProfilesComponent },
+  { path: "catalogue", component: CatalogueComponent },
   { path: "editeur", component: EditorComponent },
 ];

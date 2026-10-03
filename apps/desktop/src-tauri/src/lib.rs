@@ -8,7 +8,9 @@
 mod editor;
 mod logs;
 mod mods;
+mod plugins;
 mod profiles;
+mod registry;
 mod session;
 mod updates;
 
@@ -59,6 +61,8 @@ pub fn run() {
             session::set_profile,
             session::set_bridge_granted,
             mods::install_mod,
+            plugins::catalogue,
+            plugins::install_plugin,
             updates::update_settings,
             updates::set_update_channel,
             updates::check_for_update,

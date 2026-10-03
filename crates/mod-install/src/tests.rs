@@ -143,6 +143,86 @@ mod index {
     }
 }
 
+mod plugins {
+    use super::*;
+
+    const PLUGIN: &str = "dev.idlewarden.master-healer-kale";
+
+    fn index(versions: serde_json::Value) -> Index {
+        serde_json::from_value(serde_json::json!({
+            "schema_version": "1.1.0",
+            "api_version": "^0.1",
+            "plugins": [{
+                "id": PLUGIN,
+                "name": "Master Healer Kale",
+                "description": "Plays the healer.",
+                "authors": ["The IdleWarden contributors"],
+                "license": "MPL-2.0",
+                "homepage": "https://github.com/IdleWarden/idlewarden",
+                "game": {
+                    "title": "Master Healer Kale",
+                    "steam_appid": 4634490,
+                    "executable": "MasterHealerKale.exe"
+                },
+                "multiplayer": false,
+                "source": { "repository": "https://github.com/IdleWarden/idlewarden" },
+                "trust": "official",
+                "versions": versions,
+            }],
+            "mods": [],
+        }))
+        .expect("an entry shaped the way the registry renders it parses")
+    }
+
+    fn version(version: &str, api: &str, yanked: bool) -> serde_json::Value {
+        serde_json::json!({
+            "version": version,
+            "api_version": api,
+            "url": format!("https://example.com/{version}.zip"),
+            "sha256": "0".repeat(64),
+            "capabilities": ["bridge:master-healer-kale"],
+            "yanked": yanked,
+        })
+    }
+
+    fn picked(index: &Index) -> Option<String> {
+        index
+            .plugin_release(&PluginId(PLUGIN.to_owned()))
+            .map(|release| release.version.version.to_string())
+    }
+
+    #[test]
+    fn the_newest_usable_release_of_a_plugin_is_picked() {
+        let index = index(serde_json::json!([
+            version("26.9.2", "^0.1", false),
+            version("26.9.10", "^0.1", false),
+            version("26.9.11", "^0.1", true),
+            version("26.10.1", "^0.2", false),
+        ]));
+
+        assert_eq!(picked(&index).as_deref(), Some("26.9.10"));
+    }
+
+    #[test]
+    fn a_plugin_the_registry_does_not_list_has_no_release() {
+        let index = index(serde_json::json!([version("26.9.2", "^0.1", false)]));
+
+        assert!(index
+            .plugin_release(&PluginId("dev.someone.else".to_owned()))
+            .is_none());
+    }
+
+    #[test]
+    fn a_plugin_with_nothing_this_host_can_run_has_no_release() {
+        let index = index(serde_json::json!([
+            version("26.9.2", "^0.1", true),
+            version("26.9.3", "^0.2", false),
+        ]));
+
+        assert_eq!(picked(&index), None);
+    }
+}
+
 mod loader {
     use super::*;
 

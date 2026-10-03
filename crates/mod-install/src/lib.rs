@@ -7,5 +7,7 @@ mod loader;
 mod tests;
 
 pub use archive::{install, sha256_hex, InstallError, LARGEST_EXTRACTED};
-pub use index::{Bridge, Index, ModEntry, ModVersion, Release};
+pub use index::{
+    Bridge, Index, ModEntry, PluginEntry, PluginGame, PluginRelease, Published, Release,
+};
 pub use loader::{Destination, Loader, LoaderError};

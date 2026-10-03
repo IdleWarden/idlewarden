@@ -2,9 +2,11 @@ import { Injectable, signal } from "@angular/core";
 import { invoke } from "@tauri-apps/api/core";
 
 import {
+  CatalogueEntry,
   Command,
   Draft,
   InstalledMod,
+  InstalledPlugin,
   LogRecord,
   Observation,
   PluginSummary,
@@ -135,6 +137,16 @@ export class SessionService {
 
   async installMod(plugin: string, game: string | null): Promise<InstalledMod> {
     return await invoke<InstalledMod>("install_mod", { plugin, game });
+  }
+
+  async catalogue(): Promise<CatalogueEntry[]> {
+    return await invoke<CatalogueEntry[]>("catalogue");
+  }
+
+  async installPlugin(plugin: string): Promise<InstalledPlugin> {
+    const installed = await invoke<InstalledPlugin>("install_plugin", { plugin });
+    await this.refreshPlugins();
+    return installed;
   }
 
   async engageKillSwitch(): Promise<void> {
