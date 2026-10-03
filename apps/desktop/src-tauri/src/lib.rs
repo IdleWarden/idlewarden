@@ -6,8 +6,10 @@
 //! web view. No decision about a session is taken here.
 
 mod editor;
+mod hotkeys;
 mod logs;
 mod mods;
+mod overlay;
 mod plugins;
 mod profiles;
 mod registry;
@@ -39,11 +41,18 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .setup(move |app| {
             app.manage(updates::Updates::new(app.handle()));
             app.manage(session::SessionHandle::new(data_dir(app.handle())));
             app.manage(Arc::clone(&buffered));
             app.manage(editor::Editor::default());
+            let overlay = overlay::Overlay::load(&data_dir(app.handle()).join("overlay.json"));
+            if let Err(error) = hotkeys::register(app.handle(), &overlay.settings().hotkeys) {
+                tracing::error!("hotkeys: {error}");
+            }
+            app.manage(overlay);
+            overlay::follow(app.handle().clone());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -66,7 +75,10 @@ pub fn run() {
             updates::update_settings,
             updates::set_update_channel,
             updates::check_for_update,
-            updates::install_update
+            updates::install_update,
+            overlay::overlay_settings,
+            overlay::set_overlay_settings,
+            overlay::set_overlay_expanded
         ])
         .run(tauri::generate_context!())
         .expect("the tauri runtime failed to start");

@@ -1,0 +1,103 @@
+<main>
+  <header>
+    <h1>En jeu</h1>
+    <p class="status">
+      L'overlay se pose sur la fenêtre du jeu détecté, seulement quand ce jeu est au
+      premier plan. Un jeu en plein écran exclusif le masque : passe-le en fenêtré sans
+      bordure.
+    </p>
+  </header>
+
+  @if (settings(); as s) {
+    <section>
+      <p class="label">Overlay</p>
+      <div class="row">
+        <span>Afficher l'overlay en jeu</span>
+        <button
+          type="button"
+          class="toggle"
+          role="switch"
+          aria-label="Afficher l'overlay en jeu"
+          [attr.aria-checked]="s.shown"
+          (click)="save({ shown: !s.shown })"
+        >
+          <span class="knob"></span>
+        </button>
+      </div>
+
+      <div class="row">
+        <span>Coin</span>
+        <div class="corners" role="radiogroup" aria-label="Coin">
+          @for (corner of corners; track corner.value) {
+            <button
+              type="button"
+              role="radio"
+              [attr.aria-checked]="s.corner === corner.value"
+              (click)="save({ corner: corner.value })"
+            >
+              {{ corner.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="row">
+        <label for="margin-x">Écart horizontal (px)</label>
+        <input
+          #marginX
+          id="margin-x"
+          type="number"
+          min="0"
+          [value]="s.margin_x"
+          (change)="margin('margin_x', marginX.value)"
+        />
+      </div>
+      <div class="row">
+        <label for="margin-y">Écart vertical (px)</label>
+        <input
+          #marginY
+          id="margin-y"
+          type="number"
+          min="0"
+          [value]="s.margin_y"
+          (change)="margin('margin_y', marginY.value)"
+        />
+      </div>
+    </section>
+
+    <section>
+      <p class="label">Raccourcis</p>
+      <p class="muted">
+        Ils marchent même quand le jeu a le focus. Clique sur une touche puis appuie sur
+        la combinaison voulue, Échap pour annuler.
+      </p>
+      @for (action of actions; track action.key) {
+        <div class="row">
+          <span>{{ action.label }}</span>
+          <div class="keys">
+            <button
+              type="button"
+              class="key"
+              [class.recording]="recording() === action.key"
+              (click)="record(action.key)"
+              (keydown)="captured($event, action.key)"
+            >
+              {{
+                recording() === action.key
+                  ? "Appuie…"
+                  : s.hotkeys[action.key] || "aucune"
+              }}
+            </button>
+            @if (!action.required && s.hotkeys[action.key] !== "") {
+              <button type="button" (click)="bind(action.key, '')">Retirer</button>
+            }
+          </div>
+        </div>
+      }
+    </section>
+
+    @if (error(); as message) {
+      <p class="error">{{ message }}</p>
+    }
+  }
+</main>

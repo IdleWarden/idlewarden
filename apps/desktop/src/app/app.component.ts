@@ -25,6 +25,7 @@ export class AppComponent {
     { path: "/profils", label: "Profils" },
     { path: "/catalogue", label: "Catalogue" },
     { path: "/editeur", label: "Éditeur" },
+    { path: "/en-jeu", label: "En jeu" },
   ];
 
   stateOf(plugin: PluginSummary): string {

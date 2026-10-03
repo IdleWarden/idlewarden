@@ -16,6 +16,21 @@
         "width": 1100,
         "height": 720,
         "decorations": false
+      },
+      {
+        "label": "overlay",
+        "title": "IdleWarden overlay",
+        "width": 44,
+        "height": 44,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "visible": false,
+        "focus": false,
+        "focusable": false,
+        "shadow": false
       }
     ],
     "security": {

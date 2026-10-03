@@ -13,6 +13,7 @@ use std::sync::Arc;
 
 mod detect;
 mod frame;
+mod geometry;
 mod null;
 mod steam;
 
@@ -27,6 +28,7 @@ mod wgc;
 
 pub use detect::{detect, matches, Detection, GameWindow};
 pub use frame::{pack_rows, Frame, Size};
+pub use geometry::{client_bounds, foreground, ScreenRect};
 pub use null::NullBackend;
 
 #[cfg(windows)]

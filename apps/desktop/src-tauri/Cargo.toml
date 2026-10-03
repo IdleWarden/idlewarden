@@ -30,6 +30,7 @@ thiserror.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 tauri = { version = "2", features = [] }
+tauri-plugin-global-shortcut = "~2.3"
 # Télécharge, vérifie la signature minisign et remplace le binaire installé.
 # La vérification est le point important : sans elle, l'URL servie par
 # l'endpoint serait un vecteur d'exécution de code arbitraire.
