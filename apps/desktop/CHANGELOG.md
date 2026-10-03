@@ -4,6 +4,8 @@ All notable changes to `desktop` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.10.2] - 2026-10-03
+
 ## [26.10.1] - 2026-10-03
 
 ### Features
