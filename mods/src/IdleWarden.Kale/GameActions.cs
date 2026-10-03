@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 
+using System;
+using System.Linq;
 using IdleWarden.Bridge;
 using IdleWarden.Kale.Decisions;
 
@@ -85,6 +87,81 @@ namespace IdleWarden.Kale
             return ActionOutcome.Failed(
                 "`" + chosen.Name + "` stayed at level " + before
                 + "; the tutorial or a requirement is holding it");
+        }
+
+        internal static ActionOutcome BuyResearch(SkillCandidate chosen)
+        {
+            if (GameReader.Scene() != GameReader.Tavern)
+            {
+                return ActionOutcome.Failed("the research facility is only reachable from the tavern");
+            }
+            if (chosen == null)
+            {
+                return ActionOutcome.Failed("no research is affordable");
+            }
+
+            var row = GameReader.LiveResearch().FirstOrDefault(found => found.UpgradeIndex == chosen.Name);
+            if (row == null)
+            {
+                return ActionOutcome.Failed("`" + chosen.Name + "` is not in the research facility");
+            }
+
+            var database = PlayerDatabase.SharedPlayerDatabase;
+            return Upgrade(
+                chosen.Name,
+                () => database.GetIntSaveObject(GameReader.ResearchKey(row)),
+                row.RefreshUI,
+                row.GetPrice,
+                database.GetPlayerGold,
+                () => row.ButtonClick("ButtonUpgrade"));
+        }
+
+        internal static ActionOutcome BuyTraining(SkillCandidate chosen)
+        {
+            if (GameReader.Scene() != GameReader.Tavern)
+            {
+                return ActionOutcome.Failed("the training facility is only reachable from the tavern");
+            }
+            if (chosen == null)
+            {
+                return ActionOutcome.Failed("no training is affordable");
+            }
+
+            var row = GameReader.LiveTraining().FirstOrDefault(found => found.UpgradeIndex.ToString() == chosen.Name);
+            if (row == null)
+            {
+                return ActionOutcome.Failed("`" + chosen.Name + "` is not in the training facility");
+            }
+
+            var database = PlayerDatabase.SharedPlayerDatabase;
+            return Upgrade(
+                chosen.Name,
+                () => database.GetIntSaveObject(row.UpgradeIndex.ToString()),
+                row.RefreshUI,
+                row.GetPrice,
+                database.GetPlayerSkillPoint,
+                () => row.ButtonClick("ButtonUpgrade"));
+        }
+
+        private static ActionOutcome Upgrade(
+            string name,
+            Func<int> level,
+            Action refresh,
+            Func<double_evrac> price,
+            Func<double_evrac> wallet,
+            Action click)
+        {
+            refresh();
+            if (wallet() < price())
+            {
+                return ActionOutcome.Failed("`" + name + "` costs more than is held");
+            }
+
+            var before = level();
+            click();
+            return level() > before
+                ? ActionOutcome.Succeeded
+                : ActionOutcome.Failed("`" + name + "` stayed at level " + before);
         }
 
         private static PrefabUnit Find(string name)

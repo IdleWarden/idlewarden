@@ -73,6 +73,12 @@ namespace IdleWarden.Kale
                 case "buy_best_skill":
                     return BuyBest(intent);
 
+                case "buy_cheapest_research":
+                    return GameActions.BuyResearch(SkillChoice.Cheapest(GameReader.Read().Research));
+
+                case "buy_cheapest_training":
+                    return GameActions.BuyTraining(SkillChoice.Cheapest(GameReader.Read().Training));
+
                 default:
                     return ActionOutcome.Rejected(
                         "unknown intent `" + intent.Name + "`; a cast needs a `spell` parameter");

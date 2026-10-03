@@ -90,6 +90,30 @@
       ],
       "post_condition": [{ "op": "increased", "signal": "tavern.levels_owned" }],
       "min_confidence": 0.9
+    },
+    {
+      "$comment": "Gold. Every row costs the same at the same level, so the cheapest is always the least researched spell.",
+      "name": "buy_cheapest_research",
+      "when": [
+        { "op": "equals", "signal": "ui.screen_id", "value": { "type": "enum", "value": "tavern" } },
+        { "op": "is_true", "signal": "save.loaded" },
+        { "op": "is_true", "signal": "progress.tutorial_done" },
+        { "op": "at_least", "signal": "research.affordable", "value": 1 }
+      ],
+      "post_condition": [{ "op": "increased", "signal": "research.levels_owned" }],
+      "min_confidence": 0.9
+    },
+    {
+      "$comment": "Skill points. The game spends them on a click without checking the balance, so the mod checks a freshly computed price against the purse before it clicks.",
+      "name": "buy_cheapest_training",
+      "when": [
+        { "op": "equals", "signal": "ui.screen_id", "value": { "type": "enum", "value": "tavern" } },
+        { "op": "is_true", "signal": "save.loaded" },
+        { "op": "is_true", "signal": "progress.tutorial_done" },
+        { "op": "at_least", "signal": "training.affordable", "value": 1 }
+      ],
+      "post_condition": [{ "op": "increased", "signal": "training.levels_owned" }],
+      "min_confidence": 0.9
     }
   ]
 }

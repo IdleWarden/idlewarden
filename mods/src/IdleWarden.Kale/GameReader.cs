@@ -39,7 +39,9 @@ namespace IdleWarden.Kale
                 database.GetPlayerMaxMana(),
                 Party(),
                 Spells(),
-                database.Playtime);
+                database.Playtime,
+                Research(scene, database),
+                Training(scene, database));
         }
 
         internal static string Scene()
@@ -93,6 +95,16 @@ namespace IdleWarden.Kale
         internal static IReadOnlyList<PrefabUnit> LiveParty()
         {
             return Object.FindObjectsOfType<PrefabUnit>(false);
+        }
+
+        internal static IReadOnlyList<PrefabResearchFacility> LiveResearch()
+        {
+            return Object.FindObjectsOfType<PrefabResearchFacility>(true);
+        }
+
+        internal static IReadOnlyList<PrefabTrainingFacility> LiveTraining()
+        {
+            return Object.FindObjectsOfType<PrefabTrainingFacility>(true);
         }
 
 #pragma warning restore CS0618
@@ -154,6 +166,63 @@ namespace IdleWarden.Kale
                 }
             }
             return described;
+        }
+
+        internal static string ResearchKey(PrefabResearchFacility row)
+        {
+            return "Research_" + row.UpgradeIndex;
+        }
+
+        private static IReadOnlyList<SkillCandidate> Research(string scene, PlayerDatabase database)
+        {
+            if (scene != Tavern)
+            {
+                return null;
+            }
+
+            var gold = database.GetPlayerGold();
+            var rows = new List<SkillCandidate>();
+            foreach (var row in LiveResearch())
+            {
+                if (string.IsNullOrEmpty(row.UpgradeIndex))
+                {
+                    continue;
+                }
+                var price = row.GetPrice();
+                rows.Add(new SkillCandidate(
+                    row.UpgradeIndex,
+                    "Gold",
+                    Of(price),
+                    !(gold < price),
+                    "Research",
+                    Magnitude.Zero,
+                    database.GetIntSaveObject(ResearchKey(row))));
+            }
+            return rows;
+        }
+
+        private static IReadOnlyList<SkillCandidate> Training(string scene, PlayerDatabase database)
+        {
+            if (scene != Tavern)
+            {
+                return null;
+            }
+
+            var points = database.GetPlayerSkillPoint();
+            var rows = new List<SkillCandidate>();
+            foreach (var row in LiveTraining())
+            {
+                var price = row.GetPrice();
+                rows.Add(new SkillCandidate(
+                    row.UpgradeIndex.ToString(),
+                    "SkillPoint",
+                    Of(price),
+                    !(points < price),
+                    "Training",
+                    Magnitude.Zero,
+                    database.GetIntSaveObject(row.UpgradeIndex.ToString())));
+            }
+            return rows;
         }
 
         private static IReadOnlyList<UnitSnapshot> Party()

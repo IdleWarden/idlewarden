@@ -89,6 +89,36 @@ namespace IdleWarden.Kale.Decisions.Tests
         }
 
         [Fact]
+        public void TheFacilitiesReportWhatCanBeBoughtAndWhatWasBought()
+        {
+            var research = new[]
+            {
+                new SkillCandidate("Heal", "Gold", new Magnitude(20.5, 3), true, "Research", Magnitude.Zero, 26),
+                new SkillCandidate("Raise", "Gold", new Magnitude(14.5, 3), true, "Research", Magnitude.Zero, 18),
+                new SkillCandidate("Might", "Gold", new Magnitude(9.0, 6), false, "Research", Magnitude.Zero, 20),
+            };
+            var training = new[]
+            {
+                new SkillCandidate("Training_BagelArmor", "SkillPoint", new Magnitude(8.0, 0), false, "Training", Magnitude.Zero, 35),
+            };
+            var state = new KaleSnapshot(
+                "TAVERN", 9999,
+                Magnitude.Zero, Magnitude.Zero, Magnitude.Zero,
+                0, 0, null,
+                false, 0, 0, 0,
+                null, null, 600,
+                research, training);
+
+            var signals = KaleSignals.From(state);
+
+            Assert.Equal(2L, Find(signals, "research.affordable").AsInt());
+            Assert.Equal(64L, Find(signals, "research.levels_owned").AsInt());
+            Assert.Equal(0L, Find(signals, "training.affordable").AsInt());
+            Assert.Equal(35L, Find(signals, "training.levels_owned").AsInt());
+            Assert.Equal("Raise", SkillChoice.Cheapest(state.Research).Name);
+        }
+
+        [Fact]
         public void NoSignalIdIsEmittedTwice()
         {
             var signals = KaleSignals.From(State(
