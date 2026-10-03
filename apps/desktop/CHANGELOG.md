@@ -4,6 +4,12 @@ All notable changes to `desktop` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.10.5] - 2026-10-03
+
+### Bug Fixes
+
+- fix(desktop): end a session whose game window closed and let detection rebind (#100)
+
 ## [26.10.4] - 2026-10-03
 
 ### Features
