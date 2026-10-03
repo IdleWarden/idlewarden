@@ -1,0 +1,109 @@
+@if (!expanded()) {
+  <button
+    type="button"
+    class="badge"
+    [attr.data-state]="session()?.state ?? 'searching'"
+    aria-label="Ouvrir le panneau IdleWarden"
+    (click)="expand(true)"
+  >
+    <svg viewBox="0 0 16 13" aria-hidden="true">
+      @for (cell of owl; track $index) {
+        <rect
+          [attr.x]="cell.x"
+          [attr.y]="cell.y"
+          width="1"
+          height="1"
+          [attr.fill]="cell.fill"
+        />
+      }
+    </svg>
+  </button>
+} @else {
+  <section class="panel">
+    <header>
+      <svg viewBox="0 0 16 13" aria-hidden="true">
+        @for (cell of owl; track $index) {
+          <rect
+            [attr.x]="cell.x"
+            [attr.y]="cell.y"
+            width="1"
+            height="1"
+            [attr.fill]="cell.fill"
+          />
+        }
+      </svg>
+      <div class="who">
+        <p class="name">{{ session()?.plugin ?? "Aucun jeu" }}</p>
+        @if (session(); as s) {
+          <p class="state" [attr.data-state]="s.state">{{ stateLabel(s) }}</p>
+        }
+      </div>
+      <button type="button" class="close" aria-label="Réduire" (click)="expand(false)">
+        ×
+      </button>
+    </header>
+
+    @if (session(); as s) {
+      <div class="actions">
+        <button
+          type="button"
+          [disabled]="s.state === 'searching' || s.state === 'halted'"
+          (click)="toggleWatch(s)"
+        >
+          {{ watchLabel(s) }}
+        </button>
+        @if (s.state === "running" || s.state === "paused") {
+          <button type="button" (click)="stop()">Arrêter</button>
+        }
+        <button type="button" class="kill" (click)="killSwitch()">Coupe-circuit</button>
+      </div>
+
+      <div class="row">
+        <span>Essai à blanc</span>
+        <button
+          type="button"
+          class="toggle"
+          role="switch"
+          [attr.aria-checked]="s.dry_run"
+          [disabled]="s.state === 'running'"
+          (click)="setDryRun(!s.dry_run)"
+        >
+          <span class="knob"></span>
+        </button>
+      </div>
+    }
+
+    @if (refusal(); as message) {
+      <p class="refusal">{{ message }}</p>
+    }
+
+    @if (game(); as plugin) {
+      <p class="label">Automatisations, à la prochaine veille</p>
+      <ul class="intents">
+        @for (intent of plugin.intents; track intent.name) {
+          <li class="row">
+            <span>{{ intent.name }}</span>
+            <button
+              type="button"
+              class="toggle"
+              role="switch"
+              [attr.aria-checked]="intent.enabled"
+              [attr.aria-label]="intent.name"
+              (click)="toggleIntent(plugin.id, intent.name, !intent.enabled)"
+            >
+              <span class="knob"></span>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+
+    @if (settings(); as current) {
+      <p class="keys">
+        {{ current.hotkeys.toggle_watch }} veille ·
+        {{ current.hotkeys.toggle_panel }} panneau ·
+        {{ current.hotkeys.kill_switch }} coupe-circuit
+      </p>
+    }
+  </section>
+}

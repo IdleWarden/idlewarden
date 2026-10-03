@@ -1,0 +1,166 @@
+:host {
+  display: block;
+  height: 100vh;
+  overflow: hidden;
+}
+
+svg {
+  width: 26px;
+  height: auto;
+  shape-rendering: crispEdges;
+  flex: none;
+}
+
+.badge {
+  width: 100vw;
+  height: 100vh;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--line);
+  background: color-mix(in srgb, var(--panel) 85%, transparent);
+}
+
+.badge[data-state="running"] {
+  border-color: var(--accent);
+}
+
+.badge[data-state="paused"] {
+  border-color: var(--gold);
+}
+
+.badge[data-state="halted"] {
+  border-color: var(--danger);
+}
+
+.panel {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 2px solid var(--line);
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  overflow-y: auto;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.who {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  margin: 0;
+  color: var(--bright);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.state {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.state[data-state="running"] {
+  color: var(--accent);
+}
+
+.state[data-state="paused"] {
+  color: var(--gold);
+}
+
+.state[data-state="halted"] {
+  color: var(--danger);
+}
+
+.close {
+  padding: 2px 8px;
+  border: none;
+  font-size: 16px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.actions button {
+  padding: 6px 10px;
+}
+
+.kill {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.intents {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.intents span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toggle {
+  width: 40px;
+  height: 22px;
+  flex: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  background: var(--rule);
+}
+
+.toggle[aria-checked="true"] {
+  border-color: var(--accent);
+  justify-content: flex-end;
+}
+
+.toggle .knob {
+  width: 14px;
+  height: 14px;
+  margin: 0 2px;
+  background: var(--muted);
+}
+
+.toggle[aria-checked="true"] .knob {
+  background: var(--accent);
+}
+
+.refusal {
+  margin: 0;
+  font-size: 11px;
+  color: var(--gold);
+}
+
+.keys {
+  margin: auto 0 0;
+  font-size: 10px;
+  color: var(--muted);
+}

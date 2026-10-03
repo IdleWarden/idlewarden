@@ -436,9 +436,7 @@ impl From<Refusal> for Refused {
 
 #[tauri::command]
 pub fn session_state(handle: State<'_, SessionHandle>) -> Session {
-    let mut inner = handle.0.lock().expect("session lock");
-    inner.refresh();
-    inner.session.clone()
+    handle.state()
 }
 
 #[tauri::command]
@@ -453,40 +451,65 @@ pub async fn dispatch(
     handle: State<'_, SessionHandle>,
     command: Command,
 ) -> Result<Session, Refused> {
-    let plan = {
-        let mut inner = handle.0.lock().expect("session lock");
-        if let Command::Start { plugin, .. } = &command {
-            inner.detector.choose(plugin.clone());
-        }
+    handle.dispatch(command).await
+}
+
+impl SessionHandle {
+    pub fn state(&self) -> Session {
+        let mut inner = self.0.lock().expect("session lock");
         inner.refresh();
-
-        match &command {
-            Command::Start { .. } => Some(inner.plan(&command)?),
-            Command::Stop => {
-                inner.session.apply(&command)?;
-                inner.service = None;
-                inner.kill.reset();
-                None
-            }
-            _ => {
-                inner.session.apply(&command)?;
-                if let Some(service) = &inner.service {
-                    service.send(command.clone());
-                }
-                None
-            }
-        }
-    };
-
-    if let Some(plan) = plan {
-        let (plugin, governor, wanted) = plan.split();
-        let link = open(wanted, &plugin).await;
-        let mut inner = handle.0.lock().expect("session lock");
-        inner.launch(&plugin, governor, link);
+        inner.session.clone()
     }
 
-    let inner = handle.0.lock().expect("session lock");
-    Ok(inner.session.clone())
+    pub fn window(&self) -> Option<idlewarden_capture::WindowHandle> {
+        self.0.lock().expect("session lock").detector.window()
+    }
+
+    pub fn engage_kill_switch(&self) -> Session {
+        let mut inner = self.0.lock().expect("session lock");
+        inner.kill.engage();
+        inner.session.state = SessionState::Halted;
+        inner.service = None;
+        inner.publish([Event::KillSwitch]);
+        inner.session.clone()
+    }
+
+    pub async fn dispatch(&self, command: Command) -> Result<Session, Refused> {
+        let plan = {
+            let mut inner = self.0.lock().expect("session lock");
+            if let Command::Start { plugin, .. } = &command {
+                inner.detector.choose(plugin.clone());
+            }
+            inner.refresh();
+
+            match &command {
+                Command::Start { .. } => Some(inner.plan(&command)?),
+                Command::Stop => {
+                    inner.session.apply(&command)?;
+                    inner.service = None;
+                    inner.kill.reset();
+                    None
+                }
+                _ => {
+                    inner.session.apply(&command)?;
+                    if let Some(service) = &inner.service {
+                        service.send(command.clone());
+                    }
+                    None
+                }
+            }
+        };
+
+        if let Some(plan) = plan {
+            let (plugin, governor, wanted) = plan.split();
+            let link = open(wanted, &plugin).await;
+            let mut inner = self.0.lock().expect("session lock");
+            inner.launch(&plugin, governor, link);
+        }
+
+        let inner = self.0.lock().expect("session lock");
+        Ok(inner.session.clone())
+    }
 }
 
 async fn open(wanted: Wanted, plugin: &PluginId) -> Result<Link, String> {
@@ -576,12 +599,7 @@ pub fn set_bridge_granted(
 
 #[tauri::command]
 pub fn engage_kill_switch(handle: State<'_, SessionHandle>) -> Session {
-    let mut inner = handle.0.lock().expect("session lock");
-    inner.kill.engage();
-    inner.session.state = SessionState::Halted;
-    inner.service = None;
-    inner.publish([Event::KillSwitch]);
-    inner.session.clone()
+    handle.engage_kill_switch()
 }
 
 #[cfg(test)]

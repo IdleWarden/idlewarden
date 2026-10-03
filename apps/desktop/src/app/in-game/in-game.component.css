@@ -1,0 +1,103 @@
+main {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  padding: 26px 30px;
+  overflow-y: auto;
+}
+
+h1 {
+  font-size: 17px;
+}
+
+.status {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+
+section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  background: var(--panel);
+}
+
+.corners,
+.keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.corners button,
+.keys button {
+  padding: 5px 10px;
+}
+
+.corners button[aria-checked="true"],
+.key.recording {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.key {
+  min-width: 12em;
+  text-transform: none;
+}
+
+input {
+  width: 7em;
+  font: inherit;
+  color: inherit;
+  background: var(--bg);
+  border: 2px solid var(--line);
+  padding: 5px 8px;
+}
+
+.toggle {
+  width: 52px;
+  height: 28px;
+  flex: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  background: var(--rule);
+}
+
+.toggle[aria-checked="true"] {
+  border-color: var(--accent);
+  justify-content: flex-end;
+}
+
+.toggle .knob {
+  width: 20px;
+  height: 20px;
+  margin: 0 2px;
+  background: var(--muted);
+}
+
+.toggle[aria-checked="true"] .knob {
+  background: var(--accent);
+}
+
+.muted {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.error {
+  margin: 0;
+  color: var(--danger);
+}
