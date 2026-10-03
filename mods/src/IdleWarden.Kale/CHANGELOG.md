@@ -4,6 +4,12 @@ All notable changes to the Master Healer Kale mod will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.10.1] - 2026-10-03
+
+### Features
+
+- feat(plugins): Kale shields the uncovered and waits for each cast to land (#93)
+
 ## [26.9.4] - 2026-09-26
 
 ## [26.9.3] - 2026-09-26
