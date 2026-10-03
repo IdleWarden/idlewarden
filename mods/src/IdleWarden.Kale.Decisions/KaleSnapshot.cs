@@ -56,8 +56,12 @@ namespace IdleWarden.Kale.Decisions
             int manaMax,
             IReadOnlyList<UnitSnapshot> party,
             IReadOnlyList<SpellSnapshot> spells,
-            int playtimeSeconds)
+            int playtimeSeconds,
+            IReadOnlyList<SkillCandidate> research = null,
+            IReadOnlyList<SkillCandidate> training = null)
         {
+            Research = research ?? new SkillCandidate[0];
+            Training = training ?? new SkillCandidate[0];
             Scene = scene;
             TutorialStep = tutorialStep;
             Gold = gold;
@@ -93,6 +97,10 @@ namespace IdleWarden.Kale.Decisions
         public int TavernCompletion { get; }
 
         public IReadOnlyList<SkillCandidate> Nodes { get; }
+
+        public IReadOnlyList<SkillCandidate> Research { get; }
+
+        public IReadOnlyList<SkillCandidate> Training { get; }
 
         public bool BattleActive { get; }
 

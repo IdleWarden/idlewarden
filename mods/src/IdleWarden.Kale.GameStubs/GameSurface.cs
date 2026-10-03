@@ -35,6 +35,10 @@ public struct double_evrac
     public int _ZeroCount;
 
     public static double_evrac operator -(double_evrac a, double_evrac b) => throw Stub.Only();
+
+    public static bool operator <(double_evrac a, double_evrac b) => throw Stub.Only();
+
+    public static bool operator >(double_evrac a, double_evrac b) => throw Stub.Only();
 }
 
 public class Tuning
@@ -179,4 +183,36 @@ public class PrefabHeroKale : MonoBehaviour
     public bool HasQueueAbility(ActiveAbility ability) => throw Stub.Only();
 
     public void StartCastingSpell(ActiveAbility ability, PrefabUnit target) => throw Stub.Only();
+}
+
+public class PrefabResearchFacility : MonoBehaviour
+{
+    public string UpgradeIndex;
+
+    public void RefreshUI() => throw Stub.Only();
+
+    public double_evrac GetPrice() => throw Stub.Only();
+
+    public virtual void ButtonClick(string what) => throw Stub.Only();
+}
+
+public class PrefabTrainingFacility : MonoBehaviour
+{
+    public enum EnumTrainingFacility
+    {
+        Training_BagelMaxHP,
+        Training_BagelArmor,
+        Training_MadeleineMaxHP,
+        Training_MadeleineDamage,
+        Training_KleponMaxHP,
+        Training_KleponDamage,
+    }
+
+    public EnumTrainingFacility UpgradeIndex;
+
+    public void RefreshUI() => throw Stub.Only();
+
+    public double_evrac GetPrice() => throw Stub.Only();
+
+    public virtual void ButtonClick(string what) => throw Stub.Only();
 }
