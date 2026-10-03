@@ -82,6 +82,18 @@ impl Detector {
         self.current.as_ref().map(|(_, window)| *window)
     }
 
+    pub fn lost_bound_window(&mut self) -> bool {
+        let Some((_, bound)) = self.current else {
+            return false;
+        };
+        self.seen = self.source.windows();
+        if self.seen.iter().any(|window| window.handle == bound) {
+            return false;
+        }
+        self.current = None;
+        true
+    }
+
     pub fn poll(&mut self, session: &mut Session) -> Vec<Event> {
         if session.state == SessionState::Halted {
             return Vec::new();
@@ -505,6 +517,42 @@ mod tests {
             detector.poll(&mut session).is_empty(),
             "every poll repeating the same error buries the rest of the event log"
         );
+    }
+
+    #[test]
+    fn a_bound_window_that_closed_is_reported_once_and_released() {
+        let mut session = Session::default();
+        let mut detector = detector(
+            vec![window(7, "Idle Quest", "game.exe")],
+            &[("quest", "game.exe")],
+        );
+        detector.poll(&mut session);
+        assert!(!detector.lost_bound_window(), "the game is still open");
+
+        detector.source = Box::new(Fixed(vec![window(9, "Idle Quest", "game.exe")]));
+
+        assert!(detector.lost_bound_window());
+        assert_eq!(detector.window(), None);
+        assert!(!detector.lost_bound_window(), "nothing is bound any more");
+    }
+
+    #[test]
+    fn a_restarted_game_is_bound_again_by_the_next_poll() {
+        let mut session = Session::default();
+        let mut detector = detector(
+            vec![window(7, "Idle Quest", "game.exe")],
+            &[("quest", "game.exe")],
+        );
+        detector.poll(&mut session);
+        detector.source = Box::new(Fixed(vec![window(9, "Idle Quest", "game.exe")]));
+        detector.lost_bound_window();
+        session.game_lost();
+
+        let events = detector.poll(&mut session);
+
+        assert_eq!(detector.window(), Some(WindowHandle(9)));
+        assert_eq!(session.state, SessionState::Ready);
+        assert!(matches!(events.as_slice(), [Event::GameDetected { .. }]));
     }
 
     #[test]
