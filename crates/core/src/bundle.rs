@@ -24,6 +24,7 @@ pub enum BundleError {
 #[derive(Debug)]
 pub struct PluginBundle {
     pub id: PluginId,
+    pub version: semver::Version,
     pub matcher: GameMatcher,
     pub rules: PluginRules,
     pub bridge: Option<String>,
@@ -59,6 +60,7 @@ impl PluginBundle {
 
         Ok(PluginBundle {
             id: manifest.id,
+            version: manifest.version,
             matcher: manifest.game,
             rules,
             bridge,

@@ -167,6 +167,23 @@ impl SessionHandle {
         })
     }
 
+    pub fn plugin_root(&self) -> PathBuf {
+        self.0.lock().expect("session lock").plugin_root.clone()
+    }
+
+    pub fn installed_versions(&self) -> Vec<(PluginId, semver::Version)> {
+        let inner = self.0.lock().expect("session lock");
+        inner
+            .plugins
+            .iter()
+            .map(|bundle| (bundle.id.clone(), bundle.version.clone()))
+            .collect()
+    }
+
+    pub fn reload_plugins(&self) {
+        self.0.lock().expect("session lock").load_plugins();
+    }
+
     pub fn author(&self, draft: &Draft, frame: &Frame) -> Result<PathBuf, AuthoringError> {
         let mut inner = self.0.lock().expect("session lock");
         let written = authoring::write(draft, frame, &inner.plugin_root)?;
@@ -185,7 +202,7 @@ impl Inner {
                 Ok(bundle) => {
                     events.push(Event::PluginLoaded {
                         plugin: bundle.id.clone(),
-                        version: String::new(),
+                        version: bundle.version.to_string(),
                     });
                     plugins.push(bundle);
                 }

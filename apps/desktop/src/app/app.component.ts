@@ -23,6 +23,7 @@ export class AppComponent {
     { path: "/activite", label: "Activité" },
     { path: "/journaux", label: "Journaux" },
     { path: "/profils", label: "Profils" },
+    { path: "/catalogue", label: "Catalogue" },
     { path: "/editeur", label: "Éditeur" },
   ];
 

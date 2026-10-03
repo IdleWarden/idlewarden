@@ -1,0 +1,82 @@
+<main>
+  <header>
+    <h1>Catalogue</h1>
+    <p class="status">Les plugins publiés dans le registre IdleWarden.</p>
+  </header>
+
+  @if (failure(); as message) {
+    <p class="error">{{ message }}</p>
+  }
+
+  @if (installed(); as done) {
+    <p class="note">
+      {{ done.name }} {{ done.version }} est installé dans <code>{{ done.path }}</code
+      >.
+    </p>
+  }
+
+  @if (entries(); as list) {
+    <ul class="entries">
+      @for (entry of list; track entry.id) {
+        <li>
+          <div class="what">
+            <p class="name">{{ entry.name }}</p>
+            @if (entry.game !== entry.name) {
+              <p class="game">{{ entry.game }}</p>
+            }
+            @if (entry.description) {
+              <p class="description">{{ entry.description }}</p>
+            }
+          </div>
+          <div class="state">
+            @switch (standing(entry)) {
+              @case ("incompatible") {
+                <p class="muted">Demande une version plus récente d'IdleWarden</p>
+              }
+              @case ("absent") {
+                <button
+                  type="button"
+                  [disabled]="installing() !== null"
+                  (click)="install(entry)"
+                >
+                  {{
+                    installing() === entry.id
+                      ? "Installation…"
+                      : "Installer " + entry.available
+                  }}
+                </button>
+              }
+              @case ("outdated") {
+                <p class="muted">{{ entry.installed }} installé</p>
+                <button
+                  type="button"
+                  [disabled]="installing() !== null"
+                  (click)="install(entry)"
+                >
+                  {{
+                    installing() === entry.id
+                      ? "Mise à jour…"
+                      : "Mettre à jour vers " + entry.available
+                  }}
+                </button>
+              }
+              @case ("current") {
+                <p class="current">{{ entry.installed }} installé, à jour</p>
+              }
+            }
+          </div>
+        </li>
+      } @empty {
+        <li class="muted">Le registre ne publie aucun plugin pour l'instant.</li>
+      }
+    </ul>
+  } @else if (failure() === null) {
+    <p class="muted">Lecture du registre…</p>
+  }
+
+  <p class="hint">
+    L'archive est téléchargée depuis l'adresse que donne le registre, et son empreinte
+    sha256 est vérifiée avant que quoi que ce soit soit écrit. Installer un plugin ne
+    l'autorise à rien : un plugin qui passe par un mod reste à autoriser dans Profils.
+  </p>
+</main>

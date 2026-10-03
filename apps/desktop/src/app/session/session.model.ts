@@ -170,6 +170,21 @@ export interface InstalledMod {
   path: string;
 }
 
+export interface CatalogueEntry {
+  id: string;
+  name: string;
+  game: string;
+  description: string | null;
+  available: string | null;
+  installed: string | null;
+}
+
+export interface InstalledPlugin {
+  name: string;
+  version: string;
+  path: string;
+}
+
 export type ModRefusal =
   "unknown_plugin" | "no_bridge" | "not_granted" | "game_unknown" | "failed";
 

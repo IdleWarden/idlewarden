@@ -8,7 +8,24 @@ use crate::loader::Loader;
 #[derive(Debug, Clone, Deserialize)]
 pub struct Index {
     #[serde(default)]
+    pub plugins: Vec<PluginEntry>,
+    #[serde(default)]
     pub mods: Vec<ModEntry>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct PluginEntry {
+    pub id: PluginId,
+    pub name: String,
+    #[serde(default)]
+    pub description: Option<String>,
+    pub game: PluginGame,
+    pub versions: Vec<Published>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct PluginGame {
+    pub title: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -20,7 +37,7 @@ pub struct ModEntry {
     pub loader: Loader,
     #[serde(default)]
     pub mods_path: Option<String>,
-    pub versions: Vec<ModVersion>,
+    pub versions: Vec<Published>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -29,7 +46,7 @@ pub struct Bridge {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct ModVersion {
+pub struct Published {
     pub version: Version,
     pub api_version: ApiVersion,
     pub url: String,
@@ -41,7 +58,13 @@ pub struct ModVersion {
 #[derive(Debug, Clone, Copy)]
 pub struct Release<'a> {
     pub entry: &'a ModEntry,
-    pub version: &'a ModVersion,
+    pub version: &'a Published,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct PluginRelease<'a> {
+    pub entry: &'a PluginEntry,
+    pub version: &'a Published,
 }
 
 impl Release<'_> {
@@ -64,13 +87,19 @@ impl Index {
         self.mods
             .iter()
             .filter(|entry| &entry.plugin == plugin && entry.bridge.name == bridge)
-            .flat_map(|entry| {
-                entry
-                    .versions
-                    .iter()
-                    .filter(|version| !version.yanked && version.api_version.is_satisfied_by_host())
-                    .map(move |version| Release { entry, version })
-            })
+            .filter_map(|entry| newest(&entry.versions).map(|version| Release { entry, version }))
             .max_by(|a, b| a.version.version.cmp(&b.version.version))
     }
+
+    pub fn plugin_release(&self, plugin: &PluginId) -> Option<PluginRelease<'_>> {
+        let entry = self.plugins.iter().find(|entry| &entry.id == plugin)?;
+        newest(&entry.versions).map(|version| PluginRelease { entry, version })
+    }
+}
+
+fn newest(versions: &[Published]) -> Option<&Published> {
+    versions
+        .iter()
+        .filter(|version| !version.yanked && version.api_version.is_satisfied_by_host())
+        .max_by(|a, b| a.version.cmp(&b.version))
 }
