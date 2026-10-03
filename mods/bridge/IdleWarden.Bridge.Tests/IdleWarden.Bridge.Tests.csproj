@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../src/IdleWarden.Kale.Decisions/IdleWarden.Kale.Decisions.csproj" />
+    <ProjectReference Include="../IdleWarden.Bridge/IdleWarden.Bridge.csproj" />
   </ItemGroup>
 
 </Project>

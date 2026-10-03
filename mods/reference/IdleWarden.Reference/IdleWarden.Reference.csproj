@@ -15,7 +15,7 @@
     <PackageReference Include="BepInEx.Core" Version="5.4.21" />
     <PackageReference Include="BepInEx.PluginInfoProps" Version="2.1.0" />
     <PackageReference Include="UnityEngine.Modules" Version="2021.3.33" IncludeAssets="compile" />
-    <ProjectReference Include="../IdleWarden.Bridge/IdleWarden.Bridge.csproj" />
+    <ProjectReference Include="../../bridge/IdleWarden.Bridge/IdleWarden.Bridge.csproj" />
   </ItemGroup>
 
 </Project>

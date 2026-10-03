@@ -12,9 +12,10 @@ third-party authors build on.
 
 ```
 mods/
-├── src/IdleWarden.Bridge/      ← the protocol, Apache-2.0, no dependencies
-├── src/IdleWarden.Reference/   ← a BepInEx plugin that speaks it end to end
-└── tests/                      ← the wire format, which is a cross-language contract
+├── bridge/      ← the protocol (Apache-2.0, no dependencies) and its wire-format tests
+├── reference/   ← a BepInEx plugin that speaks it end to end
+├── kale/        ← Master Healer Kale: adapter, pure decisions, game stubs, tests
+└── js/          ← the JavaScript bridge and the Cookie Clicker mod
 ```
 
 `IdleWarden.Bridge` is Apache-2.0 for the same reason `crates/plugin-api` is
@@ -91,8 +92,8 @@ protocol is small and fully specified, so `Json.cs` costs less than that risk.
 ## Building
 
 ```bash
-dotnet test  tests/IdleWarden.Bridge.Tests
-dotnet build src/IdleWarden.Reference --configuration Release
+dotnet test  bridge/IdleWarden.Bridge.Tests
+dotnet build reference/IdleWarden.Reference --configuration Release
 ```
 
 Drop the resulting `IdleWarden.Reference.dll` and `IdleWarden.Bridge.dll` into

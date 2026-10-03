@@ -36,7 +36,7 @@
   <ItemGroup>
     <PackageReference Include="BepInEx.Core" Version="5.4.21" />
     <PackageReference Include="BepInEx.PluginInfoProps" Version="2.1.0" />
-    <ProjectReference Include="../IdleWarden.Bridge/IdleWarden.Bridge.csproj" />
+    <ProjectReference Include="../../bridge/IdleWarden.Bridge/IdleWarden.Bridge.csproj" />
     <ProjectReference Include="../IdleWarden.Kale.Decisions/IdleWarden.Kale.Decisions.csproj" />
   </ItemGroup>
 

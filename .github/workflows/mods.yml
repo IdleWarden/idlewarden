@@ -36,7 +36,7 @@ jobs:
           dotnet-version: "8.0.x"
 
       - name: Test the protocol
-        run: dotnet test tests/IdleWarden.Bridge.Tests --configuration Release
+        run: dotnet test bridge/IdleWarden.Bridge.Tests --configuration Release
 
       # The Kale mod itself cannot be built here: a BepInEx plugin compiles
       # against the game's own assemblies, which are not ours to ship. Its
@@ -44,18 +44,18 @@ jobs:
       # the game, so the part where bugs actually live is tested on every
       # commit rather than only on a machine that owns the game.
       - name: Test the Kale decisions
-        run: dotnet test tests/IdleWarden.Kale.Decisions.Tests --configuration Release
+        run: dotnet test kale/IdleWarden.Kale.Decisions.Tests --configuration Release
 
       - name: The decisions stay independent of any game assembly
         run: |
-          if grep -rnE "UnityEngine|Assembly-CSharp|BepInEx" src/IdleWarden.Kale.Decisions; then
+          if grep -rnE "UnityEngine|Assembly-CSharp|BepInEx" kale/IdleWarden.Kale.Decisions; then
             echo "::error::the decisions project must stay buildable without the game"
             exit 1
           fi
           echo "ok"
 
       - name: Build the reference mod
-        run: dotnet build src/IdleWarden.Reference --configuration Release --output out
+        run: dotnet build reference/IdleWarden.Reference --configuration Release --output out
 
       - name: The build holds the two files the release archive ships
         run: test -f out/IdleWarden.Reference.dll && test -f out/IdleWarden.Bridge.dll
@@ -68,11 +68,11 @@ jobs:
       # project in the graph to one folder and overrides the `Private="false"` that
       # keeps the stub out, so the mod would ship an Assembly-CSharp of its own.
       - name: Build the Kale mod against the game stubs
-        run: dotnet build src/IdleWarden.Kale --configuration Release
+        run: dotnet build kale/IdleWarden.Kale --configuration Release
 
       - name: The stub never ships next to the mod
         run: |
-          out=src/IdleWarden.Kale/bin/Release/netstandard2.1
+          out=kale/IdleWarden.Kale/bin/Release/netstandard2.1
           if [ -f "$out/Assembly-CSharp.dll" ]; then
             echo "::error::a stub named Assembly-CSharp beside the mod shadows the game's own, and every call throws"
             exit 1
