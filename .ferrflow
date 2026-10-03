@@ -257,27 +257,27 @@
     },
     {
       "name": "mod-bridge",
-      "path": "mods/src/IdleWarden.Bridge",
+      "path": "mods/bridge/IdleWarden.Bridge",
       "tagTemplate": "mod/bridge@v{version}",
-      "changelog": "mods/src/IdleWarden.Bridge/CHANGELOG.md",
+      "changelog": "mods/bridge/IdleWarden.Bridge/CHANGELOG.md",
       "versionedFiles": [
         {
-          "path": "mods/src/IdleWarden.Bridge/IdleWarden.Bridge.csproj",
+          "path": "mods/bridge/IdleWarden.Bridge/IdleWarden.Bridge.csproj",
           "format": "csproj"
         }
       ]
     },
     {
       "name": "mod-reference",
-      "path": "mods/src/IdleWarden.Reference",
+      "path": "mods/reference/IdleWarden.Reference",
       "dependsOn": [
         "mod-bridge"
       ],
       "tagTemplate": "mod/reference@v{version}",
-      "changelog": "mods/src/IdleWarden.Reference/CHANGELOG.md",
+      "changelog": "mods/reference/IdleWarden.Reference/CHANGELOG.md",
       "versionedFiles": [
         {
-          "path": "mods/src/IdleWarden.Reference/IdleWarden.Reference.csproj",
+          "path": "mods/reference/IdleWarden.Reference/IdleWarden.Reference.csproj",
           "format": "csproj"
         }
       ]
@@ -314,31 +314,31 @@
     },
     {
       "name": "mod-kale-decisions",
-      "path": "mods/src/IdleWarden.Kale.Decisions",
+      "path": "mods/kale/IdleWarden.Kale.Decisions",
       "dependsOn": [
         "mod-bridge"
       ],
       "tagTemplate": "mod/kale-decisions@v{version}",
-      "changelog": "mods/src/IdleWarden.Kale.Decisions/CHANGELOG.md",
+      "changelog": "mods/kale/IdleWarden.Kale.Decisions/CHANGELOG.md",
       "versionedFiles": [
         {
-          "path": "mods/src/IdleWarden.Kale.Decisions/IdleWarden.Kale.Decisions.csproj",
+          "path": "mods/kale/IdleWarden.Kale.Decisions/IdleWarden.Kale.Decisions.csproj",
           "format": "csproj"
         }
       ]
     },
     {
       "name": "mod-kale",
-      "path": "mods/src/IdleWarden.Kale",
+      "path": "mods/kale/IdleWarden.Kale",
       "dependsOn": [
         "mod-bridge",
         "mod-kale-decisions"
       ],
       "tagTemplate": "mod/kale@v{version}",
-      "changelog": "mods/src/IdleWarden.Kale/CHANGELOG.md",
+      "changelog": "mods/kale/IdleWarden.Kale/CHANGELOG.md",
       "versionedFiles": [
         {
-          "path": "mods/src/IdleWarden.Kale/IdleWarden.Kale.csproj",
+          "path": "mods/kale/IdleWarden.Kale/IdleWarden.Kale.csproj",
           "format": "csproj"
         }
       ]

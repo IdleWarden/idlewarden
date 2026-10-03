@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../IdleWarden.Bridge/IdleWarden.Bridge.csproj" />
+    <ProjectReference Include="../../bridge/IdleWarden.Bridge/IdleWarden.Bridge.csproj" />
   </ItemGroup>
 
 </Project>

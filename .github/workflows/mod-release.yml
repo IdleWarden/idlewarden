@@ -123,7 +123,7 @@ jobs:
 
       - name: Build
         working-directory: mods
-        run: dotnet build src/IdleWarden.Reference --configuration Release --output out
+        run: dotnet build reference/IdleWarden.Reference --configuration Release --output out
 
       - name: Package the two assemblies BepInEx loads
         id: package
@@ -177,11 +177,11 @@ jobs:
       # shadowing the game's own assembly at run time.
       - name: Build
         working-directory: mods
-        run: dotnet build src/IdleWarden.Kale --configuration Release
+        run: dotnet build kale/IdleWarden.Kale --configuration Release
 
       - name: Package the three assemblies BepInEx loads
         id: package
-        working-directory: mods/src/IdleWarden.Kale/bin/Release/netstandard2.1
+        working-directory: mods/kale/IdleWarden.Kale/bin/Release/netstandard2.1
         run: |
           set -euo pipefail
           if [ -f Assembly-CSharp.dll ]; then
