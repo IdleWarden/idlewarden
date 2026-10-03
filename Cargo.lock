@@ -1672,7 +1672,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-core"
-version = "26.10.2"
+version = "26.10.3"
 dependencies = [
  "idlewarden-agent",
  "idlewarden-bridge",
@@ -1690,7 +1690,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-desktop"
-version = "26.10.2"
+version = "26.10.3"
 dependencies = [
  "idlewarden-bridge",
  "idlewarden-capture",

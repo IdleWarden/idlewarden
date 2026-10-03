@@ -4,6 +4,12 @@ All notable changes to `core` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.10.3] - 2026-10-03
+
+### Features
+
+- feat(desktop): let the user choose which game to watch when several are recognised (#97)
+
 ## [26.10.2] - 2026-10-03
 
 ### Features
