@@ -1,5 +1,5 @@
 {
-  "$comment": "Declaration order is priority. A death costs the most and mends the worst, a group heal covers several members for one cast, a single heal is the common case, and mana gates everything else so it is topped up last. Shopping only matters out of combat. Every cast requires `battle.active`: outside a playing battle the game drops a cast without a word, so a rule that fires there never lands, never puts its spell on cooldown, and keeps winning the priority race against every rule below it.",
+  "$comment": "Declaration order is priority. A death costs the most and mends the worst, a group heal covers several members for one cast, a shield taken before a burst beats a heal after it, a single heal is the common case, and mana gates everything else so it is topped up last. Shopping only matters out of combat. Every cast requires `battle.active`: outside a playing battle the game drops a cast without a word, so a rule that fires there never lands, never puts its spell on cooldown, and keeps winning the priority race against every rule below it. Each cast carries `within_ms` a little past its casting time, because the mod reports success when the spell is queued and its effect only shows once the cast completes.",
   "intents": [
     {
       "$comment": "Each of these carries its own name because the host resolves a post-condition by intent name and takes the first match. Reviving proves the count of the fallen fell; healing proves health rose. One shared name would give them all the same proof.",
@@ -14,6 +14,7 @@
         { "op": "is_true", "signal": "spell.raise.ready" }
       ],
       "post_condition": [{ "op": "decreased", "signal": "party.down" }],
+      "within_ms": 1500,
       "min_confidence": 0.9
     },
     {
@@ -28,6 +29,23 @@
         { "op": "is_true", "signal": "spell.party_heal.ready" }
       ],
       "post_condition": [{ "op": "increased", "signal": "party.average_hp_ratio" }],
+      "within_ms": 4500,
+      "min_confidence": 0.9
+    },
+    {
+      "$comment": "A shield is only worth casting before the hit, so it goes to the most hurt member still without one, at any health. Protection is single-target unless Cast All is up.",
+      "name": "shield_unprotected",
+      "params": {
+        "spell": { "type": "text", "value": "Protection" },
+        "target": { "type": "text", "value": "unshielded" }
+      },
+      "when": [
+        { "op": "is_true", "signal": "battle.active" },
+        { "op": "at_least", "signal": "party.unshielded", "value": 1 },
+        { "op": "is_true", "signal": "spell.protection.ready" }
+      ],
+      "post_condition": [{ "op": "decreased", "signal": "party.unshielded" }],
+      "within_ms": 4500,
       "min_confidence": 0.9
     },
     {
@@ -42,6 +60,7 @@
         { "op": "is_true", "signal": "spell.heal.ready" }
       ],
       "post_condition": [{ "op": "increased", "signal": "party.lowest_hp_ratio" }],
+      "within_ms": 2500,
       "min_confidence": 0.9
     },
     {
@@ -57,6 +76,7 @@
         { "op": "is_true", "signal": "spell.meditate.ready" }
       ],
       "post_condition": [{ "op": "increased", "signal": "player.mana" }],
+      "within_ms": 6500,
       "min_confidence": 0.9
     },
     {

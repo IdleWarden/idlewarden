@@ -134,6 +134,36 @@ namespace IdleWarden.Kale.Decisions.Tests
                 CastPlan.For(state, "Raise", TargetPolicy.Down, Below).Refusal);
         }
 
+        private static UnitSnapshot Shielded(string name, double hp)
+        {
+            return new UnitSnapshot(name, new Magnitude(hp, 0), new Magnitude(100.0, 0), true, new Magnitude(40.0, 0));
+        }
+
+        [Fact]
+        public void AShieldGoesToTheMostHurtMemberStillWithoutOneEvenAtFullHealth()
+        {
+            var state = State(
+                new[] { Shielded("tank", 20.0), Unit("mage", 100.0), Unit("archer", 90.0), Unit("corpse", 0.0, alive: false) },
+                new[] { Spell("Protection", mana: 25) });
+
+            var plan = CastPlan.For(state, "Protection", TargetPolicy.Unshielded, Below);
+
+            Assert.True(plan.Allowed);
+            Assert.Equal("archer", plan.Target.Name);
+        }
+
+        [Fact]
+        public void AShieldWithEveryoneAlreadyCoveredHasNobodyToProtect()
+        {
+            var state = State(
+                new[] { Shielded("tank", 50.0), Shielded("mage", 100.0) },
+                new[] { Spell("Protection", mana: 25) });
+
+            Assert.Equal(
+                CastRefusal.NoTarget,
+                CastPlan.For(state, "Protection", TargetPolicy.Unshielded, Below).Refusal);
+        }
+
         [Fact]
         public void APolicyTheRulesMisspellIsReportedRatherThanTreatedAsNone()
         {
@@ -142,6 +172,9 @@ namespace IdleWarden.Kale.Decisions.Tests
 
             Assert.True(CastPlan.TryPolicy("down", out var down));
             Assert.Equal(TargetPolicy.Down, down);
+
+            Assert.True(CastPlan.TryPolicy("unshielded", out var unshielded));
+            Assert.Equal(TargetPolicy.Unshielded, unshielded);
 
             Assert.True(CastPlan.TryPolicy(null, out var missing));
             Assert.Equal(TargetPolicy.None, missing);

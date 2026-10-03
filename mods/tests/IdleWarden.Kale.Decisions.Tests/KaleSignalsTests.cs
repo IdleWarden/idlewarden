@@ -75,6 +75,20 @@ namespace IdleWarden.Kale.Decisions.Tests
         }
 
         [Fact]
+        public void UnshieldedCountsTheLivingWithoutAShieldAndNobodyElse()
+        {
+            var party = new[]
+            {
+                new UnitSnapshot("tank", new Magnitude(50.0, 0), new Magnitude(100.0, 0), true, new Magnitude(40.0, 0)),
+                new UnitSnapshot("spent", new Magnitude(50.0, 0), new Magnitude(100.0, 0), true, Magnitude.Zero),
+                Unit("bare", 100.0, 100.0),
+                new UnitSnapshot("corpse", Magnitude.Zero, new Magnitude(100.0, 0), false, new Magnitude(40.0, 0)),
+            };
+
+            Assert.Equal(2L, Find(KaleSignals.From(State(party: party)), "party.unshielded").AsInt());
+        }
+
+        [Fact]
         public void NoSignalIdIsEmittedTwice()
         {
             var signals = KaleSignals.From(State(

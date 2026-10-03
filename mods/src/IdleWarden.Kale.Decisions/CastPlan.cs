@@ -12,6 +12,7 @@ namespace IdleWarden.Kale.Decisions
         None,
         LowestHp,
         Down,
+        Unshielded,
     }
 
     public sealed class CastPlan
@@ -48,6 +49,9 @@ namespace IdleWarden.Kale.Decisions
                 case "down":
                     policy = TargetPolicy.Down;
                     return true;
+                case "unshielded":
+                    policy = TargetPolicy.Unshielded;
+                    return true;
                 default:
                     policy = TargetPolicy.None;
                     return false;
@@ -83,6 +87,8 @@ namespace IdleWarden.Kale.Decisions
                     return HealChoice.MostHurt(party, healBelow);
                 case TargetPolicy.Down:
                     return FirstDown(party);
+                case TargetPolicy.Unshielded:
+                    return HealChoice.MostHurtUnshielded(party);
                 default:
                     return null;
             }

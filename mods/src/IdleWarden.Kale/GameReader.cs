@@ -165,7 +165,8 @@ namespace IdleWarden.Kale
                     Name(unit),
                     Of(unit.CurrentHP),
                     Of(unit.GetMaxHP()),
-                    unit.IsAlive()));
+                    unit.IsAlive(),
+                    Of(unit.CurrentShield)));
             }
             return party;
         }

@@ -141,6 +141,8 @@ public class PrefabUnit : MonoBehaviour
 
     public double_evrac CurrentHP;
 
+    public double_evrac CurrentShield;
+
     public double_evrac GetMaxHP() => throw Stub.Only();
 
     public bool IsAlive() => throw Stub.Only();
