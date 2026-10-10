@@ -4,6 +4,12 @@ All notable changes to `desktop` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.10.7] - 2026-10-10
+
+### Features
+
+- feat(desktop): live signal values and automation readiness in the overlay (#103)
+
 ## [26.10.6] - 2026-10-10
 
 ### Features
