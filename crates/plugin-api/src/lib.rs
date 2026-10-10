@@ -11,12 +11,14 @@
 //! types here are all serialisable.
 
 pub mod action;
+pub mod big;
 pub mod capability;
 pub mod manifest;
 pub mod observation;
 pub mod value;
 
 pub use action::{ActionOutcome, InputCommand, Intent, Key, MouseButton, Point};
+pub use big::{Big, BigError};
 pub use capability::{Capability, TrustLevel};
 pub use manifest::{
     ApiVersion, GameMatcher, PluginId, PluginManifest, SignalDecl, SignalId, API_VERSION,

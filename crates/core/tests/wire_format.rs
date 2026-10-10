@@ -56,6 +56,7 @@ fn every_value() -> Vec<Value> {
         Value::Bool(true),
         Value::Int(-7),
         Value::Float(1.5),
+        Value::Big("1.5e400".parse().unwrap()),
         Value::Ratio(0.25),
         Value::Text("gold".to_owned()),
         Value::Point { x: 0.5, y: 0.75 },
