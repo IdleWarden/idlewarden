@@ -12,7 +12,7 @@
 mod rule;
 mod spec;
 
-pub use rule::{Condition, RuleDecider, RuleSpec};
+pub use rule::{Condition, RuleDecider, RuleSpec, Threshold};
 pub use spec::NodeSpec;
 
 use idlewarden_plugin_api::{Intent, Observation};
