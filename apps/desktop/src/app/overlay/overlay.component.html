@@ -82,7 +82,15 @@
       <ul class="intents">
         @for (intent of plugin.intents; track intent.name) {
           <li class="row">
-            <span>{{ intent.name }}</span>
+            <span
+              class="name-intent"
+              [attr.data-ready]="
+                intent.unmet === null ? null : intent.unmet.length === 0
+              "
+              [attr.title]="intent.unmet === null ? null : reasons(intent.unmet)"
+            >
+              {{ intent.name }}
+            </span>
             <button
               type="button"
               class="toggle"
@@ -93,6 +101,18 @@
             >
               <span class="knob"></span>
             </button>
+          </li>
+        }
+      </ul>
+    }
+
+    @if (signals().length > 0) {
+      <p class="label">Valeurs en direct</p>
+      <ul class="values">
+        @for (signal of signals(); track signal.id) {
+          <li>
+            <span>{{ signal.id }}</span>
+            <span class="figure">{{ value(signal) }}</span>
           </li>
         }
       </ul>

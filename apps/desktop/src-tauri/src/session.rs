@@ -459,6 +459,13 @@ pub fn session_state(handle: State<'_, SessionHandle>) -> Session {
 }
 
 #[tauri::command]
+pub fn session_observation(handle: State<'_, SessionHandle>) -> Option<Observation> {
+    let mut inner = handle.0.lock().expect("session lock");
+    inner.refresh();
+    inner.last_observation.clone()
+}
+
+#[tauri::command]
 pub fn session_events(handle: State<'_, SessionHandle>) -> Vec<Published> {
     let mut inner = handle.0.lock().expect("session lock");
     inner.refresh();
