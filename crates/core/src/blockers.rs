@@ -81,7 +81,7 @@ mod tests {
             is_true("save.loaded"),
             Condition::AtLeast {
                 signal: "research.affordable".to_owned(),
-                value: 1.0,
+                value: 1.0.into(),
             },
         ]);
 

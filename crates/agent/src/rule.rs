@@ -23,11 +23,11 @@ pub enum Condition {
     },
     AtLeast {
         signal: String,
-        value: f64,
+        value: Threshold,
     },
     AtMost {
         signal: String,
-        value: f64,
+        value: Threshold,
     },
     /// True when the signal is worth more than it was before the action. Only
     /// a post-condition can hold one: there is nothing to compare against when
@@ -41,6 +41,28 @@ pub enum Condition {
     Changed {
         signal: String,
     },
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum Threshold {
+    Number(f64),
+    Big(Big),
+}
+
+impl Threshold {
+    fn as_value(&self) -> Value {
+        match self {
+            Threshold::Number(number) => Value::Float(*number),
+            Threshold::Big(big) => Value::Big(*big),
+        }
+    }
+}
+
+impl From<f64> for Threshold {
+    fn from(number: f64) -> Self {
+        Threshold::Number(number)
+    }
 }
 
 impl Condition {
@@ -105,10 +127,10 @@ impl Condition {
                 value: expected, ..
             } => value == expected,
             Condition::AtLeast { value: floor, .. } => {
-                compare(value, &Value::Float(*floor)).is_some_and(Ordering::is_ge)
+                compare(value, &floor.as_value()).is_some_and(Ordering::is_ge)
             }
             Condition::AtMost { value: ceiling, .. } => {
-                compare(value, &Value::Float(*ceiling)).is_some_and(Ordering::is_le)
+                compare(value, &ceiling.as_value()).is_some_and(Ordering::is_le)
             }
             Condition::Increased { .. }
             | Condition::Decreased { .. }
@@ -304,11 +326,11 @@ mod tests {
         let seen = observation(1, vec![("resource.gold", big("1e400"), 1.0)]);
         let above = Condition::AtLeast {
             signal: "resource.gold".into(),
-            value: f64::MAX,
+            value: f64::MAX.into(),
         };
         let below = Condition::AtMost {
             signal: "resource.gold".into(),
-            value: f64::MAX,
+            value: f64::MAX.into(),
         };
 
         assert!(above.met(&seen));
@@ -320,7 +342,7 @@ mod tests {
         let seen = observation(1, vec![("resource.debt", big("-1e400"), 1.0)]);
         let ceiling = Condition::AtMost {
             signal: "resource.debt".into(),
-            value: -f64::MAX,
+            value: (-f64::MAX).into(),
         };
 
         assert!(ceiling.met(&seen));
@@ -331,7 +353,7 @@ mod tests {
         let seen = observation(1, vec![("resource.gold", big("1.5e3"), 1.0)]);
         let at = |value: f64| Condition::AtLeast {
             signal: "resource.gold".into(),
-            value,
+            value: value.into(),
         };
 
         assert!(at(1500.0).met(&seen));
@@ -366,11 +388,65 @@ mod tests {
     }
 
     #[test]
+    fn a_big_literal_is_a_valid_threshold_and_a_number_still_is() {
+        let numeric: Condition =
+            serde_json::from_str(r#"{"op":"at_least","signal":"resource.gold","value":0.6}"#)
+                .unwrap();
+        let big: Condition =
+            serde_json::from_str(r#"{"op":"at_most","signal":"resource.gold","value":"1e400"}"#)
+                .unwrap();
+
+        assert_eq!(
+            numeric,
+            Condition::AtLeast {
+                signal: "resource.gold".into(),
+                value: 0.6.into(),
+            }
+        );
+        assert!(matches!(
+            big,
+            Condition::AtMost {
+                value: Threshold::Big(_),
+                ..
+            }
+        ));
+        assert_eq!(
+            serde_json::to_string(&big).unwrap(),
+            r#"{"op":"at_most","signal":"resource.gold","value":"1e400"}"#
+        );
+    }
+
+    #[test]
+    fn a_threshold_that_is_neither_a_number_nor_a_big_is_refused() {
+        for value in [r#""nan""#, r#""abc""#, "true", "null"] {
+            let json = format!(r#"{{"op":"at_least","signal":"resource.gold","value":{value}}}"#);
+            assert!(
+                serde_json::from_str::<Condition>(&json).is_err(),
+                "{value} must not load"
+            );
+        }
+    }
+
+    #[test]
+    fn a_big_threshold_orders_a_big_signal_across_the_f64_boundary() {
+        let seen = observation(1, vec![("resource.gold", big("5e400"), 1.0)]);
+        let reached = |threshold: &str| Condition::AtLeast {
+            signal: "resource.gold".into(),
+            value: Threshold::Big(threshold.parse().unwrap()),
+        };
+
+        assert!(reached("1e400").met(&seen));
+        assert!(reached("5e400").met(&seen));
+        assert!(!reached("6e400").met(&seen));
+        assert!(!reached("1e401").met(&seen));
+    }
+
+    #[test]
     fn a_big_value_is_never_a_number_to_compare_with_text() {
         let seen = observation(1, vec![("ui.screen_id", Value::Text("main".into()), 1.0)]);
         let at_least = Condition::AtLeast {
             signal: "ui.screen_id".into(),
-            value: 1.0,
+            value: 1.0.into(),
         };
 
         assert!(!at_least.met(&seen));
@@ -550,7 +626,7 @@ mod tests {
     fn numeric_thresholds_read_ints_floats_and_ratios() {
         let at_least = Condition::AtLeast {
             signal: "gold".to_owned(),
-            value: 100.0,
+            value: 100.0.into(),
         };
 
         assert!(at_least.holds(&Value::Int(150)));
@@ -563,7 +639,7 @@ mod tests {
 
         let at_most = Condition::AtMost {
             signal: "health".to_owned(),
-            value: 0.3,
+            value: 0.3.into(),
         };
         assert!(at_most.holds(&Value::Ratio(0.25)));
         assert!(!at_most.holds(&Value::Ratio(0.5)));

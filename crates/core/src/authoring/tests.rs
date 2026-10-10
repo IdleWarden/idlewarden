@@ -495,7 +495,7 @@ fn a_numeric_condition_on_a_drawn_signal_is_refused() {
     let mut numeric = collect();
     numeric.when = vec![Condition::AtLeast {
         signal: "ui.reward_ready".to_owned(),
-        value: 3.0,
+        value: 3.0.into(),
     }];
 
     assert!(matches!(
