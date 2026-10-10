@@ -4,6 +4,12 @@ All notable changes to `core` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.10.6] - 2026-10-10
+
+### Features
+
+- feat(desktop): show what keeps each automation from firing (#102)
+
 ## [26.10.5] - 2026-10-03
 
 ### Bug Fixes
