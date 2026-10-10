@@ -250,6 +250,17 @@ mod tests {
     }
 
     #[test]
+    fn what_the_csharp_and_javascript_bridges_write_is_accepted() {
+        let from_csharp = ["1.5e400", "1e0", "-2.5e-3", "3e3", "1.2e2"];
+        let from_javascript = ["1.5e+400", "2.5e1000", "42", "0.5", "-7E-2"];
+
+        for text in from_csharp.into_iter().chain(from_javascript) {
+            assert!(text.parse::<Big>().is_ok(), "`{text}` must parse");
+        }
+        assert_eq!(big("1.2e2"), big("120"));
+    }
+
+    #[test]
     fn json_carries_it_as_a_string_and_refuses_a_bad_one() {
         let json = serde_json::to_string(&big("1.5e400")).unwrap();
         assert_eq!(json, "\"1.5e400\"");

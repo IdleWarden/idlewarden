@@ -8,6 +8,13 @@
     bool: (value) => ({ type: "bool", value: !!value }),
     int: (value) => ({ type: "int", value: Math.trunc(value) }),
     float: (value) => ({ type: "float", value: value }),
+    big: (value) => {
+      const text = String(value).trim();
+      if (!/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(text)) {
+        throw new TypeError("a big value is a finite number, got " + text);
+      }
+      return { type: "big", value: text };
+    },
     ratio: (value) => ({
       type: "ratio",
       value: Math.min(1, Math.max(0, value)),
