@@ -11,6 +11,7 @@
 //!   refactor rather than a rewrite.
 
 pub mod authoring;
+pub mod blockers;
 pub mod bundle;
 pub mod detector;
 pub mod event;
@@ -21,11 +22,12 @@ pub mod runner;
 pub mod service;
 pub mod session;
 
+pub use blockers::Unmet;
 pub use bundle::{load_all, BundleError, PluginBundle};
 pub use detector::{Detector, WindowSource};
 pub use event::{Command, Event};
 pub use governor::{Governor, GovernorConfig, Verdict};
-pub use idlewarden_plugin_api::{GameMatcher, PluginId};
+pub use idlewarden_plugin_api::{GameMatcher, Observation, PluginId};
 pub use recipe::{Recipe, RecipeActuator};
 pub use rules::{IntentRule, PluginRules, RulesError};
 pub use runner::{Actuator, Link, Parts, Runner};

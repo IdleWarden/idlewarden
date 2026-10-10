@@ -2,7 +2,8 @@ import { Component, computed, inject } from "@angular/core";
 
 import { UpdatesComponent } from "../updates/updates.component";
 import { OWL } from "../owl";
-import { PublishedEvent, Session, Signal } from "./session.model";
+import { describe, showValue } from "./blockers";
+import { PublishedEvent, Session, Signal, Unmet } from "./session.model";
 import { SessionService } from "./session.service";
 
 @Component({
@@ -44,17 +45,11 @@ export class SessionComponent {
   }
 
   render(signal: Signal): string {
-    const { type, value } = signal.value;
-    if (type === "ratio" && typeof value === "number") {
-      return `${(value * 100).toFixed(0)} %`;
-    }
-    if (type === "bool") {
-      return value === true ? "oui" : "non";
-    }
-    if (typeof value === "number" || typeof value === "string") {
-      return String(value);
-    }
-    return type;
+    return showValue(signal.value);
+  }
+
+  blockers(unmet: readonly Unmet[]): string[] {
+    return unmet.map(describe);
   }
 
   toggleIntent(intent: string, enabled: boolean): void {

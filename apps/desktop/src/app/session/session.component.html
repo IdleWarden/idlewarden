@@ -53,7 +53,18 @@
 
         @for (intent of intents(); track intent.name) {
           <div class="automation">
-            <span class="title">{{ intent.name }}</span>
+            <div class="what">
+              <span class="title">{{ intent.name }}</span>
+              @if (intent.unmet; as unmet) {
+                @if (unmet.length === 0) {
+                  <span class="why ready">prête, dès que sa priorité passe</span>
+                } @else {
+                  @for (line of blockers(unmet); track line) {
+                    <span class="why">{{ line }}</span>
+                  }
+                }
+              }
+            </div>
             <button
               type="button"
               class="toggle"

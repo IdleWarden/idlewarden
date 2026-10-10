@@ -13,8 +13,9 @@ use idlewarden_capture::WindowsCapture;
 use idlewarden_core::authoring::{self, AuthoringError, Draft};
 use idlewarden_core::detector::{Candidate, DesktopWindows};
 use idlewarden_core::{
-    load_all, Command, Detector, Event, Governor, GovernorConfig, Link, Parts, PluginBundle,
-    PluginId, Refusal, Runner, Session, SessionService, SessionState, DEFAULT_TICK,
+    load_all, Command, Detector, Event, Governor, GovernorConfig, Link, Observation, Parts,
+    PluginBundle, PluginId, Refusal, Runner, Session, SessionService, SessionState, Unmet,
+    DEFAULT_TICK,
 };
 #[cfg(windows)]
 use idlewarden_input::{DryRunBackend, Humanisation, SendInputBackend};
@@ -62,6 +63,7 @@ struct Inner {
     session: Session,
     service: Option<SessionService>,
     events: Vec<Published>,
+    last_observation: Option<Observation>,
     kill: KillSwitch,
     profiles: Profiles,
 }
@@ -138,6 +140,7 @@ pub struct ModRequest {
 pub struct IntentSummary {
     pub name: String,
     pub enabled: bool,
+    pub unmet: Option<Vec<Unmet>>,
 }
 
 impl SessionHandle {
@@ -149,6 +152,7 @@ impl SessionHandle {
             session: Session::default(),
             service: None,
             events: Vec::new(),
+            last_observation: None,
             kill: KillSwitch::new(),
             profiles: Profiles::load(&data_dir.join("profiles.json")),
         };
@@ -237,6 +241,7 @@ impl Inner {
 
     fn refresh(&mut self) {
         if self.service.is_none() {
+            self.last_observation = None;
             let found = self.detector.poll(&mut self.session);
             self.publish(found);
             return;
@@ -257,6 +262,9 @@ impl Inner {
 
         for event in &published {
             project(&mut self.session, event);
+            if let Event::Observed { observation } = event {
+                self.last_observation = Some(observation.clone());
+            }
         }
         self.publish(published);
 
@@ -312,6 +320,10 @@ impl Inner {
                         .map(|intent| IntentSummary {
                             name: intent.name.clone(),
                             enabled: profile.is_enabled(&intent.name),
+                            unmet: self
+                                .last_observation
+                                .as_ref()
+                                .map(|observation| intent.unmet(observation)),
                         })
                         .collect(),
                     bridge: bundle.bridge.clone(),
@@ -921,6 +933,56 @@ mod tests {
 
         assert_eq!(inner.session.state, SessionState::Ready);
         assert_eq!(inner.detector.window(), Some(WindowHandle(5150)));
+    }
+
+    fn collect_reward_unmet(inner: &Inner) -> Option<Vec<String>> {
+        let summary = inner.summaries().into_iter().next().expect("one plugin");
+        let intent = summary
+            .intents
+            .into_iter()
+            .find(|intent| intent.name == "collect_reward")
+            .expect("the fixture declares collect_reward");
+        intent.unmet.map(|unmet| {
+            unmet
+                .iter()
+                .map(|blocker| blocker.condition.signal().to_owned())
+                .collect()
+        })
+    }
+
+    #[test]
+    fn an_intent_reports_what_blocks_it_only_once_a_session_has_looked() {
+        let mut inner = ready("blockers");
+        assert_eq!(
+            collect_reward_unmet(&inner),
+            None,
+            "before any observation there is nothing to explain, and `ready` would be a guess"
+        );
+
+        start_with(&mut inner, Painted::new(false), GovernorConfig::default());
+        drain_for(&mut inner, 4);
+
+        assert_eq!(
+            collect_reward_unmet(&inner),
+            Some(vec!["ui.reward_ready".to_owned()])
+        );
+    }
+
+    #[test]
+    fn a_stopped_session_stops_explaining_a_stale_screen() {
+        let mut inner = ready("blockers-stop");
+        start_with(&mut inner, Painted::new(false), GovernorConfig::default());
+        drain_for(&mut inner, 4);
+        assert!(collect_reward_unmet(&inner).is_some());
+
+        inner
+            .session
+            .apply(&Command::Stop)
+            .expect("a running session stops");
+        inner.service = None;
+        inner.refresh();
+
+        assert_eq!(collect_reward_unmet(&inner), None);
     }
 
     #[test]
