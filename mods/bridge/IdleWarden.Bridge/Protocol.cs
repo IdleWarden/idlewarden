@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace IdleWarden.Bridge
 {
@@ -25,6 +26,35 @@ namespace IdleWarden.Bridge
         public static Value Int(long value) => new Value("int", JsonValue.Integer(value));
 
         public static Value Float(double value) => new Value("float", JsonValue.Number(value));
+
+        public static Value Big(double mantissa, int exponent)
+        {
+            if (double.IsNaN(mantissa) || double.IsInfinity(mantissa))
+            {
+                throw new ArgumentOutOfRangeException(nameof(mantissa), "a big value has a finite mantissa");
+            }
+
+            var scientific = mantissa.ToString("E16", CultureInfo.InvariantCulture);
+            for (var precision = 14; precision < 16; precision++)
+            {
+                var shorter = mantissa.ToString("E" + precision, CultureInfo.InvariantCulture);
+                if (double.Parse(shorter, CultureInfo.InvariantCulture) == mantissa)
+                {
+                    scientific = shorter;
+                    break;
+                }
+            }
+
+            var split = scientific.IndexOf('E');
+            var digits = scientific.Substring(0, split).TrimEnd('0').TrimEnd('.');
+            var shifted = long.Parse(scientific.Substring(split + 1), CultureInfo.InvariantCulture) + exponent;
+            if (shifted > int.MaxValue || shifted < int.MinValue)
+            {
+                throw new ArgumentOutOfRangeException(nameof(exponent), "the exponent does not fit in 32 bits");
+            }
+
+            return new Value("big", JsonValue.String(digits + "e" + shifted.ToString(CultureInfo.InvariantCulture)));
+        }
 
         public static Value Ratio(double value)
         {
