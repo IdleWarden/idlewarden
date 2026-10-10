@@ -88,7 +88,7 @@ export type RuleCondition =
       signal: string;
     }
   | { op: "equals"; signal: string; value: SignalValue }
-  | { op: "at_least" | "at_most"; signal: string; value: number };
+  | { op: "at_least" | "at_most"; signal: string; value: number | string };
 
 export interface Unmet {
   condition: RuleCondition;
