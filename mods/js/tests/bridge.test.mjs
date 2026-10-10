@@ -89,6 +89,7 @@ test("a value carries its type the way the host reads it", async () => {
   assert.deepEqual(Value.ratio(1.4), { type: "ratio", value: 1 });
   assert.deepEqual(Value.ratio(-3), { type: "ratio", value: 0 });
   assert.deepEqual(Value.enumeration("main"), { type: "enum", value: "main" });
+});
 
 test("a big value carries what break_infinity prints and refuses what the host would", async () => {
   const { IdleWardenBridge } = await load("idlewarden-bridge/bridge.js");
@@ -103,7 +104,6 @@ test("a big value carries what break_infinity prints and refuses what the host w
   for (const bad of ["NaN", "Infinity", "-Infinity", "", "1e", "e5", "abc", "1,5e3"]) {
     assert.throws(() => Value.big(bad), TypeError, `${bad} must not be sent`);
   }
-});
 });
 
 test("a mod that throws answers with an error rather than dropping the connection", async () => {
