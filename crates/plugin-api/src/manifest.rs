@@ -10,7 +10,7 @@ use semver::{Version, VersionReq};
 use serde::{Deserialize, Serialize};
 
 /// The plugin API version this build of the host implements.
-pub const API_VERSION: &str = "0.1.0";
+pub const API_VERSION: &str = "0.1.1";
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct PluginId(pub String);

@@ -277,6 +277,10 @@ export const SIGNAL_VALUES: readonly SignalValue[] = [
     "value": 1.5
   },
   {
+    "type": "big",
+    "value": "1.5e400"
+  },
+  {
     "type": "ratio",
     "value": 0.25
   },
