@@ -3,7 +3,16 @@ import { invoke } from "@tauri-apps/api/core";
 import { UnlistenFn, listen } from "@tauri-apps/api/event";
 
 import { OWL } from "../owl";
-import { Command, PluginSummary, Refused, Session } from "../session/session.model";
+import { describe, showValue } from "../session/blockers";
+import {
+  Command,
+  Observation,
+  PluginSummary,
+  Refused,
+  Session,
+  Signal,
+  Unmet,
+} from "../session/session.model";
 import { OverlaySettings } from "./overlay.model";
 
 const POLL_MS = 500;
@@ -19,6 +28,8 @@ export class OverlayComponent implements OnDestroy {
   readonly plugins = signal<readonly PluginSummary[]>([]);
   readonly settings = signal<OverlaySettings | null>(null);
   readonly expanded = signal(false);
+  readonly observation = signal<Observation | null>(null);
+  readonly signals = computed(() => this.observation()?.signals ?? []);
   readonly refusal = signal<string | null>(null);
   readonly game = computed(
     () => this.plugins().find((plugin) => plugin.detected) ?? null,
@@ -45,6 +56,15 @@ export class OverlayComponent implements OnDestroy {
   private async refresh(): Promise<void> {
     this.session.set(await invoke<Session>("session_state"));
     this.plugins.set(await invoke<PluginSummary[]>("plugins"));
+    this.observation.set(await invoke<Observation | null>("session_observation"));
+  }
+
+  value(signal: Signal): string {
+    return showValue(signal.value);
+  }
+
+  reasons(unmet: readonly Unmet[]): string {
+    return unmet.map(describe).join(", ");
   }
 
   async expand(expanded: boolean): Promise<void> {

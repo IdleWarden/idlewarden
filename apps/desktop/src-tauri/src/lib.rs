@@ -58,6 +58,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             session::session_state,
             session::session_events,
+            session::session_observation,
             session::dispatch,
             session::engage_kill_switch,
             session::plugins,
