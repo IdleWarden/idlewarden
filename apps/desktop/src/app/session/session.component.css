@@ -146,6 +146,23 @@ h1 {
   overflow-wrap: anywhere;
 }
 
+.automation .what {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.automation .why {
+  font-size: 11px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.automation .why.ready {
+  color: var(--accent);
+}
+
 .toggle {
   width: 52px;
   height: 28px;

@@ -81,9 +81,23 @@ export interface Observation {
   signals: Signal[];
 }
 
+export type RuleCondition =
+  | {
+      op: "is_true" | "is_false" | "increased" | "decreased" | "changed";
+      signal: string;
+    }
+  | { op: "equals"; signal: string; value: SignalValue }
+  | { op: "at_least" | "at_most"; signal: string; value: number };
+
+export interface Unmet {
+  condition: RuleCondition;
+  actual: SignalValue | null;
+}
+
 export interface IntentSummary {
   name: string;
   enabled: boolean;
+  unmet: Unmet[] | null;
 }
 
 export interface Profile {
