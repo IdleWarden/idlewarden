@@ -20,9 +20,9 @@ namespace IdleWarden.Kale.Decisions
                 new Signal("progress.tutorial_done", Value.Bool(state.TutorialDone)),
                 new Signal("progress.highest_level_clear", Value.Int(state.HighestLevelClear)),
 
-                new Signal("resource.gold", Value.Float(Wire(state.Gold))),
-                new Signal("resource.skill_points", Value.Float(Wire(state.SkillPoints))),
-                new Signal("resource.ruby", Value.Float(Wire(state.Ruby))),
+                new Signal("resource.gold", Wire(state.Gold)),
+                new Signal("resource.skill_points", Wire(state.SkillPoints)),
+                new Signal("resource.ruby", Wire(state.Ruby)),
 
                 new Signal("tavern.completion", Value.Ratio(Percent(state.TavernCompletion))),
                 new Signal("tavern.levelable_nodes", Value.Int(SkillChoice.LevelableCount(state.Nodes))),
@@ -107,17 +107,23 @@ namespace IdleWarden.Kale.Decisions
             return counted == 0 ? 1.0 : total / counted;
         }
 
-        /// `Value::Float` refuses anything a `f64` cannot hold, and this genre
-        /// outgrows one (#83). Clamping keeps the signal well-formed and keeps it
-        /// ordered against every smaller value, which is all a rule threshold
-        /// needs; Kale's saves are nowhere near the ceiling.
-        private static double Wire(Magnitude value)
+        /// A resource inside a `double` keeps travelling as a float, so a host
+        /// that predates the `big` value sees exactly what it always did. Past
+        /// the ceiling (#83) it travels as a big value instead of being clamped
+        /// to `double.MaxValue`, where `at_least` was always true and
+        /// `increased` never was. A mantissa that is not a number has nothing
+        /// to express and is clamped as before.
+        private static Value Wire(Magnitude value)
         {
             if (value.FitsInDouble)
             {
-                return value.ToDouble();
+                return Value.Float(value.ToDouble());
             }
-            return value.CompareTo(Magnitude.Zero) < 0 ? double.MinValue : double.MaxValue;
+            if (double.IsNaN(value.Mantissa) || double.IsInfinity(value.Mantissa))
+            {
+                return Value.Float(value.CompareTo(Magnitude.Zero) < 0 ? double.MinValue : double.MaxValue);
+            }
+            return Value.Big(value.Mantissa, value.Exponent);
         }
 
         private static double Percent(int whole)

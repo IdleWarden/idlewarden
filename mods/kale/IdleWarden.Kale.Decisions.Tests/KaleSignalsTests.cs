@@ -167,13 +167,40 @@ namespace IdleWarden.Kale.Decisions.Tests
         }
 
         [Fact]
-        public void AResourceBeyondADoubleStaysFiniteOnTheWire()
+        public void AResourceBeyondADoubleTravelsAsABigValueNotAClampedOne()
         {
-            var signals = KaleSignals.From(State(gold: new Magnitude(1.0, 400)));
+            var signals = KaleSignals.From(State(gold: new Magnitude(1.5, 400)));
 
-            var gold = Find(signals, "resource.gold").AsNumber();
-            Assert.False(double.IsInfinity(gold), "the host refuses a non-finite float, see #83");
-            Assert.Equal(double.MaxValue, gold);
+            var gold = Find(signals, "resource.gold").ToJson();
+            Assert.Equal("big", gold.Member("type").AsString());
+            Assert.Equal("1.5e400", gold.Member("value").AsString());
+        }
+
+        [Fact]
+        public void TwoResourcesBeyondADoubleStayOrderedOnTheWire()
+        {
+            var smaller = KaleSignals.From(State(gold: new Magnitude(9.0, 400)));
+            var larger = KaleSignals.From(State(gold: new Magnitude(1.0, 401)));
+
+            Assert.Equal("9e400", Find(smaller, "resource.gold").ToJson().Member("value").AsString());
+            Assert.Equal("1e401", Find(larger, "resource.gold").ToJson().Member("value").AsString());
+        }
+
+        [Fact]
+        public void AResourceInsideADoubleKeepsTravellingAsAFloat()
+        {
+            var gold = Find(KaleSignals.From(State(gold: new Magnitude(1.5, 3))), "resource.gold").ToJson();
+
+            Assert.Equal("float", gold.Member("type").AsString());
+            Assert.Equal(1500.0, gold.Member("value").AsNumber());
+        }
+
+        [Fact]
+        public void AMantissaThatIsNotANumberIsClampedRatherThanFailingTheObservation()
+        {
+            var signals = KaleSignals.From(State(gold: new Magnitude(double.NaN, 3)));
+
+            Assert.Equal("float", Find(signals, "resource.gold").ToJson().Member("type").AsString());
         }
 
         [Fact]
