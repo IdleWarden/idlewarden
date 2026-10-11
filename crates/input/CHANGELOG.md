@@ -4,6 +4,8 @@ All notable changes to `input` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.10.2] - 2026-10-11
+
 ## [26.10.1] - 2026-10-11
 
 ## [26.9.8] - 2026-09-24

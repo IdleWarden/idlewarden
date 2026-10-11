@@ -4,6 +4,8 @@ All notable changes to the Master Healer Kale decisions library will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.10.5] - 2026-10-11
+
 ## [26.10.4] - 2026-10-03
 
 ### Bug Fixes

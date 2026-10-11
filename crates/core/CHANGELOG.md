@@ -4,6 +4,12 @@ All notable changes to `core` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.10.8] - 2026-10-11
+
+### Features
+
+- feat(agent): accept a big literal as an at_least or at_most threshold (#106)
+
 ## [26.10.7] - 2026-10-11
 
 ### Features
