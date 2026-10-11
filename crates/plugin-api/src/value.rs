@@ -8,12 +8,15 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::big::Big;
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", content = "value", rename_all = "snake_case")]
 pub enum Value {
     Bool(bool),
     Int(i64),
     Float(f64),
+    Big(Big),
     /// A ratio in `0.0..=1.0`, e.g. a health or progress bar.
     Ratio(f64),
     Text(String),
@@ -39,6 +42,7 @@ impl Value {
             Value::Bool(_) => "bool",
             Value::Int(_) => "int",
             Value::Float(_) => "float",
+            Value::Big(_) => "big",
             Value::Ratio(_) => "ratio",
             Value::Text(_) => "text",
             Value::Point { .. } => "point",

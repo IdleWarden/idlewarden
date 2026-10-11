@@ -26,3 +26,4 @@ request against the ADR, not around it.
 | [0018](0018-bridge-websocket.md) | A mod that cannot open a pipe connects to us instead, over a local WebSocket | Accepted |
 | [0019](0019-linux.md) | Linux actuates through uinput and captures through the portal, and gives up enumerating windows | Accepted |
 | [0020](0020-overlay.md) | The overlay is a window above the game, never something drawn into it | Accepted |
+| [0021](0021-big-values.md) | Numbers past an `f64` travel as a `big` value, written as text | Accepted |

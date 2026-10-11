@@ -32,6 +32,7 @@ export type SignalValue =
   | { type: "bool"; value: boolean }
   | { type: "int"; value: number }
   | { type: "float"; value: number }
+  | { type: "big"; value: string }
   | { type: "ratio"; value: number }
   | { type: "text"; value: string }
   | { type: "point"; value: { x: number; y: number } }

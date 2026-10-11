@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MPL-2.0
+use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
-use idlewarden_plugin_api::{Intent, Observation, Value};
+use idlewarden_plugin_api::{Big, Intent, Observation, Value};
 use serde::{Deserialize, Serialize};
 
 use crate::Decider;
@@ -73,16 +74,14 @@ impl Condition {
         };
         match self {
             Condition::Increased { .. } | Condition::Decreased { .. } => {
-                let (Some(was), Some(is)) = (
-                    before.get(self.signal()).and_then(|s| number(&s.value)),
-                    number(&now.value),
-                ) else {
+                let Some(was) = before.get(self.signal()) else {
                     return false;
                 };
-                match self {
-                    Condition::Increased { .. } => is > was,
-                    _ => is < was,
-                }
+                let wanted = match self {
+                    Condition::Increased { .. } => Ordering::Greater,
+                    _ => Ordering::Less,
+                };
+                compare(&now.value, &was.value) == Some(wanted)
             }
             Condition::Changed { .. } => before
                 .get(self.signal())
@@ -106,10 +105,10 @@ impl Condition {
                 value: expected, ..
             } => value == expected,
             Condition::AtLeast { value: floor, .. } => {
-                number(value).is_some_and(|found| found >= *floor)
+                compare(value, &Value::Float(*floor)).is_some_and(Ordering::is_ge)
             }
             Condition::AtMost { value: ceiling, .. } => {
-                number(value).is_some_and(|found| found <= *ceiling)
+                compare(value, &Value::Float(*ceiling)).is_some_and(Ordering::is_le)
             }
             Condition::Increased { .. }
             | Condition::Decreased { .. }
@@ -123,6 +122,20 @@ fn number(value: &Value) -> Option<f64> {
         Value::Int(found) => Some(*found as f64),
         Value::Float(found) | Value::Ratio(found) => Some(*found),
         _ => None,
+    }
+}
+
+fn big_of(value: &Value) -> Option<Big> {
+    match value {
+        Value::Big(big) => Some(*big),
+        other => Big::from_f64(number(other)?),
+    }
+}
+
+fn compare(left: &Value, right: &Value) -> Option<Ordering> {
+    match (left, right) {
+        (Value::Big(_), _) | (_, Value::Big(_)) => Some(big_of(left)?.compare(big_of(right)?)),
+        _ => number(left)?.partial_cmp(&number(right)?),
     }
 }
 
@@ -280,6 +293,87 @@ mod tests {
             signal: "resource.gold".to_owned()
         }
         .met_between(&before, &after));
+    }
+
+    fn big(text: &str) -> Value {
+        Value::Big(text.parse::<Big>().unwrap())
+    }
+
+    #[test]
+    fn a_big_value_crosses_a_threshold_an_f64_cannot_hold() {
+        let seen = observation(1, vec![("resource.gold", big("1e400"), 1.0)]);
+        let above = Condition::AtLeast {
+            signal: "resource.gold".into(),
+            value: f64::MAX,
+        };
+        let below = Condition::AtMost {
+            signal: "resource.gold".into(),
+            value: f64::MAX,
+        };
+
+        assert!(above.met(&seen));
+        assert!(!below.met(&seen));
+    }
+
+    #[test]
+    fn a_negative_big_value_sits_below_every_f64() {
+        let seen = observation(1, vec![("resource.debt", big("-1e400"), 1.0)]);
+        let ceiling = Condition::AtMost {
+            signal: "resource.debt".into(),
+            value: -f64::MAX,
+        };
+
+        assert!(ceiling.met(&seen));
+    }
+
+    #[test]
+    fn a_big_value_inside_the_f64_range_compares_like_a_number() {
+        let seen = observation(1, vec![("resource.gold", big("1.5e3"), 1.0)]);
+        let at = |value: f64| Condition::AtLeast {
+            signal: "resource.gold".into(),
+            value,
+        };
+
+        assert!(at(1500.0).met(&seen));
+        assert!(!at(1500.5).met(&seen));
+    }
+
+    #[test]
+    fn growth_past_the_f64_ceiling_is_still_an_increase() {
+        let before = observation(1, vec![("resource.gold", big("9e400"), 1.0)]);
+        let after = observation(2, vec![("resource.gold", big("1e401"), 1.0)]);
+        let gained = Condition::Increased {
+            signal: "resource.gold".into(),
+        };
+        let lost = Condition::Decreased {
+            signal: "resource.gold".into(),
+        };
+
+        assert!(gained.met_between(&before, &after));
+        assert!(!lost.met_between(&before, &after));
+        assert!(lost.met_between(&after, &before));
+    }
+
+    #[test]
+    fn a_big_value_that_did_not_move_is_not_an_increase() {
+        let seen = observation(1, vec![("resource.gold", big("3e400"), 1.0)]);
+        let again = observation(2, vec![("resource.gold", big("30e399"), 1.0)]);
+        let gained = Condition::Increased {
+            signal: "resource.gold".into(),
+        };
+
+        assert!(!gained.met_between(&seen, &again));
+    }
+
+    #[test]
+    fn a_big_value_is_never_a_number_to_compare_with_text() {
+        let seen = observation(1, vec![("ui.screen_id", Value::Text("main".into()), 1.0)]);
+        let at_least = Condition::AtLeast {
+            signal: "ui.screen_id".into(),
+            value: 1.0,
+        };
+
+        assert!(!at_least.met(&seen));
     }
 
     #[test]
