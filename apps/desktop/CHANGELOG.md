@@ -4,6 +4,12 @@ All notable changes to `desktop` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.10.8] - 2026-10-11
+
+### Features
+
+- feat(plugin-api): add a big value for numbers past f64 (#105)
+
 ## [26.10.7] - 2026-10-10
 
 ### Features

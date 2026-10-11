@@ -4,6 +4,12 @@ All notable changes to `agent` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [26.10.1] - 2026-10-11
+
+### Features
+
+- feat(plugin-api): add a big value for numbers past f64 (#105)
+
 ## [26.9.6] - 2026-09-20
 
 ### Features

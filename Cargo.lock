@@ -1656,7 +1656,7 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "idlewarden-agent"
-version = "26.9.6"
+version = "26.10.1"
 dependencies = [
  "idlewarden-plugin-api",
  "serde",
@@ -1666,7 +1666,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-bridge"
-version = "26.9.4"
+version = "26.10.1"
 dependencies = [
  "idlewarden-plugin-api",
  "serde",
@@ -1679,7 +1679,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-capture"
-version = "26.10.1"
+version = "26.10.2"
 dependencies = [
  "idlewarden-plugin-api",
  "thiserror 2.0.20",
@@ -1690,7 +1690,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-core"
-version = "26.10.6"
+version = "26.10.7"
 dependencies = [
  "idlewarden-agent",
  "idlewarden-bridge",
@@ -1708,7 +1708,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-desktop"
-version = "26.10.7"
+version = "26.10.8"
 dependencies = [
  "idlewarden-bridge",
  "idlewarden-capture",
@@ -1734,7 +1734,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-input"
-version = "26.9.8"
+version = "26.10.1"
 dependencies = [
  "evdev",
  "idlewarden-plugin-api",
@@ -1745,7 +1745,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-mod-install"
-version = "26.10.1"
+version = "26.10.2"
 dependencies = [
  "idlewarden-plugin-api",
  "semver",
@@ -1758,7 +1758,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-plugin-api"
-version = "26.9.5"
+version = "26.10.1"
 dependencies = [
  "semver",
  "serde",
@@ -1768,7 +1768,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-plugin-host"
-version = "26.8.26"
+version = "26.10.1"
 dependencies = [
  "idlewarden-plugin-api",
  "serde",
@@ -1779,7 +1779,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-vision"
-version = "26.10.1"
+version = "26.10.2"
 dependencies = [
  "idlewarden-capture",
  "idlewarden-plugin-api",
