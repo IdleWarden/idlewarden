@@ -91,6 +91,21 @@ test("a value carries its type the way the host reads it", async () => {
   assert.deepEqual(Value.enumeration("main"), { type: "enum", value: "main" });
 });
 
+test("a big value carries what break_infinity prints and refuses what the host would", async () => {
+  const { IdleWardenBridge } = await load("idlewarden-bridge/bridge.js");
+  const { Value } = IdleWardenBridge;
+
+  assert.deepEqual(Value.big("1.5e+400"), { type: "big", value: "1.5e+400" });
+  assert.deepEqual(Value.big({ toString: () => "2.5e1000" }), {
+    type: "big",
+    value: "2.5e1000",
+  });
+  assert.deepEqual(Value.big(42), { type: "big", value: "42" });
+  for (const bad of ["NaN", "Infinity", "-Infinity", "", "1e", "e5", "abc", "1,5e3"]) {
+    assert.throws(() => Value.big(bad), TypeError, `${bad} must not be sent`);
+  }
+});
+
 test("a mod that throws answers with an error rather than dropping the connection", async () => {
   const { IdleWardenBridge } = await load("idlewarden-bridge/bridge.js");
 
