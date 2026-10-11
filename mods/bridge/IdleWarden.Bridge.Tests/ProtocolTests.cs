@@ -121,6 +121,46 @@ namespace IdleWarden.Bridge.Tests
             Assert.Throws<System.ArgumentOutOfRangeException>(() => Value.Ratio(-0.1));
         }
 
+        [Theory]
+        [InlineData(1.5, 400, "1.5e400")]
+        [InlineData(1.0, 0, "1e0")]
+        [InlineData(-2.5, -3, "-2.5e-3")]
+        [InlineData(0.03, 5, "3e3")]
+        [InlineData(12.0, 1, "1.2e2")]
+        public void ABigValueIsWrittenAsNormalisedScientificText(double mantissa, int exponent, string expected)
+        {
+            var json = Value.Big(mantissa, exponent).ToJson();
+
+            Assert.Equal("big", json.Member("type").AsString());
+            Assert.Equal(expected, json.Member("value").AsString());
+        }
+
+        [Fact]
+        public void ABigValueIsWrittenInvariantlyWhateverTheGameLocaleIs()
+        {
+            var original = Thread.CurrentThread.CurrentCulture;
+            try
+            {
+                Thread.CurrentThread.CurrentCulture = new CultureInfo("fr-FR");
+
+                var written = Value.Big(1.5, 400).ToJson().Member("value").AsString();
+
+                Assert.Equal("1.5e400", written);
+            }
+            finally
+            {
+                Thread.CurrentThread.CurrentCulture = original;
+            }
+        }
+
+        [Fact]
+        public void ABigValueRefusesWhatTheHostWouldRefuse()
+        {
+            Assert.Throws<System.ArgumentOutOfRangeException>(() => Value.Big(double.NaN, 0));
+            Assert.Throws<System.ArgumentOutOfRangeException>(() => Value.Big(double.PositiveInfinity, 0));
+            Assert.Throws<System.ArgumentOutOfRangeException>(() => Value.Big(15.0, int.MaxValue));
+        }
+
         [Fact]
         public void NumbersAreWrittenInvariantlyWhateverTheGameLocaleIs()
         {
