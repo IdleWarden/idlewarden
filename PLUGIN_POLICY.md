@@ -110,7 +110,8 @@ Three layers, in order of strength:
    (tracked in #112), its checks may still refuse `multiplayer: true`
    mechanically. For an advisory plugin that meets the conditions, the reviewer
    overrides that refusal, but only once the ranked check and its source are
-   recorded in the pull request; the author does not
+   recorded in the pull request, and names the override in the merge comment
+   ("advisory override, ranked check: <source>") so it can be found later; the author does not
    need to ask.
 2. **Capabilities.** A plugin declares what it needs. `Unverified` plugins get
    nothing granted silently; network access is never granted silently below
