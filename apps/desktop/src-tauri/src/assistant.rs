@@ -215,13 +215,15 @@ pub fn bundled_candidates(app_data: &Path) -> Vec<PathBuf> {
 }
 
 const PROBE_TIMEOUT: Duration = Duration::from_secs(5);
+const STDERR_GRACE: Duration = Duration::from_secs(2);
 
 fn is_claude_code(executable: &Path) -> bool {
     let mut command = Command::new(executable);
     command.arg("--version");
-    if let Ok(dir) = working_directory() {
-        command.current_dir(dir);
-    }
+    let Ok(scratch) = ScratchDir::create() else {
+        return false;
+    };
+    command.current_dir(scratch.path());
     let mut banner = String::new();
     let Ok(exit) = run_child(command, "", PROBE_TIMEOUT, |line| banner.push_str(line)) else {
         return false;
@@ -349,12 +351,13 @@ fn run_child(
     });
 
     let stderr = child.stderr.take();
-    let drain = std::thread::spawn(move || {
+    let (collected, drained) = mpsc::channel::<String>();
+    std::thread::spawn(move || {
         let mut text = String::new();
         if let Some(mut pipe) = stderr {
             let _ = pipe.read_to_string(&mut text);
         }
-        text
+        let _ = collected.send(text);
     });
 
     let deadline = Instant::now() + timeout;
@@ -385,15 +388,35 @@ fn run_child(
     let stderr = if timed_out {
         String::new()
     } else {
-        drain.join().unwrap_or_default()
+        drained.recv_timeout(STDERR_GRACE).unwrap_or_default()
     };
     Ok(Exit { timed_out, stderr })
 }
 
-fn working_directory() -> Result<PathBuf, String> {
-    let dir = std::env::temp_dir().join("idlewarden-assistant");
-    fs::create_dir_all(&dir).map_err(|error| error.to_string())?;
-    Ok(dir)
+struct ScratchDir(PathBuf);
+
+impl ScratchDir {
+    fn create() -> Result<Self, String> {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |elapsed| elapsed.as_nanos());
+        let dir = std::env::temp_dir().join(format!(
+            "idlewarden-assistant-{}-{nanos}",
+            std::process::id()
+        ));
+        fs::create_dir(&dir).map_err(|error| error.to_string())?;
+        Ok(Self(dir))
+    }
+
+    fn path(&self) -> &Path {
+        &self.0
+    }
+}
+
+impl Drop for ScratchDir {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.0);
+    }
 }
 
 fn ask(app: &AppHandle, args: Vec<String>, prompt: &str, generation: u64) -> Result<(), String> {
@@ -404,9 +427,11 @@ fn ask(app: &AppHandle, args: Vec<String>, prompt: &str, generation: u64) -> Res
     })?;
 
     let mut command = Command::new(executable);
-    command.args(args).current_dir(working_directory()?);
+    let scratch = ScratchDir::create()?;
+    command.args(args).current_dir(scratch.path());
 
     let mut pending_session = None;
+    let mut shown = String::new();
     let mut answered = false;
     let result = run_child(
         command,
@@ -414,7 +439,18 @@ fn ask(app: &AppHandle, args: Vec<String>, prompt: &str, generation: u64) -> Res
         ANSWER_TIMEOUT,
         |line| match parse_stream_line(line) {
             Some(StreamLine::Session(id)) => pending_session = Some(id),
-            Some(StreamLine::Text(text)) => emit(app, Reply::Partial { text }),
+            Some(StreamLine::Text(text)) => {
+                if !shown.is_empty() {
+                    shown.push_str("\n\n");
+                }
+                shown.push_str(&text);
+                emit(
+                    app,
+                    Reply::Partial {
+                        text: shown.clone(),
+                    },
+                );
+            }
             Some(StreamLine::Result { ok: true, text }) => {
                 answered = true;
                 if let Some(id) = pending_session.take() {

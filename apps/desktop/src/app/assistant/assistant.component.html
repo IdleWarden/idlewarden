@@ -13,7 +13,10 @@
     </svg>
     <div>
       <h1>Le Gardien</h1>
-      <p class="hint">Il lit les signaux du jeu et te dit quoi faire ensuite.</p>
+      <p class="hint">
+        Il lit les signaux du jeu et te dit quoi faire ensuite. Les signaux sont envoyés
+        à ton Claude Code avec chaque question.
+      </p>
     </div>
     <button type="button" [disabled]="waiting()" (click)="reset()">
       Nouvelle conversation
