@@ -77,6 +77,9 @@ worth anything in that mode is an advantage over other players.
 ## Consequences
 
 * The session state grows a mode, and the UI shows it.
+* Until [#112](https://github.com/IdleWarden/idlewarden/issues/112) lands, the
+  advisory classification and the review of updates are manual, so that issue
+  is the real enforcement point for the advisory rules.
 * The overlay needs a way to type to the Gardien. That is a change to
   [ADR-0020](0020-overlay.md), which makes the overlay unable to take focus, and
   it is made in its own decision.
