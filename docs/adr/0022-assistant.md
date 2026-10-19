@@ -27,7 +27,7 @@ user's, not the plugin's.
 **Its backend is the Claude Code installation the user already has.** The desktop
 app starts the `claude` executable it finds on the `PATH` or in the Claude
 desktop app folder, passes the question and the current observation on stdin, and
-streams the answer back as an event. IdleWarden stores no key and holds no
+returns the answer as an event as each message completes. IdleWarden stores no key and holds no
 account: the user's own login decides who is billed and what leaves the machine.
 When Claude Code is missing or signed out, the chat says so and nothing else
 changes.
@@ -56,6 +56,8 @@ window is a normal window and takes focus like any other.
 
 * One session id is kept per app run, so a conversation continues until the user
   resets it.
+* Resuming a session means Claude Code keeps the conversation, game signals
+  included, in its own transcript store under the user's home folder.
 * The observation is sent as it is, truncated to a fixed size. A plugin that
   puts something private in a signal puts it in the prompt.
 * An assistant that edits a mod and rebuilds it is a different feature with a

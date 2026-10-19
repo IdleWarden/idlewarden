@@ -29,6 +29,7 @@ pub struct Assistant {
     session_id: Mutex<Option<String>>,
     generation: AtomicU64,
     busy: Arc<AtomicBool>,
+    executable: Mutex<Option<PathBuf>>,
 }
 
 impl Assistant {
@@ -199,19 +200,31 @@ pub fn bundled_candidates(app_data: &Path) -> Vec<PathBuf> {
     found.into_iter().map(|(_, exe)| exe).collect()
 }
 
+const PROBE_TIMEOUT: Duration = Duration::from_secs(5);
+
 fn is_claude_code(executable: &Path) -> bool {
-    Command::new(executable)
-        .arg("--version")
-        .stdin(Stdio::null())
-        .output()
-        .map(|output| {
-            output.status.success()
-                && String::from_utf8_lossy(&output.stdout).contains("Claude Code")
-        })
-        .unwrap_or(false)
+    let mut command = Command::new(executable);
+    command.arg("--version");
+    let mut banner = String::new();
+    let Ok(exit) = run_child(command, "", PROBE_TIMEOUT, |line| banner.push_str(line)) else {
+        return false;
+    };
+    !exit.timed_out && banner.contains("Claude Code")
 }
 
-fn locate_claude() -> Option<PathBuf> {
+fn locate_claude(assistant: &Assistant) -> Option<PathBuf> {
+    let mut cached = assistant
+        .executable
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    if let Some(path) = cached.as_ref().filter(|path| is_claude_code(path)) {
+        return Some(path.clone());
+    }
+    *cached = find_claude();
+    cached.clone()
+}
+
+fn find_claude() -> Option<PathBuf> {
     let mut candidates = Vec::new();
     if let Some(app_data) = std::env::var_os("APPDATA") {
         candidates.extend(bundled_candidates(Path::new(&app_data)));
@@ -322,6 +335,16 @@ fn run_child(
         }
     }
 
+    while !timed_out {
+        match child.try_wait().map_err(|error| error.to_string())? {
+            Some(_) => break,
+            None if Instant::now() >= deadline => {
+                timed_out = true;
+                let _ = child.kill();
+            }
+            None => std::thread::sleep(Duration::from_millis(20)),
+        }
+    }
     child.wait().map_err(|error| error.to_string())?;
     let stderr = if timed_out {
         String::new()
@@ -338,7 +361,8 @@ fn working_directory() -> Result<PathBuf, String> {
 }
 
 fn ask(app: &AppHandle, args: Vec<String>, prompt: &str, generation: u64) -> Result<(), String> {
-    let executable = locate_claude().ok_or_else(|| {
+    let assistant = app.state::<Assistant>();
+    let executable = locate_claude(&assistant).ok_or_else(|| {
         "Claude Code introuvable. Installe-le et connecte-toi avec `claude` dans un terminal."
             .to_owned()
     })?;
@@ -346,17 +370,20 @@ fn ask(app: &AppHandle, args: Vec<String>, prompt: &str, generation: u64) -> Res
     let mut command = Command::new(executable);
     command.args(args).current_dir(working_directory()?);
 
-    let assistant = app.state::<Assistant>();
+    let mut pending_session = None;
     let mut answered = false;
     let exit = run_child(
         command,
         prompt,
         ANSWER_TIMEOUT,
         |line| match parse_stream_line(line) {
-            Some(StreamLine::Session(id)) => assistant.remember(generation, id),
+            Some(StreamLine::Session(id)) => pending_session = Some(id),
             Some(StreamLine::Text(text)) => emit(app, Reply::Partial { text }),
             Some(StreamLine::Result { ok: true, text }) => {
                 answered = true;
+                if let Some(id) = pending_session.take() {
+                    assistant.remember(generation, id);
+                }
                 emit(app, Reply::Done { text });
             }
             Some(StreamLine::Result { ok: false, text }) => {
@@ -658,6 +685,21 @@ mod tests {
         let mut command = Command::new("sh");
         command.args(["-c", script]);
         command
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn a_child_that_closes_stdout_but_keeps_running_is_killed_at_the_deadline() {
+        let started = Instant::now();
+        let exit = run_child(
+            shell("exec 1>&-; sleep 30"),
+            "",
+            Duration::from_millis(300),
+            |_| {},
+        )
+        .expect("run");
+        assert!(exit.timed_out);
+        assert!(started.elapsed() < Duration::from_secs(10));
     }
 
     #[test]
