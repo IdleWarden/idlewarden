@@ -18,7 +18,12 @@
         à ton Claude Code avec chaque question, et il les garde dans ses transcriptions.
       </p>
     </div>
-    <button type="button" [disabled]="waiting()" (click)="reset()">
+    <button
+      type="button"
+      title="Oublie la conversation. Claude Code garde sa transcription."
+      [disabled]="waiting()"
+      (click)="reset()"
+    >
       Nouvelle conversation
     </button>
   </header>

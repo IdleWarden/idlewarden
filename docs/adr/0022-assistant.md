@@ -63,7 +63,8 @@ window is a normal window and takes focus like any other.
 * Resuming a session means Claude Code keeps the conversation, game signals
   included, in its own transcript store under the user's home folder, in one
   project entry, because every conversation runs in the same app-owned folder
-  (`assistant` under the app's local data directory). The chat hint says so.
+  (`assistant` under the app's local data directory). The chat hint says so. "Nouvelle conversation" only forgets the session id:
+  the transcript stays in Claude Code's history until the user deletes it there.
 * The app trusts any executable that sits where Claude Code installs itself (the
   Claude desktop app folder, then the `PATH`) and prints a "Claude Code"
   version banner. Those folders are writable by the user, so a planted binary
