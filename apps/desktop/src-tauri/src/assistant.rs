@@ -310,7 +310,7 @@ fn forget_executable(assistant: &Assistant) {
 fn find_claude() -> Option<PathBuf> {
     let mut candidates = Vec::new();
     if let Some(app_data) = std::env::var_os("APPDATA") {
-        candidates.extend(bundled_candidates(Path::new(&app_data)));
+        candidates.extend(bundled_candidates(Path::new(&app_data)).into_iter().take(1));
     }
     candidates.push(PathBuf::from("claude"));
     candidates
@@ -676,6 +676,7 @@ fn ask(
         }
     };
 
+    let executable = locate_claude(&assistant).ok_or_else(not_found)?;
     let started = Instant::now();
     let mut launch = |executable: PathBuf| {
         let mut command = Command::new(executable);
@@ -683,7 +684,6 @@ fn ask(
         let budget = ANSWER_TIMEOUT.saturating_sub(started.elapsed());
         run_child(command, prompt, budget, &mut on_line)
     };
-    let executable = locate_claude(&assistant).ok_or_else(not_found)?;
     let exit = match launch(executable) {
         Ok(exit) => exit,
         Err(error) if error.spawn_failed => {
