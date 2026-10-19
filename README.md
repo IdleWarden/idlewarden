@@ -16,6 +16,8 @@ picture feeds an agent that decides and acts: mouse, keyboard, nothing exotic.
 New games are added as plugins; the engine itself never learns about any
 particular game.
 
+Planned modes (the mode switch is not built yet, see ADR-0023):
+
 | Mode | What it does |
 |------|--------------|
 | **Watch** | Reads and says nothing. A switch to silence the Gardien. |
@@ -45,8 +47,9 @@ an advisory plugin presses nothing, and the policy treats it on its own terms.
 
 IdleWarden is **not** designed around defeating anti-cheat systems, and the
 official plugin registry refuses plugins that automate competitive or
-multiplayer titles; advisory plugins are judged separately. That boundary is editorial, not technical: the engine is generic and
-cannot police what people do with it, but what we distribute, we curate. See
+multiplayer titles, and refuses any plugin, advisory or not, for a game with a
+ranked or competitive mode. That boundary is editorial, not technical: the
+engine is generic and cannot police what people do with it, but what we distribute, we curate. See
 [`PLUGIN_POLICY.md`](PLUGIN_POLICY.md).
 
 There is deliberately **no** memory reading, DLL injection or process hooking

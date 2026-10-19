@@ -20,14 +20,18 @@ It is judged separately from a plugin that automates, because it cannot press
 anything. It is accepted when all of these hold:
 
 * The game has no competitive or ranked mode. Cooperative and single-player games
-  qualify, a game with ranked play does not, whatever the plugin does.
+  qualify, a game with ranked play does not, whatever the plugin does. The
+  reviewer checks this against the game's store page and documentation.
 * The publisher's terms or modding policy allow mods and overlays, and the pull
   request cites them. IdleWarden cannot grant that permission, and the manifest
   line is a claim a reviewer checks, not a guarantee.
-* It surfaces nothing the player's own client would not already show them.
+* It surfaces nothing the player's own client would not already show them. The
+  pull request lists every signal the plugin exposes, and the reviewer checks
+  that each one is visible in the game's own interface.
 
 Registry CI will reject an advisory-labelled plugin that declares an intent or
-an input capability, and reviewers reject it until that check exists. Any update
+an input capability (tracked in #112), and reviewers reject it until that check
+exists. Any update
 that changes `intents` or capabilities needs a new review. Everything else in
 this policy still applies to it. A bridge is still a mod the user installs by
 hand, and the registry still does not carry the binary.
@@ -71,11 +75,10 @@ Three layers, in order of strength:
 
 ## Grey areas
 
-Bring them to a discussion thread before writing the plugin. A game with a
-cooperative-only multiplayer mode that wants an automating plugin, a
-single-player game with online leaderboards (an advisory plugin is undecided
-there too, ask first), a game whose terms are silent rather than permissive, these are
-real cases and they get decided individually, in public, and recorded here.
+Bring them to a discussion thread before writing the plugin. Three cases are
+open: a cooperative-only multiplayer game that wants an automating plugin, a
+single-player game with online leaderboards (undecided for advisory plugins
+too), and a game whose terms are silent rather than permissive. They are real cases and they get decided individually, in public, and recorded here.
 
 ## If you disagree with a refusal
 
