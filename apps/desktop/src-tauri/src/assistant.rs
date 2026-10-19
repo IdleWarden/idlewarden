@@ -257,7 +257,7 @@ pub fn bundled_candidates(app_data: &Path) -> Vec<PathBuf> {
     found.into_iter().map(|(_, exe)| exe).collect()
 }
 
-const PROBE_TIMEOUT: Duration = Duration::from_secs(5);
+const PROBE_TIMEOUT: Duration = Duration::from_secs(15);
 const STDERR_GRACE: Duration = Duration::from_secs(2);
 
 fn is_claude_code(executable: &Path) -> bool {
@@ -740,7 +740,7 @@ pub fn assistant_ask(
     plugin: Option<String>,
 ) -> Result<(), String> {
     let Some(busy) = Busy::claim(&assistant) else {
-        return Err("le Gardien est déjà en train de répondre".to_owned());
+        return Err("busy: le Gardien est déjà en train de répondre".to_owned());
     };
 
     let system = system_prompt(&session.plugin_root(), plugin.as_deref());

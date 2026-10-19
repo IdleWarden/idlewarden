@@ -5,9 +5,13 @@ import { listen } from "@tauri-apps/api/event";
 import { SessionService } from "../session/session.service";
 import { AssistantReply, ChatMessage } from "./assistant.model";
 
-const ANSWER_WATCHDOG_MS = 240_000;
+const ANSWER_WATCHDOG_MS = 300_000;
 const MAX_CONTEXT_CHARS = 12_000;
 const BUSY_RETRY_MS = 1_500;
+
+function readable(error: unknown): string {
+  return String(error).replace(/^busy: /, "");
+}
 
 function fitSignals(signals: readonly unknown[]): string {
   let kept = signals.length;
@@ -69,14 +73,14 @@ export class AssistantService {
       try {
         await invoke("assistant_ask", request);
       } catch (first) {
-        if (!String(first).includes("déjà")) {
+        if (!String(first).startsWith("busy:")) {
           throw first;
         }
         await new Promise((resolve) => setTimeout(resolve, BUSY_RETRY_MS));
         await invoke("assistant_ask", request);
       }
     } catch (error) {
-      this.receive({ turn, kind: "failed", message: String(error) });
+      this.receive({ turn, kind: "failed", message: readable(error) });
     }
   }
 
@@ -89,7 +93,7 @@ export class AssistantService {
     } catch (error) {
       this.log.update((all) => [
         ...all,
-        { from: "warden", text: String(error), pending: false, failed: true },
+        { from: "warden", text: readable(error), pending: false, failed: true },
       ]);
       return;
     }
