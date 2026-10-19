@@ -27,7 +27,9 @@ anything. It is accepted when all of these hold:
 * It surfaces nothing the player's own client would not already show them, and
   nothing that gives an advantage over other human players.
 
-Everything else in this policy still applies to it. A bridge is still a mod the
+Registry CI rejects an advisory-labelled plugin that declares an intent or an
+input capability, and any update that changes `intents` or capabilities needs a
+new review. Everything else in this policy still applies to it. A bridge is still a mod the
 user installs by hand, and the registry still does not carry the binary.
 
 ## Refused
