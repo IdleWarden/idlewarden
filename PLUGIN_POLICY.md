@@ -19,9 +19,11 @@ cannot press anything. In this policy a plugin that is not advisory, because it
 declares intents or requests an input capability, is called automating. It is accepted when all of these hold:
 
 * It is advisory: its `intents` list is empty and it requests no input
-  capability (`InputMouse`, `InputKeyboard` or `InputGamepad`), so it can only be
-  observed and talked about. `Capture`, `FsRead`, `Net` and `Bridge` are not
-  input capabilities and stay subject to their own rules. There is no
+  capability, meaning any capability that sends input (today `InputMouse`,
+  `InputKeyboard` and `InputGamepad` in `crates/plugin-api/src/capability.rs`), so
+  it can only be observed and talked about. A new capability that sends input is
+  non-advisory by default. `Capture`, `FsRead`, `Net` and `Bridge` are not input
+  capabilities and stay subject to their own rules. There is no
   manifest field for this. The reviewer checks it first, in `plugin.json`.
 * The game has no competitive or ranked mode, checked as the Review layer under
   Enforcement describes.
@@ -105,7 +107,8 @@ Three layers, in order of strength:
    check the claim. Until the registry's own copy of this policy is updated
    (tracked in #112), its checks may still refuse `multiplayer: true`
    mechanically. For an advisory plugin that meets the conditions, the reviewer
-   overrides that refusal and says so in the pull request; the author does not
+   overrides that refusal and says so in the pull request, citing the source of
+   the ranked check; the author does not
    need to ask.
 2. **Capabilities.** A plugin declares what it needs. `Unverified` plugins get
    nothing granted silently; network access is never granted silently below
