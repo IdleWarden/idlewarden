@@ -49,10 +49,11 @@ guarantee.
 Any update that changes `intents` or capabilities needs a new review, and until
 #112 lands the reviewer diffs both on every update pull request.
 Everything else in this policy still applies to it. A bridge is still a mod the
-user installs by hand, and the registry still does not carry the binary. A
-bridge only executes the `Intent`s the plugin declares
-([ADR-0014](docs/adr/0014-bridge.md)), so an empty `intents` list leaves it
-nothing to execute.
+user installs by hand, and the registry still does not carry the binary. The Core
+sends a bridge only the `Intent`s built from the plugin's declared intents
+([ADR-0014](docs/adr/0014-bridge.md)), so with an empty list it sends nothing.
+That is how the Core is built, not a registry check, and the reviewer still
+reads the bridge's own source for commands it accepts outside that protocol.
 
 ## Refused
 
