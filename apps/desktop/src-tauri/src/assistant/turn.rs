@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 use super::{exposed_tools, is_resume_failure, parse_stream_line, Reply, StreamLine};
 
 const LOST_NOTE: &str = " La conversation repart de zéro.";
