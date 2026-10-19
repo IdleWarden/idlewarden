@@ -126,7 +126,9 @@ Three layers, in order of strength:
    - the merge comment names it ("advisory override, ranked check: <source>").
 
    #112 is to add an `advisory-override` label so overrides can be listed; it
-   does not exist yet, and until then the merge comment is the only trace. A
+   does not exist yet, and until then the merge comment is the only trace.
+   Maintainers may instead hold such a submission until #112 lands; the override
+   is a permission, not an obligation. A
    cooperative-only game with an automating plugin is never overridden: that
    pull request stays open until the discussion thread decides it, so the
    registry's mechanical refusal keeps applying to it until then, as intended.
