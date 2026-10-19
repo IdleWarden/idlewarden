@@ -34,7 +34,8 @@ installing a plugin: it is a switch the user flips for a session.
 
 **A plugin that cannot act can be advisory.** A plugin whose `intents` list is
 empty and which asks for no input capability can only be observed and talked
-about. [PLUGIN_POLICY](../../PLUGIN_POLICY.md) treats it differently from one
+about; a bridge only executes declared `Intent`s ([ADR-0014](0014-bridge.md)),
+so an empty list gives it nothing to run. [PLUGIN_POLICY](../../PLUGIN_POLICY.md) treats it differently from one
 that automates, because the risk it carries is different.
 
 ## What does not change
