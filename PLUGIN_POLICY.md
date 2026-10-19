@@ -39,35 +39,39 @@ cannot press anything. It is accepted when all of these hold:
   pull request lists every signal the plugin exposes, and the reviewer checks
   that each one is visible in the game's own interface.
 
-These conditions apply whatever the `multiplayer` field says: it is declared
-by the author, so the reviewer checks the ranked or competitive mode against the
+These conditions apply whatever the `multiplayer` field says: the author
+declares it, so the reviewer checks the ranked or competitive mode against the
 game itself and records the answer, with its source, in the pull request.
 
-An advisory plugin that requests `Net` needs the same justification as any
-other plugin that does, and the reviewer checks that it sends no game state
-off the machine beyond what that justification covers. A
-`Bridge` with empty `intents` is the weakest link of the advisory path, since
-only the reviewer reading the mod's source stands between it and commands
-outside the Intent protocol. One that requests `Bridge` or `Net` is reviewed
-as a bridge or network plugin as well: the advisory conditions are in addition to those rules,
-never a replacement.
+Advisory status is derived from the manifest, never declared: there is no
+advisory flag, and `multiplayer` only triggers the ranked check. Registry CI
+will classify a plugin as advisory when its manifest has empty `intents` and no
+input capability, and apply the conditions above to it (tracked in #112). Until
+that check exists, the registry classifies nothing: the reviewer applies the
+conditions by hand, and a plugin that meets them is merged with no automated
+guarantee. When #112 lands, every advisory plugin already in the registry is
+re-checked against it.
 
-Registry CI will classify a plugin as advisory when its manifest has empty
-`intents` and no input capability, and apply the conditions above to it (tracked
-in #112). There is no advisory flag: classification comes only from `intents` and
-capabilities, and `multiplayer` only triggers the ranked check. Until that check exists, the
-registry does not classify anything: the reviewer applies the conditions by
-hand, and a plugin that meets them is merged with no automated guarantee.
-Any update that changes `intents` or capabilities needs a new review, and until
-#112 lands the reviewer who merges an update pull request owns the diff of both, and
-that pull request is not merged without it. When #112 lands, every advisory
-plugin already in the registry is re-checked against it.
-Everything else in this policy still applies to it. A bridge is still a mod the
-user installs by hand, and the registry still does not carry the binary. The Core
-sends a bridge only the `Intent`s built from the plugin's declared intents
-([ADR-0014](docs/adr/0014-bridge.md)), so with an empty list it sends nothing.
-That is how the Core is built, not a registry check, and the reviewer still
-reads the bridge's own source for commands it accepts outside that protocol.
+An update to an advisory plugin needs a new review if it changes `intents` or
+capabilities. Until #112 lands, the reviewer who merges an update pull request
+owns checking that its diff leaves both unchanged or triggers that review, and
+does not merge it otherwise.
+
+An advisory plugin that requests `Net` needs the same justification as any
+other plugin that does, and the reviewer checks that it sends no game state off
+the machine beyond what that justification covers.
+
+An advisory plugin that uses a `Bridge` is reviewed as a bridge plugin as well:
+the advisory conditions are in addition to those rules, never a replacement. A
+bridge is still a mod the user installs by hand, and the registry still does not
+carry the binary. The Core sends a bridge only the `Intent`s built from the
+plugin's declared intents ([ADR-0014](docs/adr/0014-bridge.md)), so with an
+empty list it sends nothing. That is how the Core is built, not a registry
+check. A `Bridge` with empty `intents` is the weakest link of the advisory path,
+because only a human reading the mod's source stands between it and commands
+outside the Intent protocol. The pull request therefore states the full set of
+commands the bridge accepts, and the reviewer verifies that set against the
+source.
 
 ## Refused
 
@@ -95,9 +99,10 @@ Three layers, in order of strength:
    checks whether the game has a ranked or competitive mode on every
    submission; `multiplayer: true` in the manifest is an additional trigger,
    not the only one. A game with such a mode is refused, for every plugin. A
-   cooperative-only game is held until a discussion thread decides it only if
-   the plugin declares intents; an advisory plugin for it goes through the
-   advisory conditions instead. Reviewers check the claim.
+   cooperative-only game is held for a discussion thread if the plugin declares
+   intents, and so is a single-player game with online leaderboards. An
+   advisory plugin for a cooperative-only game goes through the advisory
+   conditions instead. Reviewers check the claim.
 2. **Capabilities.** A plugin declares what it needs. `Unverified` plugins get
    nothing granted silently; network access is never granted silently below
    `Official`.
