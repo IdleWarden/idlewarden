@@ -5,7 +5,7 @@ import { listen } from "@tauri-apps/api/event";
 import { SessionService } from "../session/session.service";
 import { AssistantReply, ChatMessage } from "./assistant.model";
 
-const ANSWER_WATCHDOG_MS = 200_000;
+const ANSWER_WATCHDOG_MS = 240_000;
 
 @Injectable({ providedIn: "root" })
 export class AssistantService {
@@ -62,7 +62,11 @@ export class AssistantService {
     }
     try {
       await invoke("assistant_reset");
-    } catch {
+    } catch (error) {
+      this.log.update((all) => [
+        ...all,
+        { from: "warden", text: String(error), pending: false, failed: true },
+      ]);
       return;
     }
     this.log.set([]);
