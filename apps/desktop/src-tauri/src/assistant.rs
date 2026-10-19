@@ -123,6 +123,27 @@ pub enum StreamLine {
     Result { ok: bool, text: String },
 }
 
+pub fn exposed_tools(line: &str) -> Vec<String> {
+    let Ok(value) = serde_json::from_str::<serde_json::Value>(line.trim()) else {
+        return Vec::new();
+    };
+    let is_init = value.get("type").and_then(|t| t.as_str()) == Some("system")
+        && value.get("subtype").and_then(|t| t.as_str()) == Some("init");
+    if !is_init {
+        return Vec::new();
+    }
+    value
+        .get("tools")
+        .and_then(|tools| tools.as_array())
+        .map(|tools| {
+            tools
+                .iter()
+                .filter_map(|tool| tool.as_str().map(str::to_owned))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 pub fn parse_stream_line(line: &str) -> Option<StreamLine> {
     let value: serde_json::Value = serde_json::from_str(line.trim()).ok()?;
     match value.get("type")?.as_str()? {
@@ -199,7 +220,13 @@ pub fn build_prompt(context: &str, text: &str) -> String {
 pub fn compare_versions(a: &str, b: &str) -> Ordering {
     let parse = |v: &str| -> Vec<u64> {
         v.split('.')
-            .map(|part| part.parse::<u64>().unwrap_or(0))
+            .map(|part| {
+                part.chars()
+                    .take_while(char::is_ascii_digit)
+                    .collect::<String>()
+                    .parse::<u64>()
+                    .unwrap_or(0)
+            })
             .collect()
     };
     let (left, right) = (parse(a), parse(b));
@@ -510,44 +537,65 @@ fn ask(
     let mut pending_session = None;
     let mut shown = String::new();
     let mut verdict: Option<Reply> = None;
-    let mut on_line = |line: &str| match parse_stream_line(line) {
-        Some(StreamLine::Session(id)) => pending_session = Some(id),
-        Some(StreamLine::Text(text)) => {
-            if !shown.is_empty() {
-                shown.push_str("\n\n");
-            }
-            shown.push_str(&text);
-            emit(
-                app,
-                turn,
-                Reply::Partial {
-                    text: shown.clone(),
-                },
-            );
+    let mut blocked = false;
+    let mut on_line = |line: &str| {
+        if blocked {
+            return;
         }
-        Some(StreamLine::Result { ok: true, text }) => {
-            if let Some(id) = pending_session.take() {
-                assistant.remember(generation, id);
-            }
-            let text = if shown.trim().is_empty() {
-                text
-            } else {
-                shown.clone()
-            };
-            verdict = Some(Reply::Done { text });
-        }
-        Some(StreamLine::Result { ok: false, text }) => {
-            let note = drop_session(&text);
-            let message = if text.trim().is_empty() {
-                "Claude a répondu par une erreur sans détail.".to_owned()
-            } else {
-                text
-            };
+        let tools = exposed_tools(line);
+        if !tools.is_empty() {
+            blocked = true;
             verdict = Some(Reply::Failed {
-                message: format!("{message}{note}"),
+                message: format!(
+                    "Claude Code expose des outils ({}) malgré --tools vide, le Gardien s'arrête.",
+                    tools.join(", ")
+                ),
             });
+            let running = RUNNING_CHILD.load(AtomicOrdering::SeqCst);
+            if running != 0 {
+                kill_pid(running);
+            }
+            return;
         }
-        None => {}
+        match parse_stream_line(line) {
+            Some(StreamLine::Session(id)) => pending_session = Some(id),
+            Some(StreamLine::Text(text)) => {
+                if !shown.is_empty() {
+                    shown.push_str("\n\n");
+                }
+                shown.push_str(&text);
+                emit(
+                    app,
+                    turn,
+                    Reply::Partial {
+                        text: shown.clone(),
+                    },
+                );
+            }
+            Some(StreamLine::Result { ok: true, text }) => {
+                if let Some(id) = pending_session.take() {
+                    assistant.remember(generation, id);
+                }
+                let text = if shown.trim().is_empty() {
+                    text
+                } else {
+                    shown.clone()
+                };
+                verdict = Some(Reply::Done { text });
+            }
+            Some(StreamLine::Result { ok: false, text }) => {
+                let note = drop_session(&text);
+                let message = if text.trim().is_empty() {
+                    "Claude a répondu par une erreur sans détail.".to_owned()
+                } else {
+                    text
+                };
+                verdict = Some(Reply::Failed {
+                    message: format!("{message}{note}"),
+                });
+            }
+            None => {}
+        }
     };
 
     let mut launch = |executable: PathBuf| {
@@ -871,6 +919,26 @@ mod tests {
         let next = assistant.scratch_path().expect("next");
         assert_ne!(next, first);
         assistant.reset();
+    }
+
+    #[test]
+    fn a_pre_release_suffix_does_not_make_a_version_older() {
+        assert_eq!(
+            compare_versions("1.2.300-beta", "1.2.299"),
+            Ordering::Greater
+        );
+        assert_eq!(compare_versions("1.2.3", "1.2.3-rc1"), Ordering::Equal);
+    }
+
+    #[test]
+    fn exposed_tools_are_read_from_the_init_line_only() {
+        let init = r#"{"type":"system","subtype":"init","session_id":"a","tools":["Bash","Read"]}"#;
+        assert_eq!(exposed_tools(init), vec!["Bash", "Read"]);
+        let empty = r#"{"type":"system","subtype":"init","session_id":"a","tools":[]}"#;
+        assert!(exposed_tools(empty).is_empty());
+        assert!(exposed_tools(r#"{"type":"system","subtype":"init","session_id":"a"}"#).is_empty());
+        assert!(exposed_tools(r#"{"type":"assistant","tools":["Bash"]}"#).is_empty());
+        assert!(exposed_tools("not json").is_empty());
     }
 
     #[test]
