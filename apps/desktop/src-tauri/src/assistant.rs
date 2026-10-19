@@ -454,7 +454,8 @@ fn run_child(
     }
 
     let mut child = command.spawn().map_err(RunError::spawn)?;
-    RUNNING_CHILD.store(child.id(), AtomicOrdering::SeqCst);
+    let pid = child.id();
+    RUNNING_CHILD.store(pid, AtomicOrdering::SeqCst);
     if let Some(mut stdin) = child.stdin.take() {
         let prompt = prompt.to_owned();
         std::thread::spawn(move || {
@@ -514,7 +515,7 @@ fn run_child(
         }
     }
     let waited = child.wait();
-    RUNNING_CHILD.store(0, AtomicOrdering::SeqCst);
+    let _ = RUNNING_CHILD.compare_exchange(pid, 0, AtomicOrdering::SeqCst, AtomicOrdering::SeqCst);
     waited.map_err(RunError::other)?;
     let stderr = if timed_out {
         String::new()

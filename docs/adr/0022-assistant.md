@@ -65,9 +65,14 @@ window is a normal window and takes focus like any other.
   included, in its own transcript store under the user's home folder, in one
   project entry per conversation because each runs in its own temporary
   directory. The chat hint says so.
+* The app trusts any executable that sits where Claude Code installs itself (the
+  Claude desktop app folder, then the `PATH`) and prints a "Claude Code"
+  version banner. Those folders are writable by the user, so a planted binary
+  would receive the prompt and the signals; this is accepted, since such a
+  program already runs with the user's rights.
 * Because `--setting-sources user` stays, the user's own settings and memory
   (`CLAUDE.md`, `env`, permission rules) apply to the Gardien as they would to
-  any Claude Code run.
+  any Claude Code run, so answers are not reproducible across users.
 * The observation is sent as it is, truncated to a fixed size. A plugin that
   puts something private in a signal puts it in the prompt.
 * An assistant that edits a mod and rebuilds it is a different feature with a
