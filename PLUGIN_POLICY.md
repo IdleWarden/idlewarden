@@ -39,7 +39,11 @@ cannot press anything. It is accepted when all of these hold:
 
 These conditions apply whatever the `multiplayer` field says: it is declared
 by the author, so the reviewer checks the ranked or competitive mode against the
-game itself.
+game itself and records the answer, with its source, in the pull request.
+
+An advisory plugin that requests `Bridge` or `Net` is reviewed as a bridge or
+network plugin as well: the advisory conditions are in addition to those rules,
+never a replacement.
 
 Registry CI will reject a plugin submitted as advisory that declares an intent or
 an input capability (tracked in #112). Until that check exists, the registry
