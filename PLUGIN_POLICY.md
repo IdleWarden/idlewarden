@@ -15,7 +15,9 @@ curate is what we ship.
 ## Advisory plugins
 
 This section and the advisory wording under Refused, the Review layer and Grey
-areas apply from the merge that introduces them, which is also what accepts
+areas apply from the merge into the default branch that introduces them (this
+change stacks on the assistant change and merges after it), which is also what
+accepts
 [ADR-0023](docs/adr/0023-companion-first.md).
 An advisory plugin is judged separately from one that automates, because it
 cannot press anything. It is accepted when all of these hold:
@@ -84,9 +86,10 @@ reads the bridge's own source for commands it accepts outside that protocol.
 
 Three layers, in order of strength:
 
-1. **Review.** Every registry submission is a pull request. `multiplayer: true`
-   in the manifest triggers a check of whether the game has a ranked or
-   competitive mode. A game with such a mode is refused, for every plugin. A
+1. **Review.** Every registry submission is a pull request. The reviewer
+   checks whether the game has a ranked or competitive mode on every
+   submission; `multiplayer: true` in the manifest is an additional trigger,
+   not the only one. A game with such a mode is refused, for every plugin. A
    cooperative-only game is held until a discussion thread decides it only if
    the plugin declares intents; an advisory plugin for it goes through the
    advisory conditions instead. Reviewers check the claim.
