@@ -85,6 +85,11 @@ pub fn run() {
             assistant::assistant_ask,
             assistant::assistant_reset
         ])
-        .run(tauri::generate_context!())
-        .expect("the tauri runtime failed to start");
+        .build(tauri::generate_context!())
+        .expect("the tauri runtime failed to start")
+        .run(|app, event| {
+            if let tauri::RunEvent::Exit = event {
+                assistant::shutdown(&tauri::Manager::state::<assistant::Assistant>(app));
+            }
+        });
 }

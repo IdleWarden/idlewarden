@@ -449,7 +449,7 @@ fn ask(app: &AppHandle, args: Vec<String>, prompt: &str, generation: u64) -> Res
 
     let mut pending_session = None;
     let mut shown = String::new();
-    let mut answered = false;
+    let mut verdict: Option<Reply> = None;
     let result = run_child(
         command,
         prompt,
@@ -469,21 +469,19 @@ fn ask(app: &AppHandle, args: Vec<String>, prompt: &str, generation: u64) -> Res
                 );
             }
             Some(StreamLine::Result { ok: true, text }) => {
-                answered = true;
                 if let Some(id) = pending_session.take() {
                     assistant.remember(generation, id);
                 }
-                emit(app, Reply::Done { text });
+                verdict = Some(Reply::Done { text });
             }
             Some(StreamLine::Result { ok: false, text }) => {
-                answered = true;
                 assistant.forget(generation);
                 let message = if text.trim().is_empty() {
                     "Claude a répondu par une erreur sans détail.".to_owned()
                 } else {
                     text
                 };
-                emit(app, Reply::Failed { message });
+                verdict = Some(Reply::Failed { message });
             }
             None => {}
         },
@@ -496,7 +494,8 @@ fn ask(app: &AppHandle, args: Vec<String>, prompt: &str, generation: u64) -> Res
         }
     };
 
-    if answered {
+    if let Some(reply) = verdict {
+        emit(app, reply);
         return Ok(());
     }
     assistant.forget(generation);
@@ -546,6 +545,10 @@ pub fn assistant_ask(
         }
     });
     Ok(())
+}
+
+pub fn shutdown(assistant: &Assistant) {
+    assistant.reset();
 }
 
 #[tauri::command]
