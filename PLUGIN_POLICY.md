@@ -30,11 +30,11 @@ anything. It is accepted when all of these hold:
   that each one is visible in the game's own interface.
 
 Registry CI will reject an advisory-labelled plugin that declares an intent or
-an input capability (tracked in #112), and reviewers reject it until that check
-exists. Any update
-that changes `intents` or capabilities needs a new review. Everything else in
-this policy still applies to it. A bridge is still a mod the user installs by
-hand, and the registry still does not carry the binary.
+an input capability (tracked in #112); until that check exists, reviewers
+check it by hand. Any update that changes `intents` or capabilities needs a new
+review. Everything else in this policy still applies to it. A bridge is still a
+mod the user installs by hand, and the registry still does not carry the
+binary.
 
 ## Refused
 
@@ -58,8 +58,8 @@ hand, and the registry still does not carry the binary.
 Three layers, in order of strength:
 
 1. **Review.** Every registry submission is a pull request. `multiplayer: true`
-   in the manifest is an automatic refusal for a plugin that automates, and
-   reviewers check the claim. For an advisory plugin it is not an approval
+   in the manifest is a refusal for a plugin that automates unless the game is
+   cooperative-only (see Grey areas), and reviewers check the claim. For an advisory plugin it is not an approval
    either: co-op games set it too, so it triggers a check of whether the game
    has a ranked or competitive mode, and the plugin is refused if it does.
 2. **Capabilities.** A plugin declares what it needs. `Unverified` plugins get
@@ -78,7 +78,8 @@ Three layers, in order of strength:
 Bring them to a discussion thread before writing the plugin. Three cases are
 open: a cooperative-only multiplayer game that wants an automating plugin, a
 single-player game with online leaderboards (undecided for advisory plugins
-too), and a game whose terms are silent rather than permissive. They are real cases and they get decided individually, in public, and recorded here.
+too), and a game whose terms are silent rather than permissive. They are real
+cases and they get decided individually, in public, and recorded here.
 
 ## If you disagree with a refusal
 
