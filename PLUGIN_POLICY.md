@@ -50,10 +50,13 @@ guarantee. When #112 lands, every advisory plugin already in the registry is
 re-checked against it.
 
 An update to an advisory plugin needs a new review if it changes `intents`,
-capabilities or, for a bridge, the accepted command set, which the update pull
-request re-states and the reviewer re-verifies against the source. Until #112 lands, the reviewer who merges an update pull request
-owns checking that its diff leaves both unchanged or triggers that review, and
-does not merge it otherwise.
+capabilities, the list of exposed signals or, for a bridge, the accepted command
+set. The update pull request re-states the signal list and the command set, and
+the reviewer compares them with the previous ones and re-verifies the commands
+against the source. The ranked or competitive check is repeated on any update
+that touches `multiplayer` or the game ID, and existing entries are rechecked
+when a game's ranked status changes. Until #112 lands, the reviewer who merges
+an update pull request owns these checks and does not merge it otherwise.
 
 An advisory plugin that requests `Net` needs the same justification as any
 other plugin that does, and the reviewer checks that it sends no game state off
