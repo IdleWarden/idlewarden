@@ -14,10 +14,15 @@ slow on purpose, and nobody expects it to press anything.
 
 ## Decision
 
-**The assistant is a chat that reads the live signals and answers in text.** It
-has no tools: the command line it starts passes `--tools ""`, so the model
-cannot read a file, run a command or send an `Intent`. Nothing it says reaches
-the Governor, because nothing it says is a command ([ADR-0009](0009-governor.md)).
+**The assistant is a chat that reads the live signals and answers in text.** The
+command line it starts passes `--tools ""` (no built-in tools),
+`--strict-mcp-config` (no MCP servers), `--disable-slash-commands` and
+`--setting-sources user` (no project settings), and runs in an empty temporary
+directory. The model cannot read a file, run a command or send an `Intent`, and
+nothing it says reaches the Governor, because nothing it says is a command
+([ADR-0009](0009-governor.md)). The user's own Claude Code settings and hooks
+still load, since `--bare` would require API-key authentication; they are the
+user's, not the plugin's.
 
 **Its backend is the Claude Code installation the user already has.** The desktop
 app starts the `claude` executable it finds on the `PATH` or in the Claude

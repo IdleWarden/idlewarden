@@ -15,7 +15,9 @@
       <h1>Le Gardien</h1>
       <p class="hint">Il lit les signaux du jeu et te dit quoi faire ensuite.</p>
     </div>
-    <button type="button" (click)="reset()">Nouvelle conversation</button>
+    <button type="button" [disabled]="waiting()" (click)="reset()">
+      Nouvelle conversation
+    </button>
   </header>
 
   <ol class="log" aria-live="polite">
@@ -34,7 +36,7 @@
       #input
       rows="2"
       placeholder="Que dois-je faire maintenant ?"
-      (keydown.enter)="$event.preventDefault(); send(input)"
+      (keydown.enter)="onEnter($any($event), input)"
     ></textarea>
     <button type="submit" [disabled]="waiting()">Envoyer</button>
   </form>

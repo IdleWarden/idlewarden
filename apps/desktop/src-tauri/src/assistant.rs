@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MPL-2.0
 use std::cmp::Ordering;
 use std::fs;
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
-use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering as AtomicOrdering};
+use std::sync::{mpsc, Mutex};
+use std::time::{Duration, Instant};
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -14,7 +15,8 @@ use crate::session::SessionHandle;
 
 const EVENT: &str = "assistant";
 const MAX_CONTEXT_CHARS: usize = 12_000;
-const NO_WINDOW: u32 = 0x0800_0000;
+const MAX_PLUGIN_PROMPT_BYTES: u64 = 16 * 1024;
+const ANSWER_TIMEOUT: Duration = Duration::from_secs(180);
 
 const PERSONA: &str = "You are IdleWarden, the Warden: a small pixel owl guardian who watches over the player's game from an overlay.\n\
 Speak as the Warden in the first person, calm, dry and watchful, in short sentences. Call the player 'toi'. Do not use emojis.\n\
@@ -25,7 +27,54 @@ If the player sincerely asks what you are, say you are IdleWarden the Warden, po
 #[derive(Default)]
 pub struct Assistant {
     session_id: Mutex<Option<String>>,
+    generation: AtomicU64,
     busy: AtomicBool,
+}
+
+impl Assistant {
+    fn resume_id(&self) -> Option<String> {
+        self.session_id
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clone()
+    }
+
+    fn generation(&self) -> u64 {
+        self.generation.load(AtomicOrdering::SeqCst)
+    }
+
+    fn remember(&self, generation: u64, id: String) {
+        let mut slot = self
+            .session_id
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if self.generation() == generation {
+            *slot = Some(id);
+        }
+    }
+
+    fn reset(&self) {
+        let mut slot = self
+            .session_id
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        self.generation.fetch_add(1, AtomicOrdering::SeqCst);
+        *slot = None;
+    }
+}
+
+struct Busy<'a>(&'a Assistant);
+
+impl<'a> Busy<'a> {
+    fn claim(assistant: &'a Assistant) -> Option<Self> {
+        (!assistant.busy.swap(true, AtomicOrdering::SeqCst)).then_some(Busy(assistant))
+    }
+}
+
+impl Drop for Busy<'_> {
+    fn drop(&mut self) {
+        self.0.busy.store(false, AtomicOrdering::SeqCst);
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -85,6 +134,10 @@ pub fn build_args(system_prompt: &str, session_id: Option<&str>) -> Vec<String> 
         "--verbose".to_owned(),
         "--tools".to_owned(),
         String::new(),
+        "--strict-mcp-config".to_owned(),
+        "--disable-slash-commands".to_owned(),
+        "--setting-sources".to_owned(),
+        "user".to_owned(),
         "--append-system-prompt".to_owned(),
         system_prompt.to_owned(),
     ];
@@ -179,10 +232,18 @@ pub fn plugin_prompt(plugin_root: &Path, plugin_id: &str) -> Option<String> {
                     .map(str::to_owned)
             });
         if id.as_deref() == Some(plugin_id) {
-            return fs::read_to_string(entry.path().join("assistant.md")).ok();
+            return read_plain_file(&entry.path().join("assistant.md"));
         }
     }
     None
+}
+
+fn read_plain_file(path: &Path) -> Option<String> {
+    let metadata = fs::symlink_metadata(path).ok()?;
+    if !metadata.file_type().is_file() || metadata.len() > MAX_PLUGIN_PROMPT_BYTES {
+        return None;
+    }
+    fs::read_to_string(path).ok()
 }
 
 fn system_prompt(plugin_root: &Path, plugin: Option<&str>) -> String {
@@ -198,43 +259,99 @@ fn emit(app: &AppHandle, reply: Reply) {
     }
 }
 
-fn ask(app: &AppHandle, args: Vec<String>, prompt: String) -> Result<(), String> {
-    let executable = locate_claude().ok_or_else(|| {
-        "Claude Code introuvable. Installe-le et connecte-toi avec `claude` dans un terminal."
-            .to_owned()
-    })?;
+#[derive(Debug)]
+struct Exit {
+    timed_out: bool,
+    stderr: String,
+}
 
-    let mut command = Command::new(executable);
+fn run_child(
+    mut command: Command,
+    prompt: &str,
+    timeout: Duration,
+    mut on_line: impl FnMut(&str),
+) -> Result<Exit, String> {
     command
-        .args(args)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
+        const NO_WINDOW: u32 = 0x0800_0000;
         command.creation_flags(NO_WINDOW);
     }
 
     let mut child = command.spawn().map_err(|error| error.to_string())?;
-    child
-        .stdin
-        .take()
-        .ok_or("stdin unavailable")?
-        .write_all(prompt.as_bytes())
-        .map_err(|error| error.to_string())?;
+    if let Some(mut stdin) = child.stdin.take() {
+        let _ = stdin.write_all(prompt.as_bytes());
+    }
 
     let stdout = child.stdout.take().ok_or("stdout unavailable")?;
+    let (lines, incoming) = mpsc::channel::<String>();
+    std::thread::spawn(move || {
+        for line in BufReader::new(stdout).lines().map_while(Result::ok) {
+            if lines.send(line).is_err() {
+                break;
+            }
+        }
+    });
+
+    let stderr = child.stderr.take();
+    let drain = std::thread::spawn(move || {
+        let mut text = String::new();
+        if let Some(mut pipe) = stderr {
+            let _ = pipe.read_to_string(&mut text);
+        }
+        text
+    });
+
+    let deadline = Instant::now() + timeout;
+    let mut timed_out = false;
+    loop {
+        match incoming.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
+            Ok(line) => on_line(&line),
+            Err(mpsc::RecvTimeoutError::Timeout) => {
+                timed_out = true;
+                let _ = child.kill();
+                break;
+            }
+            Err(mpsc::RecvTimeoutError::Disconnected) => break,
+        }
+    }
+
+    child.wait().map_err(|error| error.to_string())?;
+    let stderr = if timed_out {
+        String::new()
+    } else {
+        drain.join().unwrap_or_default()
+    };
+    Ok(Exit { timed_out, stderr })
+}
+
+fn working_directory() -> Result<PathBuf, String> {
+    let dir = std::env::temp_dir().join("idlewarden-assistant");
+    fs::create_dir_all(&dir).map_err(|error| error.to_string())?;
+    Ok(dir)
+}
+
+fn ask(app: &AppHandle, args: Vec<String>, prompt: &str, generation: u64) -> Result<(), String> {
+    let executable = locate_claude().ok_or_else(|| {
+        "Claude Code introuvable. Installe-le et connecte-toi avec `claude` dans un terminal."
+            .to_owned()
+    })?;
+
+    let mut command = Command::new(executable);
+    command.args(args).current_dir(working_directory()?);
+
     let assistant = app.state::<Assistant>();
     let mut answered = false;
-    for line in BufReader::new(stdout).lines().map_while(Result::ok) {
-        match parse_stream_line(&line) {
-            Some(StreamLine::Session(id)) => {
-                *assistant
-                    .session_id
-                    .lock()
-                    .unwrap_or_else(|p| p.into_inner()) = Some(id);
-            }
+    let exit = run_child(
+        command,
+        prompt,
+        ANSWER_TIMEOUT,
+        |line| match parse_stream_line(line) {
+            Some(StreamLine::Session(id)) => assistant.remember(generation, id),
             Some(StreamLine::Text(text)) => emit(app, Reply::Partial { text }),
             Some(StreamLine::Result { ok: true, text }) => {
                 answered = true;
@@ -245,21 +362,22 @@ fn ask(app: &AppHandle, args: Vec<String>, prompt: String) -> Result<(), String>
                 emit(app, Reply::Failed { message: text });
             }
             None => {}
-        }
-    }
+        },
+    )?;
 
-    let status = child.wait().map_err(|error| error.to_string())?;
     if answered {
         return Ok(());
     }
-    let mut stderr = String::new();
-    if let Some(mut pipe) = child.stderr.take() {
-        let _ = std::io::Read::read_to_string(&mut pipe, &mut stderr);
+    if exit.timed_out {
+        return Err(format!(
+            "Claude n'a pas répondu en {} secondes.",
+            ANSWER_TIMEOUT.as_secs()
+        ));
     }
-    Err(if stderr.trim().is_empty() {
-        format!("Claude s'est arrêté sans répondre ({status}). Vérifie que tu es connecté.")
+    Err(if exit.stderr.trim().is_empty() {
+        "Claude s'est arrêté sans répondre. Vérifie que tu es connecté.".to_owned()
     } else {
-        stderr.trim().to_owned()
+        exit.stderr.trim().to_owned()
     })
 }
 
@@ -272,36 +390,28 @@ pub fn assistant_ask(
     context: String,
     plugin: Option<String>,
 ) -> Result<(), String> {
-    if assistant.busy.swap(true, AtomicOrdering::SeqCst) {
+    if Busy::claim(&assistant).is_none() {
         return Err("le Gardien est déjà en train de répondre".to_owned());
     }
 
     let system = system_prompt(&session.plugin_root(), plugin.as_deref());
-    let resume = assistant
-        .session_id
-        .lock()
-        .unwrap_or_else(|p| p.into_inner())
-        .clone();
-    let args = build_args(&system, resume.as_deref());
+    let generation = assistant.generation();
+    let args = build_args(&system, assistant.resume_id().as_deref());
     let prompt = build_prompt(&context, &text);
 
     std::thread::spawn(move || {
-        if let Err(message) = ask(&app, args, prompt) {
+        let assistant = app.state::<Assistant>();
+        let _busy = Busy(&assistant);
+        if let Err(message) = ask(&app, args, &prompt, generation) {
             emit(&app, Reply::Failed { message });
         }
-        app.state::<Assistant>()
-            .busy
-            .store(false, AtomicOrdering::SeqCst);
     });
     Ok(())
 }
 
 #[tauri::command]
 pub fn assistant_reset(assistant: State<'_, Assistant>) {
-    *assistant
-        .session_id
-        .lock()
-        .unwrap_or_else(|p| p.into_inner()) = None;
+    assistant.reset();
 }
 
 #[cfg(test)]
@@ -361,13 +471,20 @@ mod tests {
     }
 
     #[test]
-    fn the_assistant_has_no_tools() {
+    fn the_assistant_has_no_tools_no_mcp_servers_and_no_project_settings() {
         let args = build_args("system", None);
         let at = args
             .iter()
             .position(|arg| arg == "--tools")
             .expect("a --tools flag");
         assert_eq!(args[at + 1], "");
+        assert!(args.contains(&"--strict-mcp-config".to_owned()));
+        assert!(args.contains(&"--disable-slash-commands".to_owned()));
+        let sources = args
+            .iter()
+            .position(|arg| arg == "--setting-sources")
+            .expect("a setting sources flag");
+        assert_eq!(args[sources + 1], "user");
     }
 
     #[test]
@@ -455,5 +572,114 @@ mod tests {
         assert!(with_plugin.starts_with("You are IdleWarden"));
         assert!(with_plugin.ends_with("Parle de ce jeu."));
         assert_eq!(system_prompt(&root, None), PERSONA);
+    }
+
+    #[test]
+    fn a_session_id_arriving_after_a_reset_is_dropped() {
+        let assistant = Assistant::default();
+        let started = assistant.generation();
+        assistant.remember(started, "first".to_owned());
+        assert_eq!(assistant.resume_id().as_deref(), Some("first"));
+
+        assistant.reset();
+        assert_eq!(assistant.resume_id(), None);
+        assistant.remember(started, "late".to_owned());
+        assert_eq!(assistant.resume_id(), None);
+        assistant.remember(assistant.generation(), "next".to_owned());
+        assert_eq!(assistant.resume_id().as_deref(), Some("next"));
+    }
+
+    #[test]
+    fn a_second_request_cannot_claim_the_assistant_until_the_first_is_dropped() {
+        let assistant = Assistant::default();
+        let first = Busy::claim(&assistant).expect("the first claim");
+        assert!(Busy::claim(&assistant).is_none());
+        drop(first);
+        assert!(Busy::claim(&assistant).is_some());
+    }
+
+    #[test]
+    fn a_plugin_prompt_past_the_size_cap_is_refused() {
+        let root = scratch("cap");
+        let folder = root.join("game");
+        fs::create_dir_all(&folder).expect("plugin dir");
+        fs::write(folder.join("plugin.json"), r#"{"id":"dev.example.game"}"#).expect("manifest");
+        fs::write(
+            folder.join("assistant.md"),
+            "x".repeat(MAX_PLUGIN_PROMPT_BYTES as usize + 1),
+        )
+        .expect("prompt");
+        assert_eq!(plugin_prompt(&root, "dev.example.game"), None);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_plugin_prompt_that_is_a_symlink_is_refused() {
+        let root = scratch("link");
+        let folder = root.join("game");
+        fs::create_dir_all(&folder).expect("plugin dir");
+        fs::write(folder.join("plugin.json"), r#"{"id":"dev.example.game"}"#).expect("manifest");
+        let secret = root.join("secret.txt");
+        fs::write(&secret, "private").expect("secret");
+        std::os::unix::fs::symlink(&secret, folder.join("assistant.md")).expect("symlink");
+        assert_eq!(plugin_prompt(&root, "dev.example.game"), None);
+    }
+
+    #[cfg(windows)]
+    fn shell(script: &str) -> Command {
+        let mut command = Command::new("cmd");
+        command.args(["/C", script]);
+        command
+    }
+
+    #[cfg(not(windows))]
+    fn shell(script: &str) -> Command {
+        let mut command = Command::new("sh");
+        command.args(["-c", script]);
+        command
+    }
+
+    #[test]
+    fn output_lines_are_delivered_in_order() {
+        #[cfg(windows)]
+        let script = "echo one& echo two";
+        #[cfg(not(windows))]
+        let script = "echo one; echo two";
+
+        let mut seen = Vec::new();
+        let exit = run_child(shell(script), "prompt", Duration::from_secs(20), |line| {
+            seen.push(line.trim().to_owned());
+        })
+        .expect("the child runs");
+        assert_eq!(seen, ["one", "two"]);
+        assert!(!exit.timed_out);
+    }
+
+    #[test]
+    fn a_child_that_never_answers_is_killed_at_the_deadline() {
+        #[cfg(windows)]
+        let script = "ping -n 30 127.0.0.1 >nul";
+        #[cfg(not(windows))]
+        let script = "sleep 30";
+
+        let started = Instant::now();
+        let exit = run_child(shell(script), "", Duration::from_millis(300), |_| {})
+            .expect("the child runs");
+        assert!(exit.timed_out);
+        assert!(started.elapsed() < Duration::from_secs(15));
+    }
+
+    #[test]
+    fn a_child_filling_stderr_does_not_block_the_reader() {
+        #[cfg(windows)]
+        let script = "for /L %i in (1,1,20000) do @echo xxxxxxxxxxxxxxxxxxxxxxxx 1>&2";
+        #[cfg(not(windows))]
+        let script =
+            "i=0; while [ $i -lt 20000 ]; do echo xxxxxxxxxxxxxxxxxxxxxxxx >&2; i=$((i+1)); done";
+
+        let exit =
+            run_child(shell(script), "", Duration::from_secs(60), |_| {}).expect("the child runs");
+        assert!(!exit.timed_out);
+        assert!(exit.stderr.len() > 100_000);
     }
 }

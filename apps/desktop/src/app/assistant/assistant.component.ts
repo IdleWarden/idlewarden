@@ -25,6 +25,14 @@ export class AssistantComponent {
     inject(DestroyRef).onDestroy(() => void stop.then((unlisten) => unlisten()));
   }
 
+  onEnter(event: KeyboardEvent, input: HTMLTextAreaElement): void {
+    if (event.shiftKey || event.isComposing) {
+      return;
+    }
+    event.preventDefault();
+    void this.send(input);
+  }
+
   async send(input: HTMLTextAreaElement): Promise<void> {
     const text = input.value.trim();
     if (text === "" || this.waiting()) {
@@ -51,6 +59,9 @@ export class AssistantComponent {
   }
 
   async reset(): Promise<void> {
+    if (this.waiting()) {
+      return;
+    }
     await invoke("assistant_reset");
     this.messages.set([]);
   }
