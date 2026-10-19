@@ -5,11 +5,14 @@ import { listen } from "@tauri-apps/api/event";
 import { SessionService } from "../session/session.service";
 import { AssistantReply, ChatMessage } from "./assistant.model";
 
+const ANSWER_WATCHDOG_MS = 200_000;
+
 @Injectable({ providedIn: "root" })
 export class AssistantService {
   private readonly sessions = inject(SessionService);
   private readonly log = signal<readonly ChatMessage[]>([]);
   private readonly pending = signal(false);
+  private watchdog: ReturnType<typeof setTimeout> | undefined;
 
   readonly messages = this.log.asReadonly();
   readonly waiting = this.pending.asReadonly();
@@ -29,6 +32,14 @@ export class AssistantService {
       { from: "warden", text: "...", pending: true, failed: false },
     ]);
     this.pending.set(true);
+    this.watchdog = setTimeout(
+      () =>
+        this.receive({
+          kind: "failed",
+          message: "Le Gardien n'a pas répondu.",
+        }),
+      ANSWER_WATCHDOG_MS,
+    );
 
     try {
       await invoke("assistant_ask", {
@@ -73,6 +84,7 @@ export class AssistantService {
     });
 
     if (reply.kind !== "partial") {
+      clearTimeout(this.watchdog);
       this.pending.set(false);
     }
   }

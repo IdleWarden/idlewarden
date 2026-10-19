@@ -54,6 +54,16 @@ impl Assistant {
         }
     }
 
+    fn forget(&self, generation: u64) {
+        let mut slot = self
+            .session_id
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if self.generation() == generation {
+            *slot = None;
+        }
+    }
+
     fn reset(&self) {
         let mut slot = self
             .session_id
@@ -151,7 +161,13 @@ pub fn build_args(system_prompt: &str, session_id: Option<&str>) -> Vec<String> 
 }
 
 pub fn build_prompt(context: &str, text: &str) -> String {
-    let context: String = context.chars().take(MAX_CONTEXT_CHARS).collect();
+    let mut context: String = context.chars().take(MAX_CONTEXT_CHARS).collect();
+    if context.chars().count() == MAX_CONTEXT_CHARS {
+        context.push_str(
+            "
+[signals truncated]",
+        );
+    }
     let context = if context.trim().is_empty() {
         "no signals available, the game may not be running"
     } else {
@@ -213,15 +229,27 @@ fn is_claude_code(executable: &Path) -> bool {
 }
 
 fn locate_claude(assistant: &Assistant) -> Option<PathBuf> {
-    let mut cached = assistant
+    let cached = assistant
         .executable
         .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
-    if let Some(path) = cached.as_ref().filter(|path| is_claude_code(path)) {
-        return Some(path.clone());
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .clone();
+    if cached.is_some() {
+        return cached;
     }
-    *cached = find_claude();
-    cached.clone()
+    let found = find_claude();
+    *assistant
+        .executable
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner()) = found.clone();
+    found
+}
+
+fn forget_executable(assistant: &Assistant) {
+    *assistant
+        .executable
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
 }
 
 fn find_claude() -> Option<PathBuf> {
@@ -363,7 +391,7 @@ fn working_directory() -> Result<PathBuf, String> {
 fn ask(app: &AppHandle, args: Vec<String>, prompt: &str, generation: u64) -> Result<(), String> {
     let assistant = app.state::<Assistant>();
     let executable = locate_claude(&assistant).ok_or_else(|| {
-        "Claude Code introuvable. Installe-le et connecte-toi avec `claude` dans un terminal."
+        "Claude Code introuvable (seule l'installation avec claude.exe est prise en charge). Installe-le et connecte-toi avec `claude` dans un terminal."
             .to_owned()
     })?;
 
@@ -372,7 +400,7 @@ fn ask(app: &AppHandle, args: Vec<String>, prompt: &str, generation: u64) -> Res
 
     let mut pending_session = None;
     let mut answered = false;
-    let exit = run_child(
+    let result = run_child(
         command,
         prompt,
         ANSWER_TIMEOUT,
@@ -388,15 +416,29 @@ fn ask(app: &AppHandle, args: Vec<String>, prompt: &str, generation: u64) -> Res
             }
             Some(StreamLine::Result { ok: false, text }) => {
                 answered = true;
-                emit(app, Reply::Failed { message: text });
+                assistant.forget(generation);
+                let message = if text.trim().is_empty() {
+                    "Claude a répondu par une erreur sans détail.".to_owned()
+                } else {
+                    text
+                };
+                emit(app, Reply::Failed { message });
             }
             None => {}
         },
-    )?;
+    );
+    let exit = match result {
+        Ok(exit) => exit,
+        Err(error) => {
+            forget_executable(&assistant);
+            return Err(error);
+        }
+    };
 
     if answered {
         return Ok(());
     }
+    assistant.forget(generation);
     if exit.timed_out {
         return Err(format!(
             "Claude n'a pas répondu en {} secondes.",
@@ -430,7 +472,15 @@ pub fn assistant_ask(
 
     std::thread::spawn(move || {
         let _busy = busy;
-        if let Err(message) = ask(&app, args, &prompt, generation) {
+        let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            ask(&app, args, &prompt, generation)
+        }));
+        let failure = match outcome {
+            Ok(Ok(())) => None,
+            Ok(Err(message)) => Some(message),
+            Err(_) => Some("Le Gardien a rencontré une erreur interne.".to_owned()),
+        };
+        if let Some(message) = failure {
             emit(&app, Reply::Failed { message });
         }
     });
@@ -628,6 +678,26 @@ mod tests {
         assert!(Busy::claim(&assistant).is_none());
         drop(first);
         assert!(Busy::claim(&assistant).is_some());
+    }
+
+    #[test]
+    fn a_failed_turn_forgets_the_session_but_a_stale_one_cannot() {
+        let assistant = Assistant::default();
+        let generation = assistant.generation();
+        assistant.remember(generation, "id".to_owned());
+        assistant.reset();
+        assistant.remember(assistant.generation(), "new".to_owned());
+        assistant.forget(generation);
+        assert_eq!(assistant.resume_id().as_deref(), Some("new"));
+        assistant.forget(assistant.generation());
+        assert_eq!(assistant.resume_id(), None);
+    }
+
+    #[test]
+    fn an_oversized_context_is_marked_as_truncated() {
+        let big = "x".repeat(MAX_CONTEXT_CHARS + 10);
+        assert!(build_prompt(&big, "q").contains("[signals truncated]"));
+        assert!(!build_prompt("[]", "q").contains("truncated"));
     }
 
     #[test]
