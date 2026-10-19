@@ -6,6 +6,18 @@ import { SessionService } from "../session/session.service";
 import { AssistantReply, ChatMessage } from "./assistant.model";
 
 const ANSWER_WATCHDOG_MS = 240_000;
+const MAX_CONTEXT_CHARS = 12_000;
+
+function fitSignals(signals: readonly unknown[]): string {
+  let kept = signals.length;
+  while (
+    kept > 0 &&
+    JSON.stringify(signals.slice(0, kept)).length > MAX_CONTEXT_CHARS
+  ) {
+    kept -= 1;
+  }
+  return JSON.stringify(signals.slice(0, kept));
+}
 
 @Injectable({ providedIn: "root" })
 export class AssistantService {
@@ -48,7 +60,7 @@ export class AssistantService {
       await invoke("assistant_ask", {
         turn,
         text,
-        context: JSON.stringify(this.sessions.observation()?.signals ?? []),
+        context: fitSignals(this.sessions.observation()?.signals ?? []),
         plugin: this.sessions.session()?.plugin ?? null,
       });
     } catch (error) {

@@ -647,8 +647,9 @@ fn ask(
 
 fn shorten(detail: &str) -> String {
     const LIMIT: usize = 300;
-    let mut short: String = detail.chars().take(LIMIT).collect();
-    if detail.chars().nth(LIMIT).is_some() {
+    let first_line = detail.lines().next().unwrap_or_default();
+    let mut short: String = first_line.chars().take(LIMIT).collect();
+    if first_line.chars().nth(LIMIT).is_some() || detail.lines().nth(1).is_some() {
         short.push('…');
     }
     short
