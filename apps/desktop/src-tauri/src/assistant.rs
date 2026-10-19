@@ -16,6 +16,7 @@ use crate::session::SessionHandle;
 const EVENT: &str = "assistant";
 const MAX_CONTEXT_CHARS: usize = 12_000;
 const MAX_PLUGIN_PROMPT_BYTES: u64 = 16 * 1024;
+const MAX_PLUGIN_MANIFEST_BYTES: u64 = 256 * 1024;
 const ANSWER_TIMEOUT: Duration = Duration::from_secs(180);
 
 const PERSONA: &str = "You are IdleWarden, the Warden: a small pixel owl guardian who watches over the player's game from an overlay.\n\
@@ -286,7 +287,8 @@ fn find_claude() -> Option<PathBuf> {
 
 pub fn plugin_prompt(plugin_root: &Path, plugin_id: &str) -> Option<String> {
     for entry in fs::read_dir(plugin_root).ok()?.flatten() {
-        let manifest = read_plain_file(&entry.path().join("plugin.json"));
+        let manifest =
+            read_plain_file(&entry.path().join("plugin.json"), MAX_PLUGIN_MANIFEST_BYTES);
         let id = manifest
             .and_then(|text| serde_json::from_str::<serde_json::Value>(&text).ok())
             .and_then(|value| {
@@ -296,15 +298,19 @@ pub fn plugin_prompt(plugin_root: &Path, plugin_id: &str) -> Option<String> {
                     .map(str::to_owned)
             });
         if id.as_deref() == Some(plugin_id) {
-            return read_plain_file(&entry.path().join("assistant.md"));
+            return read_plain_file(&entry.path().join("assistant.md"), MAX_PLUGIN_PROMPT_BYTES);
         }
     }
     None
 }
 
-fn read_plain_file(path: &Path) -> Option<String> {
+fn read_plain_file(path: &Path, max_bytes: u64) -> Option<String> {
     let metadata = fs::symlink_metadata(path).ok()?;
-    if !metadata.file_type().is_file() || metadata.len() > MAX_PLUGIN_PROMPT_BYTES {
+    if !metadata.file_type().is_file() || metadata.len() > max_bytes {
+        tracing::warn!(
+            "assistant: ignoring {}: not a plain file or too large",
+            path.display()
+        );
         return None;
     }
     fs::read_to_string(path).ok()
@@ -472,6 +478,11 @@ fn ask(app: &AppHandle, args: Vec<String>, prompt: &str, generation: u64) -> Res
                 if let Some(id) = pending_session.take() {
                     assistant.remember(generation, id);
                 }
+                let text = if shown.trim().is_empty() {
+                    text
+                } else {
+                    shown.clone()
+                };
                 verdict = Some(Reply::Done { text });
             }
             Some(StreamLine::Result { ok: false, text }) => {
