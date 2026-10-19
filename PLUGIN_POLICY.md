@@ -67,10 +67,11 @@ nothing to execute.
 Three layers, in order of strength:
 
 1. **Review.** Every registry submission is a pull request. `multiplayer: true`
-   in the manifest holds the submission and triggers a check of whether the
-   game has a ranked or competitive mode, for every plugin. A game with such a
-   mode is refused. A cooperative-only game is held until a discussion thread
-   decides it (see Grey areas). Reviewers check the claim.
+   in the manifest triggers a check of whether the game has a ranked or
+   competitive mode. A game with such a mode is refused, for every plugin. A
+   cooperative-only game is held until a discussion thread decides it only if
+   the plugin declares intents; an advisory plugin for it goes through the
+   three advisory conditions instead. Reviewers check the claim.
 2. **Capabilities.** A plugin declares what it needs. `Unverified` plugins get
    nothing granted silently; network access is never granted silently below
    `Official`.
