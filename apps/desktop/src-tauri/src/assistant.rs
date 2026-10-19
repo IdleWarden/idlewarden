@@ -4,7 +4,7 @@ use std::fs;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering as AtomicOrdering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering as AtomicOrdering};
 use std::sync::{mpsc, Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -345,21 +345,31 @@ struct Exit {
     stderr: String,
 }
 
+static RUNNING_CHILD: AtomicU32 = AtomicU32::new(0);
+
 #[cfg(windows)]
-fn kill_tree(child: &mut std::process::Child) {
+fn kill_pid(pid: u32) {
     use std::os::windows::process::CommandExt;
     const NO_WINDOW: u32 = 0x0800_0000;
     let _ = Command::new("taskkill")
-        .args(["/PID", &child.id().to_string(), "/T", "/F"])
+        .args(["/PID", &pid.to_string(), "/T", "/F"])
         .creation_flags(NO_WINDOW)
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .status();
-    let _ = child.kill();
 }
 
 #[cfg(not(windows))]
+fn kill_pid(pid: u32) {
+    let _ = Command::new("kill")
+        .args(["-KILL", &pid.to_string()])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
+}
+
 fn kill_tree(child: &mut std::process::Child) {
+    kill_pid(child.id());
     let _ = child.kill();
 }
 
@@ -381,6 +391,7 @@ fn run_child(
     }
 
     let mut child = command.spawn().map_err(|error| error.to_string())?;
+    RUNNING_CHILD.store(child.id(), AtomicOrdering::SeqCst);
     if let Some(mut stdin) = child.stdin.take() {
         let prompt = prompt.to_owned();
         std::thread::spawn(move || {
@@ -436,7 +447,9 @@ fn run_child(
             None => std::thread::sleep(Duration::from_millis(20)),
         }
     }
-    child.wait().map_err(|error| error.to_string())?;
+    let waited = child.wait();
+    RUNNING_CHILD.store(0, AtomicOrdering::SeqCst);
+    waited.map_err(|error| error.to_string())?;
     let stderr = if timed_out {
         String::new()
     } else {
@@ -477,17 +490,20 @@ fn ask(
     args: Vec<String>,
     prompt: &str,
     generation: u64,
-) -> Result<(), String> {
+) -> Result<Reply, String> {
     let assistant = app.state::<Assistant>();
     let not_found = || {
         "Claude Code introuvable (seule l'installation avec claude.exe est prise en charge). Installe-le et connecte-toi avec `claude` dans un terminal."
             .to_owned()
     };
     let resumed = assistant.resume_id().is_some();
-    let lost = if resumed {
-        " La conversation repart de zéro."
-    } else {
-        ""
+    let drop_session = |detail: &str| {
+        if resumed && is_resume_failure(detail) {
+            assistant.forget(generation);
+            " La conversation repart de zéro."
+        } else {
+            ""
+        }
     };
     let scratch = assistant.scratch_path()?;
 
@@ -521,14 +537,14 @@ fn ask(
             verdict = Some(Reply::Done { text });
         }
         Some(StreamLine::Result { ok: false, text }) => {
-            assistant.forget(generation);
+            let note = drop_session(&text);
             let message = if text.trim().is_empty() {
                 "Claude a répondu par une erreur sans détail.".to_owned()
             } else {
                 text
             };
             verdict = Some(Reply::Failed {
-                message: format!("{message}{lost}"),
+                message: format!("{message}{note}"),
             });
         }
         None => {}
@@ -550,21 +566,25 @@ fn ask(
     };
 
     if let Some(reply) = verdict {
-        emit(app, turn, reply);
-        return Ok(());
+        return Ok(reply);
     }
-    assistant.forget(generation);
     if exit.timed_out {
         return Err(format!(
-            "Claude n'a pas répondu en {} secondes.{lost}",
+            "Claude n'a pas répondu en {} secondes.",
             ANSWER_TIMEOUT.as_secs()
         ));
     }
-    Err(if exit.stderr.trim().is_empty() {
-        format!("Claude s'est arrêté sans répondre. Vérifie que tu es connecté.{lost}")
+    let detail = exit.stderr.trim();
+    let note = drop_session(detail);
+    Err(if detail.is_empty() {
+        "Claude s'est arrêté sans répondre. Vérifie que tu es connecté.".to_owned()
     } else {
-        format!("{}{lost}", exit.stderr.trim())
+        format!("{detail}{note}")
     })
+}
+
+fn is_resume_failure(detail: &str) -> bool {
+    detail.to_lowercase().contains("no conversation found")
 }
 
 #[tauri::command]
@@ -591,19 +611,24 @@ pub fn assistant_ask(
         let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             ask(&app, turn, args, &prompt, generation)
         }));
-        let failure = match outcome {
-            Ok(Ok(())) => None,
-            Ok(Err(message)) => Some(message),
-            Err(_) => Some("Le Gardien a rencontré une erreur interne.".to_owned()),
+        let reply = match outcome {
+            Ok(Ok(reply)) => reply,
+            Ok(Err(message)) => Reply::Failed { message },
+            Err(_) => Reply::Failed {
+                message: "Le Gardien a rencontré une erreur interne.".to_owned(),
+            },
         };
-        if let Some(message) = failure {
-            emit(&app, turn, Reply::Failed { message });
-        }
+        drop(_busy);
+        emit(&app, turn, reply);
     });
     Ok(())
 }
 
 pub fn shutdown(assistant: &Assistant) {
+    let running = RUNNING_CHILD.swap(0, AtomicOrdering::SeqCst);
+    if running != 0 {
+        kill_pid(running);
+    }
     assistant.reset();
 }
 
@@ -846,6 +871,15 @@ mod tests {
         let next = assistant.scratch_path().expect("next");
         assert_ne!(next, first);
         assistant.reset();
+    }
+
+    #[test]
+    fn only_a_failed_resume_drops_the_conversation() {
+        assert!(is_resume_failure(
+            "Error: No conversation found with session ID: abc"
+        ));
+        assert!(!is_resume_failure("API Error: 529 overloaded"));
+        assert!(!is_resume_failure(""));
     }
 
     #[test]
