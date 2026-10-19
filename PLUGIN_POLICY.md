@@ -14,13 +14,15 @@ curate is what we ship.
 
 ## Advisory plugins
 
-This section takes effect once [ADR-0023](docs/adr/0023-companion-first.md) is
-accepted. There is no manifest field for it: a plugin is advisory when its
-`intents` list is empty and it requests no input capability, so it can only be
-observed and talked about.
-It is judged separately from a plugin that automates, because it cannot press
-anything. It is accepted when all of these hold:
+Everything this policy says about advisory plugins (this section, the wording
+under Refused, the Review layer and Grey areas) takes effect together once
+[ADR-0023](docs/adr/0023-companion-first.md) is accepted. It is judged
+separately from a plugin that automates, because it cannot press anything. It
+is accepted when all of these hold:
 
+* It is advisory: its `intents` list is empty and it requests no input
+  capability, so it can only be observed and talked about. There is no
+  manifest field for this. The reviewer checks it first, in `plugin.json`.
 * The game has no competitive or ranked mode. Cooperative and single-player games
   qualify, a game with ranked play does not, whatever the plugin does. The
   reviewer checks this against the game's store page and documentation. A game
@@ -32,6 +34,10 @@ anything. It is accepted when all of these hold:
 * It surfaces nothing the player's own client would not already show them. The
   pull request lists every signal the plugin exposes, and the reviewer checks
   that each one is visible in the game's own interface.
+
+These conditions apply whatever the `multiplayer` field says: it is declared
+by the author, so the reviewer checks the ranked or competitive mode against the
+game itself.
 
 Registry CI will reject a plugin submitted as advisory that declares an intent or
 an input capability (tracked in #112). Until that check exists, the registry
@@ -48,7 +54,8 @@ nothing to execute.
 ## Refused
 
 * Any game with a competitive or ranked multiplayer mode, whether or not the
-  plugin targets that mode, advisory or not. We do not adjudicate "but I only
+  plugin targets that mode, advisory or not, because advice is an advantage over
+  other players too. We do not adjudicate "but I only
   use it in single-player": the answer is no.
 * Anything that circumvents, disables, probes or works around an anti-cheat
   system or any other protection mechanism.
