@@ -38,7 +38,10 @@ declares intents or requests an input capability, is called automating. It is ac
   If the terms are silent, the plugin is not accepted: it goes to Grey areas.
 * It surfaces nothing the player's own client would not already show them. The
   pull request lists every signal the plugin exposes, and the reviewer checks
-  that each one is visible in the game's own interface.
+  that each one is visible in the game's own interface. If the plugin ships an
+  `assistant.md`, the reviewer reads it too: it is appended to the model's
+  prompt and needs no capability, so it can steer the advice, and it must not
+  push toward behaviour the publisher's terms disallow.
 
 The ranked or competitive check does not depend on the `multiplayer` field; see
 the Review layer under Enforcement. The reviewer records the answer, with its
@@ -54,7 +57,7 @@ guarantee. When #112 lands, every advisory plugin already in the registry is
 re-checked against it.
 
 An update to an advisory plugin needs a new review if it changes `intents`,
-capabilities, the list of exposed signals or, for a bridge, the accepted command
+capabilities, the list of exposed signals, the `assistant.md` text or, for a bridge, the accepted command
 set. The update pull request re-states the signal list and the command set, and
 the reviewer compares them with the previous ones and re-verifies the commands
 against the source. The ranked or competitive check is repeated on any update
@@ -65,7 +68,10 @@ an update pull request owns these checks and does not merge it otherwise.
 
 An advisory plugin that requests `Net` needs the same justification as any
 other plugin that does, and the reviewer checks that it sends no game state off
-the machine beyond what that justification covers.
+the machine beyond what that justification covers. The "surfaces nothing the
+client would not show" condition also covers what ends up in the assistant
+prompt: the observation reaches the user's own Claude Code on every question
+([ADR-0022](docs/adr/0022-assistant.md)), with no capability involved.
 
 An advisory plugin that uses a `Bridge` is reviewed as a bridge plugin as well:
 the advisory conditions are in addition to those rules, never a replacement. A
