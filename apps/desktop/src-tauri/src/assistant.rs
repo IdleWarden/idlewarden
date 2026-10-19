@@ -123,25 +123,31 @@ pub enum StreamLine {
     Result { ok: bool, text: String },
 }
 
-pub fn exposed_tools(line: &str) -> Vec<String> {
+#[derive(Debug, PartialEq)]
+pub enum InitTools {
+    NotInit,
+    Unreported,
+    Reported(Vec<String>),
+}
+
+pub fn init_tools(line: &str) -> InitTools {
     let Ok(value) = serde_json::from_str::<serde_json::Value>(line.trim()) else {
-        return Vec::new();
+        return InitTools::NotInit;
     };
     let is_init = value.get("type").and_then(|t| t.as_str()) == Some("system")
         && value.get("subtype").and_then(|t| t.as_str()) == Some("init");
     if !is_init {
-        return Vec::new();
+        return InitTools::NotInit;
     }
-    value
-        .get("tools")
-        .and_then(|tools| tools.as_array())
-        .map(|tools| {
+    match value.get("tools").and_then(|tools| tools.as_array()) {
+        Some(tools) => InitTools::Reported(
             tools
                 .iter()
                 .filter_map(|tool| tool.as_str().map(str::to_owned))
-                .collect()
-        })
-        .unwrap_or_default()
+                .collect(),
+        ),
+        None => InitTools::Unreported,
+    }
 }
 
 pub fn parse_stream_line(line: &str) -> Option<StreamLine> {
@@ -592,10 +598,12 @@ fn ask(
         }
     };
 
+    let started = Instant::now();
     let mut launch = |executable: PathBuf| {
         let mut command = Command::new(executable);
         command.args(&args).current_dir(&scratch);
-        run_child(command, prompt, ANSWER_TIMEOUT, &mut on_line)
+        let budget = ANSWER_TIMEOUT.saturating_sub(started.elapsed());
+        run_child(command, prompt, budget, &mut on_line)
     };
     let executable = locate_claude(&assistant).ok_or_else(not_found)?;
     let exit = match launch(executable) {
@@ -948,14 +956,21 @@ mod tests {
     }
 
     #[test]
-    fn exposed_tools_are_read_from_the_init_line_only() {
+    fn the_init_line_reports_its_tools_or_fails_closed() {
         let init = r#"{"type":"system","subtype":"init","session_id":"a","tools":["Bash","Read"]}"#;
-        assert_eq!(exposed_tools(init), vec!["Bash", "Read"]);
+        assert_eq!(
+            init_tools(init),
+            InitTools::Reported(vec!["Bash".to_owned(), "Read".to_owned()])
+        );
         let empty = r#"{"type":"system","subtype":"init","session_id":"a","tools":[]}"#;
-        assert!(exposed_tools(empty).is_empty());
-        assert!(exposed_tools(r#"{"type":"system","subtype":"init","session_id":"a"}"#).is_empty());
-        assert!(exposed_tools(r#"{"type":"assistant","tools":["Bash"]}"#).is_empty());
-        assert!(exposed_tools("not json").is_empty());
+        assert_eq!(init_tools(empty), InitTools::Reported(Vec::new()));
+        let missing = r#"{"type":"system","subtype":"init","session_id":"a"}"#;
+        assert_eq!(init_tools(missing), InitTools::Unreported);
+        assert_eq!(
+            init_tools(r#"{"type":"assistant","tools":["Bash"]}"#),
+            InitTools::NotInit
+        );
+        assert_eq!(init_tools("not json"), InitTools::NotInit);
     }
 
     #[test]

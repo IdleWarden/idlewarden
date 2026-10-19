@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-use super::{exposed_tools, is_resume_failure, parse_stream_line, Reply, StreamLine};
+use super::{init_tools, is_resume_failure, parse_stream_line, InitTools, Reply, StreamLine};
 
 const LOST_NOTE: &str = " La conversation repart de zéro.";
 
@@ -44,15 +44,21 @@ impl Turn {
             return effects;
         }
 
-        let tools = exposed_tools(line);
-        if !tools.is_empty() {
+        let refusal = match init_tools(line) {
+            InitTools::NotInit => None,
+            InitTools::Reported(tools) if tools.is_empty() => None,
+            InitTools::Reported(tools) => Some(format!(
+                "Claude Code expose des outils ({}) malgré --tools vide, le Gardien s'arrête.",
+                tools.join(", ")
+            )),
+            InitTools::Unreported => Some(
+                "Claude Code n'indique pas ses outils, le Gardien s'arrête par prudence."
+                    .to_owned(),
+            ),
+        };
+        if let Some(message) = refusal {
             self.blocked = true;
-            self.verdict = Some(Reply::Failed {
-                message: format!(
-                    "Claude Code expose des outils ({}) malgré --tools vide, le Gardien s'arrête.",
-                    tools.join(", ")
-                ),
-            });
+            self.verdict = Some(Reply::Failed { message });
             effects.kill = true;
             return effects;
         }
@@ -111,6 +117,17 @@ mod tests {
         assert!(matches!(
             turn.into_verdict(),
             Some(Reply::Failed { message }) if message.contains("Bash")
+        ));
+    }
+
+    #[test]
+    fn an_init_line_without_a_tool_list_fails_closed() {
+        let mut turn = Turn::new(false);
+        let effects = turn.feed(r#"{"type":"system","subtype":"init","session_id":"s"}"#);
+        assert!(effects.kill);
+        assert!(matches!(
+            turn.into_verdict(),
+            Some(Reply::Failed { message }) if message.contains("n'indique pas")
         ));
     }
 
