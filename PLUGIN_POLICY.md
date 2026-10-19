@@ -16,11 +16,9 @@ curate is what we ship.
 
 Everything this policy says about advisory plugins (this section, the wording
 under Refused, the Review layer and Grey areas) takes effect together once
-[ADR-0023](docs/adr/0023-companion-first.md) is accepted. The README framing
-and this PR are gated on that acceptance too: if the ADR changes, they change
-with it. It is judged
-separately from a plugin that automates, because it cannot press anything. It
-is accepted when all of these hold:
+[ADR-0023](docs/adr/0023-companion-first.md) is accepted.
+An advisory plugin is judged separately from one that automates, because it
+cannot press anything. It is accepted when all of these hold:
 
 * It is advisory: its `intents` list is empty and it requests no input
   capability (`InputMouse`, `InputKeyboard` or `InputGamepad`), so it can only be
