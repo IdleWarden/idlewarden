@@ -16,12 +16,16 @@ curate is what we ship.
 
 Everything this policy says about advisory plugins (this section, the wording
 under Refused, the Review layer and Grey areas) takes effect together once
-[ADR-0023](docs/adr/0023-companion-first.md) is accepted. It is judged
+[ADR-0023](docs/adr/0023-companion-first.md) is accepted. The README framing
+and this PR are gated on that acceptance too: if the ADR changes, they change
+with it. It is judged
 separately from a plugin that automates, because it cannot press anything. It
 is accepted when all of these hold:
 
 * It is advisory: its `intents` list is empty and it requests no input
-  capability, so it can only be observed and talked about. There is no
+  capability (`InputMouse`, `InputKeyboard` or `InputGamepad`), so it can only be
+  observed and talked about. `Capture`, `FsRead`, `Net` and `Bridge` are not
+  input capabilities and stay subject to their own rules. There is no
   manifest field for this. The reviewer checks it first, in `plugin.json`.
 * The game has no competitive or ranked mode. Cooperative and single-player games
   qualify, a game with ranked play does not, whatever the plugin does. The
@@ -44,7 +48,8 @@ an input capability (tracked in #112). Until that check exists, the registry
 does not check this: a plugin is reviewed by hand against the three
 conditions above, and if it meets them it is merged with no automated
 guarantee.
-Any update that changes `intents` or capabilities needs a new review.
+Any update that changes `intents` or capabilities needs a new review, and until
+#112 lands the reviewer diffs both on every update pull request.
 Everything else in this policy still applies to it. A bridge is still a mod the
 user installs by hand, and the registry still does not carry the binary. A
 bridge only executes the `Intent`s the plugin declares
