@@ -16,6 +16,7 @@ use crate::session::SessionHandle;
 const EVENT: &str = "assistant";
 const MAX_CONTEXT_CHARS: usize = 12_000;
 const MAX_PLUGIN_PROMPT_BYTES: u64 = 16 * 1024;
+const MAX_LINE_BYTES: u64 = 4 * 1024 * 1024;
 const MAX_PLUGIN_MANIFEST_BYTES: u64 = 256 * 1024;
 const ANSWER_TIMEOUT: Duration = Duration::from_secs(180);
 
@@ -453,7 +454,10 @@ fn run_child(
     std::thread::spawn(move || {
         let mut reader = BufReader::new(stdout);
         let mut raw = Vec::new();
-        while matches!(reader.read_until(b'\n', &mut raw), Ok(read) if read > 0) {
+        while matches!(
+            (&mut reader).take(MAX_LINE_BYTES).read_until(b'\n', &mut raw),
+            Ok(read) if read > 0
+        ) {
             let line = String::from_utf8_lossy(&raw).trim_end().to_owned();
             raw.clear();
             if lines.send(line).is_err() {

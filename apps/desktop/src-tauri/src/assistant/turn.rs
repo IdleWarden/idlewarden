@@ -18,6 +18,7 @@ pub struct Effects {
 pub struct Turn {
     resumed: bool,
     blocked: bool,
+    saw_init: bool,
     pending_session: Option<String>,
     shown: String,
     verdict: Option<Reply>,
@@ -28,6 +29,7 @@ impl Turn {
         Self {
             resumed,
             blocked: false,
+            saw_init: false,
             pending_session: None,
             shown: String::new(),
             verdict: None,
@@ -44,7 +46,9 @@ impl Turn {
             return effects;
         }
 
-        let refusal = match init_tools(line) {
+        let init = init_tools(line);
+        self.saw_init |= init != InitTools::NotInit;
+        let refusal = match init {
             InitTools::NotInit => None,
             InitTools::Reported(tools) if tools.is_empty() => None,
             InitTools::Reported(tools) => Some(format!(
@@ -71,6 +75,13 @@ impl Turn {
                 }
                 self.shown.push_str(&text);
                 effects.partial = Some(self.shown.clone());
+            }
+            Some(StreamLine::Result { ok: true, .. }) if !self.saw_init => {
+                self.verdict = Some(Reply::Failed {
+                    message:
+                        "Claude Code n'a pas annoncé ses outils, le Gardien refuse la réponse."
+                            .to_owned(),
+                });
             }
             Some(StreamLine::Result { ok: true, text }) => {
                 effects.remember = self.pending_session.take();
@@ -132,6 +143,17 @@ mod tests {
     }
 
     #[test]
+    fn an_answer_without_any_init_line_is_refused() {
+        let mut turn = Turn::new(false);
+        let effects = turn.feed(OK);
+        assert_eq!(effects.remember, None);
+        assert!(matches!(
+            turn.into_verdict(),
+            Some(Reply::Failed { message }) if message.contains("n'a pas annoncé")
+        ));
+    }
+
+    #[test]
     fn the_session_is_remembered_only_on_a_successful_result() {
         let mut turn = Turn::new(false);
         assert_eq!(turn.feed(INIT), Effects::default());
@@ -154,6 +176,7 @@ mod tests {
     #[test]
     fn partial_text_accumulates_and_wins_over_the_result_field() {
         let mut turn = Turn::new(false);
+        turn.feed(INIT);
         let first = turn
             .feed(r#"{"type":"assistant","message":{"content":[{"type":"text","text":"un"}]}}"#);
         assert_eq!(first.partial.as_deref(), Some("un"));
