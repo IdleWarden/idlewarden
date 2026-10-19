@@ -22,9 +22,12 @@ declares intents or requests an input capability, is called automating. It is ac
   capability, meaning any capability that sends input (today `InputMouse`,
   `InputKeyboard` and `InputGamepad` in `crates/plugin-api/src/capability.rs`), so
   it can only be observed and talked about. A new capability that sends input is
-  non-advisory by default. `Capture`, `FsRead`, `Net` and `Bridge` are not input
-  capabilities and stay subject to their own rules. There is no
-  manifest field for this. The reviewer checks it first, in `plugin.json`.
+  non-advisory by default, and when #112 lands its classifier is an exhaustive
+  `match` over `Capability`, so a new variant cannot compile unclassified.
+  `Capture`, `FsRead`, `Net` and `Bridge` are not input capabilities and stay
+  subject to their own rules; an `FsRead` path is reviewed against the last
+  condition below, since a save file can hold data the game's interface never
+  shows. There is no manifest field for this. The reviewer checks it first, in `plugin.json`.
 * The game has no competitive or ranked mode, checked as the Review layer under
   Enforcement describes. A single-player game with online leaderboards is held
   for a discussion thread there, so it is not accepted on this list alone.
