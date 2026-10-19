@@ -22,13 +22,12 @@ cannot press anything. It is accepted when all of these hold:
   observed and talked about. `Capture`, `FsRead`, `Net` and `Bridge` are not
   input capabilities and stay subject to their own rules. There is no
   manifest field for this. The reviewer checks it first, in `plugin.json`.
-* The game has no competitive or ranked mode. Cooperative and single-player games
-  qualify for an advisory plugin, a game with ranked play does not, whatever the
-  plugin does. A cooperative game with an automating plugin is not covered by
-  this and goes to Grey areas. The
-  reviewer checks this against the game's store page and documentation. A game
-  with online leaderboards is held until a discussion thread decides it (see
-  Grey areas).
+* The game has no competitive or ranked mode. Cooperative and single-player
+  games qualify for an advisory plugin, a game with ranked play does not,
+  whatever the plugin does. The reviewer checks this against the game's store
+  page and documentation. A game with online leaderboards is held until a
+  discussion thread decides it (see Grey areas). A cooperative game with an
+  automating plugin is not covered here and also goes to Grey areas.
 * The publisher's terms or modding policy allow mods and overlays, and the pull
   request cites them. IdleWarden cannot grant that permission, and the
   citation in the pull request is a claim a reviewer checks, not a guarantee.
@@ -107,7 +106,9 @@ Three layers, in order of strength:
    cooperative-only game goes through the advisory conditions instead. Reviewers
    check the claim. Until the registry's own copy of this policy is updated
    (tracked in #112), its checks may still refuse `multiplayer: true`
-   mechanically; an affected author opens a discussion thread.
+   mechanically. For an advisory plugin that meets the conditions, the reviewer
+   overrides that refusal and says so in the pull request; the author does not
+   need to ask.
 2. **Capabilities.** A plugin declares what it needs. `Unverified` plugins get
    nothing granted silently; network access is never granted silently below
    `Official`.
