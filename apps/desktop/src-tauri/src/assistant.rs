@@ -31,7 +31,6 @@ pub struct Assistant {
     generation: AtomicU64,
     busy: Arc<AtomicBool>,
     executable: Mutex<Option<PathBuf>>,
-    scratch: Mutex<Option<ScratchDir>>,
 }
 
 impl Assistant {
@@ -66,24 +65,7 @@ impl Assistant {
         }
     }
 
-    fn scratch_path(&self) -> Result<PathBuf, String> {
-        let mut slot = self
-            .scratch
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        if slot.is_none() {
-            *slot = Some(ScratchDir::create()?);
-        }
-        slot.as_ref()
-            .map(|dir| dir.path().to_path_buf())
-            .ok_or_else(|| "scratch directory unavailable".to_owned())
-    }
-
     fn reset(&self) {
-        *self
-            .scratch
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
         let mut slot = self
             .session_id
             .lock()
@@ -525,6 +507,19 @@ fn run_child(
     Ok(Exit { timed_out, stderr })
 }
 
+fn working_dir(base: &Path) -> Result<PathBuf, String> {
+    let dir = base.join("assistant");
+    fs::create_dir_all(&dir).map_err(|error| error.to_string())?;
+    Ok(dir)
+}
+
+fn stop_running_child() {
+    let running = RUNNING_CHILD.load(AtomicOrdering::SeqCst);
+    if running != 0 {
+        kill_pid(running);
+    }
+}
+
 struct ScratchDir(PathBuf);
 
 impl ScratchDir {
@@ -568,7 +563,11 @@ fn ask(
             .to_owned()
     };
     let resumed = assistant.resume_id().is_some();
-    let scratch = assistant.scratch_path()?;
+    let scratch = working_dir(
+        &app.path()
+            .app_local_data_dir()
+            .map_err(|error| error.to_string())?,
+    )?;
     let system_file = scratch.join("system.md");
     fs::write(&system_file, system).map_err(|error| error.to_string())?;
     let settings_file = scratch.join("settings.json");
@@ -583,10 +582,7 @@ fn ask(
     let mut on_line = |line: &str| {
         let effects = turn_state.feed(line);
         if effects.kill {
-            let running = RUNNING_CHILD.load(AtomicOrdering::SeqCst);
-            if running != 0 {
-                kill_pid(running);
-            }
+            stop_running_child();
         }
         if let Some(text) = effects.partial {
             emit(app, turn, Reply::Partial { text });
@@ -696,10 +692,7 @@ pub fn assistant_ask(
 }
 
 pub fn shutdown(assistant: &Assistant) {
-    let running = RUNNING_CHILD.swap(0, AtomicOrdering::SeqCst);
-    if running != 0 {
-        kill_pid(running);
-    }
+    stop_running_child();
     assistant.reset();
 }
 
@@ -715,6 +708,8 @@ pub fn assistant_reset(assistant: State<'_, Assistant>) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    static SUBPROCESS: Mutex<()> = Mutex::new(());
 
     #[test]
     fn the_init_line_gives_the_session_id() {
@@ -922,6 +917,9 @@ mod tests {
     #[cfg(not(windows))]
     #[test]
     fn a_line_with_invalid_utf8_does_not_cut_the_stream() {
+        let _serial = SUBPROCESS
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let mut seen = Vec::new();
         run_child(
             shell("printf 'a\\n\\377\\nb\\n'"),
@@ -935,17 +933,36 @@ mod tests {
     }
 
     #[test]
-    fn the_working_directory_is_stable_across_turns_and_new_after_a_reset() {
-        let assistant = Assistant::default();
-        let first = assistant.scratch_path().expect("first");
-        assert_eq!(assistant.scratch_path().expect("second"), first);
+    fn the_working_directory_is_one_stable_app_owned_folder() {
+        let base = scratch("workdir");
+        let first = working_dir(&base).expect("first");
+        assert_eq!(working_dir(&base).expect("second"), first);
         assert!(first.is_dir());
+        assert!(first.starts_with(&base));
+    }
 
-        assistant.reset();
-        assert!(!first.exists());
-        let next = assistant.scratch_path().expect("next");
-        assert_ne!(next, first);
-        assistant.reset();
+    #[cfg(not(windows))]
+    #[test]
+    fn a_child_reporting_tools_is_killed_through_the_turn() {
+        let _serial = SUBPROCESS
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let init = r#"{"type":"system","subtype":"init","session_id":"s","tools":["Bash"]}"#;
+        let script = format!("printf '%s\\n' '{init}'; exec sleep 30");
+        let mut turn = Turn::new(false);
+        let started = Instant::now();
+        let exit = run_child(shell(&script), "", Duration::from_secs(20), |line| {
+            if turn.feed(line).kill {
+                stop_running_child();
+            }
+        })
+        .expect("run");
+        assert!(!exit.timed_out);
+        assert!(started.elapsed() < Duration::from_secs(10));
+        assert!(matches!(
+            turn.into_verdict(),
+            Some(Reply::Failed { message }) if message.contains("Bash")
+        ));
     }
 
     #[test]
@@ -1072,6 +1089,9 @@ mod tests {
     #[cfg(not(windows))]
     #[test]
     fn a_child_that_closes_stdout_but_keeps_running_is_killed_at_the_deadline() {
+        let _serial = SUBPROCESS
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let started = Instant::now();
         let exit = run_child(
             shell("exec 1>&-; sleep 30"),
@@ -1086,6 +1106,9 @@ mod tests {
 
     #[test]
     fn output_lines_are_delivered_in_order() {
+        let _serial = SUBPROCESS
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         #[cfg(windows)]
         let script = "echo one& echo two";
         #[cfg(not(windows))]
@@ -1102,6 +1125,9 @@ mod tests {
 
     #[test]
     fn a_child_that_never_answers_is_killed_at_the_deadline() {
+        let _serial = SUBPROCESS
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         #[cfg(windows)]
         let script = "ping -n 30 127.0.0.1 >nul";
         #[cfg(not(windows))]
@@ -1116,6 +1142,9 @@ mod tests {
 
     #[test]
     fn a_child_filling_stderr_does_not_block_the_reader() {
+        let _serial = SUBPROCESS
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         #[cfg(windows)]
         let script = "for /L %i in (1,1,20000) do @echo xxxxxxxxxxxxxxxxxxxxxxxx 1>&2";
         #[cfg(not(windows))]

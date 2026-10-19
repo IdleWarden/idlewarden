@@ -17,8 +17,7 @@ slow on purpose, and nobody expects it to press anything.
 **The assistant is a chat that reads the live signals and answers in text.** The
 command line it starts passes `--tools ""` (no built-in tools),
 `--strict-mcp-config` (no MCP servers), `--disable-slash-commands` and
-`--setting-sources user` (no project settings), and runs in a fresh, empty temporary
-directory. The model cannot read a file, run a command or send an `Intent`, and
+`--setting-sources user` (no project settings), and runs in an app-owned folder holding only the prompt and settings files. The model cannot read a file, run a command or send an `Intent`, and
 nothing it says reaches the Governor, because nothing it says is a command
 ([ADR-0009](0009-governor.md)). Hooks are turned off with a settings file that
 sets `disableAllHooks`; the user's other Claude Code settings still load, since
@@ -63,8 +62,8 @@ window is a normal window and takes focus like any other.
   resets it.
 * Resuming a session means Claude Code keeps the conversation, game signals
   included, in its own transcript store under the user's home folder, in one
-  project entry per conversation because each runs in its own temporary
-  directory. The chat hint says so.
+  project entry, because every conversation runs in the same app-owned folder
+  (`assistant` under the app's local data directory). The chat hint says so.
 * The app trusts any executable that sits where Claude Code installs itself (the
   Claude desktop app folder, then the `PATH`) and prints a "Claude Code"
   version banner. Those folders are writable by the user, so a planted binary
