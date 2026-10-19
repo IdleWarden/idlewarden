@@ -43,7 +43,7 @@ game itself.
 
 Registry CI will reject a plugin submitted as advisory that declares an intent or
 an input capability (tracked in #112). Until that check exists, the registry
-does not check this: a plugin is reviewed by hand against the three
+does not check this: a plugin is reviewed by hand against the
 conditions above, and if it meets them it is merged with no automated
 guarantee.
 Any update that changes `intents` or capabilities needs a new review, and until
@@ -81,7 +81,7 @@ Three layers, in order of strength:
    competitive mode. A game with such a mode is refused, for every plugin. A
    cooperative-only game is held until a discussion thread decides it only if
    the plugin declares intents; an advisory plugin for it goes through the
-   three advisory conditions instead. Reviewers check the claim.
+   advisory conditions instead. Reviewers check the claim.
 2. **Capabilities.** A plugin declares what it needs. `Unverified` plugins get
    nothing granted silently; network access is never granted silently below
    `Official`.
