@@ -4,7 +4,7 @@ use std::fs;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering as AtomicOrdering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering as AtomicOrdering};
 use std::sync::{mpsc, Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -268,7 +268,9 @@ fn is_claude_code(executable: &Path) -> bool {
     };
     command.current_dir(scratch.path());
     let mut banner = String::new();
-    let Ok(exit) = run_child(command, "", PROBE_TIMEOUT, |line| banner.push_str(line)) else {
+    let Ok(exit) = run_child_with(command, "", PROBE_TIMEOUT, false, |line| {
+        banner.push_str(line)
+    }) else {
         return false;
     };
     !exit.timed_out && banner.contains("Claude Code")
@@ -369,7 +371,52 @@ struct Exit {
     stderr: String,
 }
 
-static RUNNING_CHILD: AtomicU32 = AtomicU32::new(0);
+static RUNNING: Mutex<Option<std::process::Child>> = Mutex::new(None);
+
+fn with_running<T>(f: impl FnOnce(&mut Option<std::process::Child>) -> T) -> T {
+    let mut slot = RUNNING
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    f(&mut slot)
+}
+
+struct Handle {
+    tracked: bool,
+    local: Option<std::process::Child>,
+}
+
+impl Handle {
+    fn new(child: std::process::Child, tracked: bool) -> Self {
+        if tracked {
+            with_running(|slot| *slot = Some(child));
+            Self {
+                tracked,
+                local: None,
+            }
+        } else {
+            Self {
+                tracked,
+                local: Some(child),
+            }
+        }
+    }
+
+    fn with<T>(&mut self, f: impl FnOnce(&mut std::process::Child) -> T) -> Option<T> {
+        if self.tracked {
+            with_running(|slot| slot.as_mut().map(f))
+        } else {
+            self.local.as_mut().map(f)
+        }
+    }
+
+    fn finish(&mut self) -> Option<std::process::Child> {
+        if self.tracked {
+            with_running(Option::take)
+        } else {
+            self.local.take()
+        }
+    }
+}
 
 #[cfg(windows)]
 fn kill_pid(pid: u32) {
@@ -420,9 +467,19 @@ impl RunError {
 }
 
 fn run_child(
+    command: Command,
+    prompt: &str,
+    timeout: Duration,
+    on_line: impl FnMut(&str),
+) -> Result<Exit, RunError> {
+    run_child_with(command, prompt, timeout, true, on_line)
+}
+
+fn run_child_with(
     mut command: Command,
     prompt: &str,
     timeout: Duration,
+    tracked: bool,
     mut on_line: impl FnMut(&str),
 ) -> Result<Exit, RunError> {
     command
@@ -437,8 +494,6 @@ fn run_child(
     }
 
     let mut child = command.spawn().map_err(RunError::spawn)?;
-    let pid = child.id();
-    RUNNING_CHILD.store(pid, AtomicOrdering::SeqCst);
     if let Some(mut stdin) = child.stdin.take() {
         let prompt = prompt.to_owned();
         std::thread::spawn(move || {
@@ -446,10 +501,14 @@ fn run_child(
         });
     }
 
-    let stdout = child
-        .stdout
-        .take()
-        .ok_or_else(|| RunError::other("stdout unavailable"))?;
+    let stdout = child.stdout.take();
+    let stderr = child.stderr.take();
+    let mut handle = Handle::new(child, tracked);
+    let Some(stdout) = stdout else {
+        handle.with(kill_tree);
+        handle.finish();
+        return Err(RunError::other("stdout unavailable"));
+    };
     let (lines, incoming) = mpsc::channel::<String>();
     std::thread::spawn(move || {
         let mut reader = BufReader::new(stdout);
@@ -466,7 +525,6 @@ fn run_child(
         }
     });
 
-    let stderr = child.stderr.take();
     let (collected, drained) = mpsc::channel::<String>();
     std::thread::spawn(move || {
         let mut text = String::new();
@@ -483,7 +541,7 @@ fn run_child(
             Ok(line) => on_line(&line),
             Err(mpsc::RecvTimeoutError::Timeout) => {
                 timed_out = true;
-                kill_tree(&mut child);
+                handle.with(kill_tree);
                 break;
             }
             Err(mpsc::RecvTimeoutError::Disconnected) => break,
@@ -491,18 +549,23 @@ fn run_child(
     }
 
     while !timed_out {
-        match child.try_wait().map_err(RunError::other)? {
-            Some(_) => break,
-            None if Instant::now() >= deadline => {
-                timed_out = true;
-                kill_tree(&mut child);
+        match handle.with(|child| child.try_wait()) {
+            None | Some(Ok(Some(_))) => break,
+            Some(Err(error)) => {
+                handle.with(kill_tree);
+                handle.finish();
+                return Err(RunError::other(error));
             }
-            None => std::thread::sleep(Duration::from_millis(20)),
+            Some(Ok(None)) if Instant::now() >= deadline => {
+                timed_out = true;
+                handle.with(kill_tree);
+            }
+            Some(Ok(None)) => std::thread::sleep(Duration::from_millis(20)),
         }
     }
-    let waited = child.wait();
-    let _ = RUNNING_CHILD.compare_exchange(pid, 0, AtomicOrdering::SeqCst, AtomicOrdering::SeqCst);
-    waited.map_err(RunError::other)?;
+    if let Some(mut child) = handle.finish() {
+        child.wait().map_err(RunError::other)?;
+    }
     let stderr = if timed_out {
         String::new()
     } else {
@@ -518,10 +581,11 @@ fn working_dir(base: &Path) -> Result<PathBuf, String> {
 }
 
 fn stop_running_child() {
-    let running = RUNNING_CHILD.load(AtomicOrdering::SeqCst);
-    if running != 0 {
-        kill_pid(running);
-    }
+    with_running(|slot| {
+        if let Some(child) = slot.as_mut() {
+            kill_tree(child);
+        }
+    });
 }
 
 struct ScratchDir(PathBuf);
