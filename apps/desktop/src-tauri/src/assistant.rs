@@ -564,9 +564,9 @@ pub fn shutdown(assistant: &Assistant) {
 
 #[tauri::command]
 pub fn assistant_reset(assistant: State<'_, Assistant>) -> Result<(), String> {
-    if assistant.busy.load(AtomicOrdering::SeqCst) {
+    let Some(_claim) = Busy::claim(&assistant) else {
         return Err("le Gardien est en train de répondre".to_owned());
-    }
+    };
     assistant.reset();
     Ok(())
 }
