@@ -7,6 +7,7 @@ import { AssistantReply, ChatMessage } from "./assistant.model";
 
 const ANSWER_WATCHDOG_MS = 240_000;
 const MAX_CONTEXT_CHARS = 12_000;
+const BUSY_RETRY_MS = 1_500;
 
 function fitSignals(signals: readonly unknown[]): string {
   let kept = signals.length;
@@ -58,13 +59,22 @@ export class AssistantService {
       });
     }, ANSWER_WATCHDOG_MS);
 
+    const request = {
+      turn,
+      text,
+      context: fitSignals(this.sessions.observation()?.signals ?? []),
+      plugin: this.sessions.session()?.plugin ?? null,
+    };
     try {
-      await invoke("assistant_ask", {
-        turn,
-        text,
-        context: fitSignals(this.sessions.observation()?.signals ?? []),
-        plugin: this.sessions.session()?.plugin ?? null,
-      });
+      try {
+        await invoke("assistant_ask", request);
+      } catch (first) {
+        if (!String(first).includes("déjà")) {
+          throw first;
+        }
+        await new Promise((resolve) => setTimeout(resolve, BUSY_RETRY_MS));
+        await invoke("assistant_ask", request);
+      }
     } catch (error) {
       this.receive({ turn, kind: "failed", message: String(error) });
     }

@@ -566,7 +566,8 @@ fn ask(
         "Claude Code introuvable (seule l'installation avec claude.exe est prise en charge). Installe-le et connecte-toi avec `claude` dans un terminal."
             .to_owned()
     };
-    let resumed = assistant.resume_id().is_some();
+    let resume = assistant.resume_id();
+    let resumed = resume.is_some();
     let scratch = working_dir(
         &app.path()
             .app_local_data_dir()
@@ -576,11 +577,7 @@ fn ask(
     fs::write(&system_file, system).map_err(|error| error.to_string())?;
     let settings_file = scratch.join("settings.json");
     fs::write(&settings_file, SETTINGS).map_err(|error| error.to_string())?;
-    let args = build_args(
-        &system_file,
-        &settings_file,
-        assistant.resume_id().as_deref(),
-    );
+    let args = build_args(&system_file, &settings_file, resume.as_deref());
 
     let mut turn_state = Turn::new(resumed);
     let mut on_line = |line: &str| {
