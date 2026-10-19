@@ -53,8 +53,9 @@ Three layers, in order of strength:
 
 1. **Review.** Every registry submission is a pull request. `multiplayer: true`
    in the manifest is an automatic refusal for a plugin that automates, and
-   reviewers check the claim. For an advisory plugin it opens the review above
-   instead.
+   reviewers check the claim. For an advisory plugin it is not a refusal by
+   itself: co-op games set it too, so it triggers the ranked and competitive
+   check in the review above instead.
 2. **Capabilities.** A plugin declares what it needs. `Unverified` plugins get
    nothing granted silently; network access is never granted silently below
    `Official`.
@@ -69,8 +70,9 @@ Three layers, in order of strength:
 ## Grey areas
 
 Bring them to a discussion thread before writing the plugin. A game with a
-cooperative-only multiplayer mode that wants an automating plugin, a single-player game with online
-leaderboards, a game whose terms are silent rather than permissive, these are
+cooperative-only multiplayer mode that wants an automating plugin, a
+single-player game with online leaderboards (an advisory plugin is undecided
+there too, ask first), a game whose terms are silent rather than permissive, these are
 real cases and they get decided individually, in public, and recorded here.
 
 ## If you disagree with a refusal

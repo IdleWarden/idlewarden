@@ -44,8 +44,8 @@ the point, and games whose terms explicitly allow it. Advice is a separate case:
 an advisory plugin presses nothing, and the policy treats it on its own terms.
 
 IdleWarden is **not** designed around defeating anti-cheat systems, and the
-official plugin registry refuses plugins targeting competitive or multiplayer
-titles. That boundary is editorial, not technical: the engine is generic and
+official plugin registry refuses plugins that automate competitive or
+multiplayer titles; advisory plugins are judged separately. That boundary is editorial, not technical: the engine is generic and
 cannot police what people do with it, but what we distribute, we curate. See
 [`PLUGIN_POLICY.md`](PLUGIN_POLICY.md).
 
