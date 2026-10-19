@@ -20,11 +20,14 @@ command line it starts passes `--tools ""` (no built-in tools),
 `--setting-sources user` (no project settings), and runs in a fresh, empty temporary
 directory. The model cannot read a file, run a command or send an `Intent`, and
 nothing it says reaches the Governor, because nothing it says is a command
-([ADR-0009](0009-governor.md)). The user's own Claude Code settings and hooks
-still load, since `--bare` would require API-key authentication; they are the
-user's, not the plugin's. On a timeout the app ends the whole process tree on
-Windows (`taskkill /T`); elsewhere only the `claude` process itself is killed. The guarantee is therefore "no built-in tools and no
-MCP servers", not "no side effects of any kind".
+([ADR-0009](0009-governor.md)). Hooks are turned off with a settings file that
+sets `disableAllHooks`; the user's other Claude Code settings still load, since
+`--bare` would require API-key authentication. The `init` line of the stream
+lists the tools, and the app kills the run and reports an error if it is not
+empty. Checked against Claude Code 2.1.299: the init line reports `"tools":[]`,
+`"mcp_servers":[]` and no hook starts. On a timeout the app ends the whole
+process tree on Windows (`taskkill /T`); elsewhere only the `claude` process
+itself is killed.
 
 **Its backend is the Claude Code installation the user already has.** The desktop
 app starts the `claude` executable it finds on the `PATH` or in the Claude

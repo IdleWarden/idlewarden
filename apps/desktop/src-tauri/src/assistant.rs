@@ -178,7 +178,13 @@ pub fn parse_stream_line(line: &str) -> Option<StreamLine> {
     }
 }
 
-pub fn build_args(system_prompt_file: &Path, session_id: Option<&str>) -> Vec<String> {
+const SETTINGS: &str = r#"{"disableAllHooks":true}"#;
+
+pub fn build_args(
+    system_prompt_file: &Path,
+    settings_file: &Path,
+    session_id: Option<&str>,
+) -> Vec<String> {
     let mut args = vec![
         "-p".to_owned(),
         "--output-format".to_owned(),
@@ -190,6 +196,8 @@ pub fn build_args(system_prompt_file: &Path, session_id: Option<&str>) -> Vec<St
         "--disable-slash-commands".to_owned(),
         "--setting-sources".to_owned(),
         "user".to_owned(),
+        "--settings".to_owned(),
+        settings_file.display().to_string(),
         "--append-system-prompt-file".to_owned(),
         system_prompt_file.display().to_string(),
     ];
@@ -535,7 +543,13 @@ fn ask(
     let scratch = assistant.scratch_path()?;
     let system_file = scratch.join("system.md");
     fs::write(&system_file, system).map_err(|error| error.to_string())?;
-    let args = build_args(&system_file, assistant.resume_id().as_deref());
+    let settings_file = scratch.join("settings.json");
+    fs::write(&settings_file, SETTINGS).map_err(|error| error.to_string())?;
+    let args = build_args(
+        &system_file,
+        &settings_file,
+        assistant.resume_id().as_deref(),
+    );
 
     let mut pending_session = None;
     let mut shown = String::new();
@@ -741,15 +755,19 @@ mod tests {
 
     #[test]
     fn the_session_is_resumed_only_when_there_is_one() {
-        let first = build_args(Path::new("system.md"), None);
+        let first = build_args(Path::new("system.md"), Path::new("settings.json"), None);
         assert!(!first.contains(&"--resume".to_owned()));
-        let next = build_args(Path::new("system.md"), Some("abc"));
+        let next = build_args(
+            Path::new("system.md"),
+            Path::new("settings.json"),
+            Some("abc"),
+        );
         assert_eq!(&next[next.len() - 2..], ["--resume", "abc"]);
     }
 
     #[test]
     fn the_assistant_has_no_tools_no_mcp_servers_and_no_project_settings() {
-        let args = build_args(Path::new("system.md"), None);
+        let args = build_args(Path::new("system.md"), Path::new("settings.json"), None);
         let at = args
             .iter()
             .position(|arg| arg == "--tools")
@@ -941,6 +959,18 @@ mod tests {
         assert!(exposed_tools(r#"{"type":"system","subtype":"init","session_id":"a"}"#).is_empty());
         assert!(exposed_tools(r#"{"type":"assistant","tools":["Bash"]}"#).is_empty());
         assert!(exposed_tools("not json").is_empty());
+    }
+
+    #[test]
+    fn hooks_are_disabled_through_a_settings_file() {
+        let value: serde_json::Value = serde_json::from_str(SETTINGS).expect("json");
+        assert_eq!(value["disableAllHooks"], true);
+        let args = build_args(Path::new("system.md"), Path::new("settings.json"), None);
+        let at = args
+            .iter()
+            .position(|arg| arg == "--settings")
+            .expect("a --settings flag");
+        assert_eq!(args[at + 1], "settings.json");
     }
 
     #[test]
