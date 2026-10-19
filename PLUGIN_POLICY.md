@@ -91,7 +91,8 @@ template, so the check does not depend on reviewer memory.
 
 ## Refused
 
-Cooperative-only multiplayer games are not listed here; see Grey areas.
+Cooperative-only multiplayer games are not listed here: see Grey areas for
+automating plugins and Advisory plugins for advisory ones.
 
 * Any game with a competitive or ranked multiplayer mode, whether or not the
   plugin targets that mode, advisory or not, because advice is an advantage over
@@ -134,7 +135,8 @@ Three layers, in order of strength:
      maintainer there is no valid override and the pull request stays open);
    - the merge comment names it ("advisory override, ranked check: <source>").
 
-   An override missing any of these is invalid, and the maintainers revert the
+   Each update pull request needs its own override; an earlier one does not carry
+   over. An override missing any of these is invalid, and the maintainers revert the
    merge.
 
    #112 is to add an `advisory-override` label so overrides can be listed; it
