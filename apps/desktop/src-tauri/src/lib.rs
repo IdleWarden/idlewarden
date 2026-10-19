@@ -5,6 +5,7 @@
 //! `idlewarden_core::Command` and hands `idlewarden_core` types back to the
 //! web view. No decision about a session is taken here.
 
+mod assistant;
 mod editor;
 mod hotkeys;
 mod logs;
@@ -47,6 +48,7 @@ pub fn run() {
             app.manage(session::SessionHandle::new(data_dir(app.handle())));
             app.manage(Arc::clone(&buffered));
             app.manage(editor::Editor::default());
+            app.manage(assistant::Assistant::default());
             let overlay = overlay::Overlay::load(&data_dir(app.handle()).join("overlay.json"));
             if let Err(error) = hotkeys::register(app.handle(), &overlay.settings().hotkeys) {
                 tracing::error!("hotkeys: {error}");
@@ -79,7 +81,9 @@ pub fn run() {
             updates::install_update,
             overlay::overlay_settings,
             overlay::set_overlay_settings,
-            overlay::set_overlay_expanded
+            overlay::set_overlay_expanded,
+            assistant::assistant_ask,
+            assistant::assistant_reset
         ])
         .run(tauri::generate_context!())
         .expect("the tauri runtime failed to start");

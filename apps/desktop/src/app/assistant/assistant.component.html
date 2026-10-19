@@ -1,0 +1,41 @@
+<main>
+  <header>
+    <svg viewBox="0 0 16 13" aria-hidden="true">
+      @for (cell of owl; track $index) {
+        <rect
+          [attr.x]="cell.x"
+          [attr.y]="cell.y"
+          width="1"
+          height="1"
+          [attr.fill]="cell.fill"
+        />
+      }
+    </svg>
+    <div>
+      <h1>Le Gardien</h1>
+      <p class="hint">Il lit les signaux du jeu et te dit quoi faire ensuite.</p>
+    </div>
+    <button type="button" (click)="reset()">Nouvelle conversation</button>
+  </header>
+
+  <ol class="log" aria-live="polite">
+    @for (message of messages(); track $index) {
+      <li [attr.data-from]="message.from" [class.failed]="message.failed">
+        <span class="who">{{ message.from === "player" ? "Toi" : "Gardien" }}</span>
+        <p [class.pending]="message.pending">{{ message.text }}</p>
+      </li>
+    } @empty {
+      <li class="empty">Pose une question au Gardien.</li>
+    }
+  </ol>
+
+  <form (submit)="$event.preventDefault(); send(input)">
+    <textarea
+      #input
+      rows="2"
+      placeholder="Que dois-je faire maintenant ?"
+      (keydown.enter)="$event.preventDefault(); send(input)"
+    ></textarea>
+    <button type="submit" [disabled]="waiting()">Envoyer</button>
+  </form>
+</main>
