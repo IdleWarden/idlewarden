@@ -117,7 +117,9 @@ Three layers, in order of strength:
    recorded in the pull request, and names the override in the merge comment
    ("advisory override, ranked check: <source>") so it can be found later, and a second maintainer
    acknowledges it in the pull request. #112 adds an `advisory-override` label so
-   overrides can be listed. The author does not need to ask.
+   overrides can be listed. The author does not need to ask. A cooperative-only game with an
+   automating plugin is never overridden: that pull request stays open until the
+   discussion thread decides it.
 2. **Capabilities.** A plugin declares what it needs. `Unverified` plugins get
    nothing granted silently; network access is never granted silently below
    `Official`.
