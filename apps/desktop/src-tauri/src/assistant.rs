@@ -378,6 +378,8 @@ struct Exit {
     stderr: String,
 }
 
+static CURRENT_TURN: AtomicU64 = AtomicU64::new(0);
+
 static RUNNING: Mutex<Option<std::process::Child>> = Mutex::new(None);
 
 fn with_running<T>(f: impl FnOnce(&mut Option<std::process::Child>) -> T) -> T {
@@ -752,6 +754,7 @@ pub fn assistant_ask(
 
     let system = system_prompt(&session.plugin_root(), plugin.as_deref());
     let generation = assistant.generation();
+    CURRENT_TURN.store(turn, AtomicOrdering::SeqCst);
     let prompt = build_prompt(&context, &text);
 
     std::thread::spawn(move || {
@@ -778,8 +781,10 @@ pub fn shutdown(assistant: &Assistant) {
 }
 
 #[tauri::command]
-pub fn assistant_cancel() {
-    stop_running_child();
+pub fn assistant_cancel(turn: u64) {
+    if CURRENT_TURN.load(AtomicOrdering::SeqCst) == turn {
+        stop_running_child();
+    }
 }
 
 #[tauri::command]

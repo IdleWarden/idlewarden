@@ -106,3 +106,13 @@ textarea:focus {
   outline: none;
   border-color: var(--accent);
 }
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+}

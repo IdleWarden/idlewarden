@@ -9,6 +9,16 @@ const ANSWER_WATCHDOG_MS = 300_000;
 const MAX_CONTEXT_CHARS = 12_000;
 const BUSY_RETRY_MS = 1_500;
 
+const INFORMED_KEY = "idlewarden.assistant.informed";
+
+function readInformed(): boolean {
+  try {
+    return localStorage.getItem(INFORMED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 function readable(error: unknown): string {
   return String(error).replace(/^busy: /, "");
 }
@@ -37,6 +47,16 @@ export class AssistantService {
 
   readonly messages = this.log.asReadonly();
   readonly waiting = this.pending.asReadonly();
+  readonly informed = signal(readInformed());
+
+  inform(): void {
+    this.informed.set(true);
+    try {
+      localStorage.setItem(INFORMED_KEY, "1");
+    } catch {
+      return;
+    }
+  }
 
   constructor() {
     void listen<AssistantReply>("assistant", (event) => this.receive(event.payload));
@@ -55,7 +75,7 @@ export class AssistantService {
     this.pending.set(true);
     const turn = ++this.turn;
     this.watchdog = setTimeout(() => {
-      void invoke("assistant_cancel").catch(() => undefined);
+      void invoke("assistant_cancel", { turn }).catch(() => undefined);
       this.receive({
         turn,
         kind: "failed",

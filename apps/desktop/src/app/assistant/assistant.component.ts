@@ -14,6 +14,11 @@ export class AssistantComponent {
   readonly owl = OWL;
   readonly messages = this.assistant.messages;
   readonly waiting = this.assistant.waiting;
+  readonly informed = this.assistant.informed;
+
+  inform(): void {
+    this.assistant.inform();
+  }
 
   onEnter(event: KeyboardEvent, input: HTMLTextAreaElement): void {
     if (event.shiftKey || event.isComposing) {
@@ -25,7 +30,7 @@ export class AssistantComponent {
 
   async send(input: HTMLTextAreaElement): Promise<void> {
     const text = input.value.trim();
-    if (text === "" || this.waiting()) {
+    if (text === "" || this.waiting() || !this.informed()) {
       return;
     }
     input.value = "";

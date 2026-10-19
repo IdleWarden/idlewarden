@@ -28,6 +28,16 @@
     </button>
   </header>
 
+  @if (!informed()) {
+    <section class="notice">
+      <p>
+        Chaque question envoie les signaux du jeu à ton Claude Code, donc à Anthropic.
+        Claude Code garde la conversation, signaux compris, dans son historique local.
+      </p>
+      <button type="button" (click)="inform()">J'ai compris</button>
+    </section>
+  }
+
   <ol class="log" aria-live="polite">
     @for (message of messages(); track $index) {
       <li [attr.data-from]="message.from" [class.failed]="message.failed">
@@ -39,7 +49,7 @@
     }
   </ol>
 
-  <form (submit)="$event.preventDefault(); send(input)">
+  <form (submit)="$event.preventDefault(); send(input)" [hidden]="!informed()">
     <textarea
       #input
       rows="2"
