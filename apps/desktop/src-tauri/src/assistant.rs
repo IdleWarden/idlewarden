@@ -519,6 +519,10 @@ impl Drop for ScratchDir {
     }
 }
 
+mod turn;
+
+use turn::{lost_note, Turn};
+
 fn ask(
     app: &AppHandle,
     turn: u64,
@@ -532,14 +536,6 @@ fn ask(
             .to_owned()
     };
     let resumed = assistant.resume_id().is_some();
-    let drop_session = |detail: &str| {
-        if resumed && is_resume_failure(detail) {
-            assistant.forget(generation);
-            " La conversation repart de zéro."
-        } else {
-            ""
-        }
-    };
     let scratch = assistant.scratch_path()?;
     let system_file = scratch.join("system.md");
     fs::write(&system_file, system).map_err(|error| error.to_string())?;
@@ -551,67 +547,23 @@ fn ask(
         assistant.resume_id().as_deref(),
     );
 
-    let mut pending_session = None;
-    let mut shown = String::new();
-    let mut verdict: Option<Reply> = None;
-    let mut blocked = false;
+    let mut turn_state = Turn::new(resumed);
     let mut on_line = |line: &str| {
-        if blocked {
-            return;
-        }
-        let tools = exposed_tools(line);
-        if !tools.is_empty() {
-            blocked = true;
-            verdict = Some(Reply::Failed {
-                message: format!(
-                    "Claude Code expose des outils ({}) malgré --tools vide, le Gardien s'arrête.",
-                    tools.join(", ")
-                ),
-            });
+        let effects = turn_state.feed(line);
+        if effects.kill {
             let running = RUNNING_CHILD.load(AtomicOrdering::SeqCst);
             if running != 0 {
                 kill_pid(running);
             }
-            return;
         }
-        match parse_stream_line(line) {
-            Some(StreamLine::Session(id)) => pending_session = Some(id),
-            Some(StreamLine::Text(text)) => {
-                if !shown.is_empty() {
-                    shown.push_str("\n\n");
-                }
-                shown.push_str(&text);
-                emit(
-                    app,
-                    turn,
-                    Reply::Partial {
-                        text: shown.clone(),
-                    },
-                );
-            }
-            Some(StreamLine::Result { ok: true, text }) => {
-                if let Some(id) = pending_session.take() {
-                    assistant.remember(generation, id);
-                }
-                let text = if shown.trim().is_empty() {
-                    text
-                } else {
-                    shown.clone()
-                };
-                verdict = Some(Reply::Done { text });
-            }
-            Some(StreamLine::Result { ok: false, text }) => {
-                let note = drop_session(&text);
-                let message = if text.trim().is_empty() {
-                    "Claude a répondu par une erreur sans détail.".to_owned()
-                } else {
-                    text
-                };
-                verdict = Some(Reply::Failed {
-                    message: format!("{message}{note}"),
-                });
-            }
-            None => {}
+        if let Some(text) = effects.partial {
+            emit(app, turn, Reply::Partial { text });
+        }
+        if let Some(id) = effects.remember {
+            assistant.remember(generation, id);
+        }
+        if effects.forget {
+            assistant.forget(generation);
         }
     };
 
@@ -630,7 +582,7 @@ fn ask(
         }
     };
 
-    if let Some(reply) = verdict {
+    if let Some(reply) = turn_state.into_verdict() {
         return Ok(reply);
     }
     if exit.timed_out {
@@ -640,7 +592,11 @@ fn ask(
         ));
     }
     let detail = exit.stderr.trim();
-    let note = drop_session(detail);
+    let note = lost_note(resumed, detail);
+    if note.is_some() {
+        assistant.forget(generation);
+    }
+    let note = note.unwrap_or_default();
     Err(if detail.is_empty() {
         "Claude s'est arrêté sans répondre. Vérifie que tu es connecté.".to_owned()
     } else {
