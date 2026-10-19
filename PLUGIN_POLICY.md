@@ -76,7 +76,8 @@ check. A `Bridge` with empty `intents` is the weakest link of the advisory path,
 because only a human reading the mod's source stands between it and commands
 outside the Intent protocol. The pull request therefore states the full set of
 commands the bridge accepts, and the reviewer verifies that set against the
-source. #112 makes that statement a required field of the registry pull request
+source; a second maintainer reads it too, because one reader is a single point of
+failure. #112 makes that statement a required field of the registry pull request
 template, so the check does not depend on reviewer memory.
 
 ## Refused
@@ -114,8 +115,9 @@ Three layers, in order of strength:
    mechanically. For an advisory plugin that meets the conditions, the reviewer
    overrides that refusal, but only once the ranked check and its source are
    recorded in the pull request, and names the override in the merge comment
-   ("advisory override, ranked check: <source>") so it can be found later; the author does not
-   need to ask.
+   ("advisory override, ranked check: <source>") so it can be found later, and a second maintainer
+   acknowledges it in the pull request. #112 adds an `advisory-override` label so
+   overrides can be listed. The author does not need to ask.
 2. **Capabilities.** A plugin declares what it needs. `Unverified` plugins get
    nothing granted silently; network access is never granted silently below
    `Official`.
