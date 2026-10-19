@@ -10,7 +10,7 @@
 talks about it, and can play for you if you turn that on.**
 
 IdleWarden watches a game, builds an abstract picture of what is happening, and
-tells you what is worth doing: the Gardien, a small pixel owl, answers your
+is meant to tell you what is worth doing: the Gardien, a small pixel owl, answers your
 questions from the game's live signals. If you want more than advice, the same
 picture feeds an agent that decides and acts: mouse, keyboard, nothing exotic.
 New games are added as plugins; the engine itself never learns about any
@@ -46,10 +46,9 @@ the point, and games whose terms explicitly allow it. Advice is a separate case:
 an advisory plugin presses nothing, and the policy treats it on its own terms.
 
 IdleWarden is **not** designed around defeating anti-cheat systems, and the
-official plugin registry refuses plugins that automate competitive or ranked
-games. It refuses any plugin at all, advisory or not, for a game with a ranked
-or competitive mode. Cooperative-only games that want automation are decided case
-by case. That boundary is editorial, not technical: the engine is generic and
+official plugin registry refuses any plugin at all, advisory or not, for a game
+with a ranked or competitive mode. Cooperative-only games that want automation
+are decided case by case. That boundary is editorial, not technical: the engine is generic and
 cannot police what people do with it, but what we distribute, we curate. See
 [`PLUGIN_POLICY.md`](PLUGIN_POLICY.md).
 

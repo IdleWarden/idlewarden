@@ -14,8 +14,10 @@ curate is what we ship.
 
 ## Advisory plugins
 
-A plugin whose `intents` list is empty and which requests no input capability
-can only be observed and talked about ([ADR-0023](docs/adr/0023-companion-first.md)).
+This section takes effect once [ADR-0023](docs/adr/0023-companion-first.md) is
+accepted. There is no manifest field for it: a plugin is advisory when its
+`intents` list is empty and it requests no input capability, so it can only be
+observed and talked about.
 It is judged separately from a plugin that automates, because it cannot press
 anything. It is accepted when all of these hold:
 
@@ -31,9 +33,9 @@ anything. It is accepted when all of these hold:
   pull request lists every signal the plugin exposes, and the reviewer checks
   that each one is visible in the game's own interface.
 
-Registry CI will reject an advisory-labelled plugin that declares an intent or
+Registry CI will reject a plugin submitted as advisory that declares an intent or
 an input capability (tracked in #112). Until that check exists, the registry
-ignores the advisory label: a plugin is reviewed by hand against the three
+does not check this: a plugin is reviewed by hand against the three
 conditions above, and if it meets them it is merged with no automated
 guarantee.
 Any update that changes `intents` or capabilities needs a new review.
