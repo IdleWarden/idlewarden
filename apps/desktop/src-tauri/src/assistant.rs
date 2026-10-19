@@ -326,8 +326,15 @@ fn system_prompt(plugin_root: &Path, plugin: Option<&str>) -> String {
     }
 }
 
-fn emit(app: &AppHandle, reply: Reply) {
-    if let Err(error) = app.emit(EVENT, reply) {
+#[derive(Clone, Serialize)]
+struct Envelope {
+    turn: u64,
+    #[serde(flatten)]
+    reply: Reply,
+}
+
+fn emit(app: &AppHandle, turn: u64, reply: Reply) {
+    if let Err(error) = app.emit(EVENT, Envelope { turn, reply }) {
         tracing::warn!("assistant: could not emit: {error}");
     }
 }
@@ -336,6 +343,24 @@ fn emit(app: &AppHandle, reply: Reply) {
 struct Exit {
     timed_out: bool,
     stderr: String,
+}
+
+#[cfg(windows)]
+fn kill_tree(child: &mut std::process::Child) {
+    use std::os::windows::process::CommandExt;
+    const NO_WINDOW: u32 = 0x0800_0000;
+    let _ = Command::new("taskkill")
+        .args(["/PID", &child.id().to_string(), "/T", "/F"])
+        .creation_flags(NO_WINDOW)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
+    let _ = child.kill();
+}
+
+#[cfg(not(windows))]
+fn kill_tree(child: &mut std::process::Child) {
+    let _ = child.kill();
 }
 
 fn run_child(
@@ -394,7 +419,7 @@ fn run_child(
             Ok(line) => on_line(&line),
             Err(mpsc::RecvTimeoutError::Timeout) => {
                 timed_out = true;
-                let _ = child.kill();
+                kill_tree(&mut child);
                 break;
             }
             Err(mpsc::RecvTimeoutError::Disconnected) => break,
@@ -406,7 +431,7 @@ fn run_child(
             Some(_) => break,
             None if Instant::now() >= deadline => {
                 timed_out = true;
-                let _ = child.kill();
+                kill_tree(&mut child);
             }
             None => std::thread::sleep(Duration::from_millis(20)),
         }
@@ -446,7 +471,13 @@ impl Drop for ScratchDir {
     }
 }
 
-fn ask(app: &AppHandle, args: Vec<String>, prompt: &str, generation: u64) -> Result<(), String> {
+fn ask(
+    app: &AppHandle,
+    turn: u64,
+    args: Vec<String>,
+    prompt: &str,
+    generation: u64,
+) -> Result<(), String> {
     let assistant = app.state::<Assistant>();
     let not_found = || {
         "Claude Code introuvable (seule l'installation avec claude.exe est prise en charge). Installe-le et connecte-toi avec `claude` dans un terminal."
@@ -472,6 +503,7 @@ fn ask(app: &AppHandle, args: Vec<String>, prompt: &str, generation: u64) -> Res
             shown.push_str(&text);
             emit(
                 app,
+                turn,
                 Reply::Partial {
                     text: shown.clone(),
                 },
@@ -518,7 +550,7 @@ fn ask(app: &AppHandle, args: Vec<String>, prompt: &str, generation: u64) -> Res
     };
 
     if let Some(reply) = verdict {
-        emit(app, reply);
+        emit(app, turn, reply);
         return Ok(());
     }
     assistant.forget(generation);
@@ -540,6 +572,7 @@ pub fn assistant_ask(
     app: AppHandle,
     session: State<'_, SessionHandle>,
     assistant: State<'_, Assistant>,
+    turn: u64,
     text: String,
     context: String,
     plugin: Option<String>,
@@ -556,7 +589,7 @@ pub fn assistant_ask(
     std::thread::spawn(move || {
         let _busy = busy;
         let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            ask(&app, args, &prompt, generation)
+            ask(&app, turn, args, &prompt, generation)
         }));
         let failure = match outcome {
             Ok(Ok(())) => None,
@@ -564,7 +597,7 @@ pub fn assistant_ask(
             Err(_) => Some("Le Gardien a rencontré une erreur interne.".to_owned()),
         };
         if let Some(message) = failure {
-            emit(&app, Reply::Failed { message });
+            emit(&app, turn, Reply::Failed { message });
         }
     });
     Ok(())

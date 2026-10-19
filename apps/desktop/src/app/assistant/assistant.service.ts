@@ -13,6 +13,7 @@ export class AssistantService {
   private readonly log = signal<readonly ChatMessage[]>([]);
   private readonly pending = signal(false);
   private watchdog: ReturnType<typeof setTimeout> | undefined;
+  private turn = 0;
 
   readonly messages = this.log.asReadonly();
   readonly waiting = this.pending.asReadonly();
@@ -32,9 +33,11 @@ export class AssistantService {
       { from: "warden", text: "...", pending: true, failed: false },
     ]);
     this.pending.set(true);
+    const turn = ++this.turn;
     this.watchdog = setTimeout(
       () =>
         this.receive({
+          turn,
           kind: "failed",
           message: "Le Gardien n'a pas répondu.",
         }),
@@ -43,12 +46,13 @@ export class AssistantService {
 
     try {
       await invoke("assistant_ask", {
+        turn,
         text,
         context: JSON.stringify(this.sessions.observation()?.signals ?? []),
         plugin: this.sessions.session()?.plugin ?? null,
       });
     } catch (error) {
-      this.receive({ kind: "failed", message: String(error) });
+      this.receive({ turn, kind: "failed", message: String(error) });
     }
   }
 
@@ -65,7 +69,7 @@ export class AssistantService {
   }
 
   private receive(reply: AssistantReply): void {
-    if (!this.pending()) {
+    if (!this.pending() || reply.turn !== this.turn) {
       return;
     }
     this.log.update((all) => {
