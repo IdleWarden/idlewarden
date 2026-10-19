@@ -32,8 +32,10 @@ anything. It is accepted when all of these hold:
   that each one is visible in the game's own interface.
 
 Registry CI will reject an advisory-labelled plugin that declares an intent or
-an input capability (tracked in #112). Until that check exists, advisory
-plugins are accepted by hand review alone and carry no automated guarantee.
+an input capability (tracked in #112). Until that check exists, the registry
+ignores the advisory label: a plugin is reviewed by hand against the three
+conditions above, and if it meets them it is merged with no automated
+guarantee.
 Any update that changes `intents` or capabilities needs a new review.
 Everything else in this policy still applies to it. A bridge is still a mod the
 user installs by hand, and the registry still does not carry the binary. A
@@ -63,12 +65,10 @@ nothing to execute.
 Three layers, in order of strength:
 
 1. **Review.** Every registry submission is a pull request. `multiplayer: true`
-   in the manifest is a refusal for a plugin that automates. A cooperative-only
-   game is not refused automatically but is held until a discussion thread
-   decides it (see Grey areas). For an advisory plugin the flag is not an
-   approval either: co-op games set it too, so it triggers a check of whether
-   the game has a ranked or competitive mode, and the plugin is refused if it
-   does.
+   in the manifest holds the submission and triggers a check of whether the
+   game has a ranked or competitive mode, for every plugin. A game with such a
+   mode is refused. A cooperative-only game is held until a discussion thread
+   decides it (see Grey areas). Reviewers check the claim.
 2. **Capabilities.** A plugin declares what it needs. `Unverified` plugins get
    nothing granted silently; network access is never granted silently below
    `Official`.
