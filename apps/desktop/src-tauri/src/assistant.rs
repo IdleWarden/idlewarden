@@ -167,6 +167,9 @@ pub fn parse_stream_line(line: &str) -> Option<StreamLine> {
     }
 }
 
+const DISALLOWED_TOOLS: &str =
+    "Bash,Edit,Write,NotebookEdit,Read,Glob,Grep,WebFetch,WebSearch,Task,Agent,PowerShell";
+
 const SETTINGS: &str = r#"{"disableAllHooks":true}"#;
 
 pub fn build_args(
@@ -183,6 +186,10 @@ pub fn build_args(
         String::new(),
         "--strict-mcp-config".to_owned(),
         "--disable-slash-commands".to_owned(),
+        "--permission-mode".to_owned(),
+        "plan".to_owned(),
+        "--disallowed-tools".to_owned(),
+        DISALLOWED_TOOLS.to_owned(),
         "--setting-sources".to_owned(),
         "user".to_owned(),
         "--settings".to_owned(),
@@ -861,6 +868,16 @@ mod tests {
             .position(|arg| arg == "--setting-sources")
             .expect("a setting sources flag");
         assert_eq!(args[sources + 1], "user");
+        let mode = args
+            .iter()
+            .position(|arg| arg == "--permission-mode")
+            .expect("a permission mode flag");
+        assert_eq!(args[mode + 1], "plan");
+        let denied = args
+            .iter()
+            .position(|arg| arg == "--disallowed-tools")
+            .expect("a disallowed tools flag");
+        assert!(args[denied + 1].contains("Bash"));
     }
 
     #[test]
@@ -1057,6 +1074,38 @@ mod tests {
         assert_eq!(working_dir(&base).expect("second"), first);
         assert!(first.is_dir());
         assert!(first.starts_with(&base));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_child_reporting_tools_is_killed_through_the_turn_on_windows() {
+        let _serial = SUBPROCESS
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let scratch = ScratchDir::create().expect("scratch");
+        let script = scratch.path().join("stub.ps1");
+        fs::write(
+            &script,
+            "Write-Output '{\"type\":\"system\",\"subtype\":\"init\",\"session_id\":\"s\",\"tools\":[\"Bash\"]}'\r\n[Console]::Out.Flush()\r\nStart-Sleep -Seconds 30\r\n",
+        )
+        .expect("script");
+        let mut command = Command::new("powershell");
+        command.args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File"]);
+        command.arg(&script);
+        let mut turn = Turn::new(false);
+        let started = Instant::now();
+        let exit = run_child(command, "", Duration::from_secs(25), |line| {
+            if turn.feed(line).kill {
+                stop_running_child();
+            }
+        })
+        .expect("run");
+        assert!(!exit.timed_out);
+        assert!(started.elapsed() < Duration::from_secs(20));
+        assert!(matches!(
+            turn.into_verdict(),
+            Some(Reply::Failed { message }) if message.contains("Bash")
+        ));
     }
 
     #[cfg(not(windows))]
