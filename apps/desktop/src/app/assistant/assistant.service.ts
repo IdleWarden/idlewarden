@@ -49,15 +49,14 @@ export class AssistantService {
     ]);
     this.pending.set(true);
     const turn = ++this.turn;
-    this.watchdog = setTimeout(
-      () =>
-        this.receive({
-          turn,
-          kind: "failed",
-          message: "Le Gardien n'a pas répondu.",
-        }),
-      ANSWER_WATCHDOG_MS,
-    );
+    this.watchdog = setTimeout(() => {
+      void invoke("assistant_cancel").catch(() => undefined);
+      this.receive({
+        turn,
+        kind: "failed",
+        message: "Le Gardien n'a pas répondu.",
+      });
+    }, ANSWER_WATCHDOG_MS);
 
     try {
       await invoke("assistant_ask", {

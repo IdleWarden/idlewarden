@@ -83,7 +83,8 @@ pub fn run() {
             overlay::set_overlay_settings,
             overlay::set_overlay_expanded,
             assistant::assistant_ask,
-            assistant::assistant_reset
+            assistant::assistant_reset,
+            assistant::assistant_cancel
         ])
         .build(tauri::generate_context!())
         .expect("the tauri runtime failed to start")

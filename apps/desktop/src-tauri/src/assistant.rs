@@ -697,6 +697,11 @@ pub fn shutdown(assistant: &Assistant) {
 }
 
 #[tauri::command]
+pub fn assistant_cancel() {
+    stop_running_child();
+}
+
+#[tauri::command]
 pub fn assistant_reset(assistant: State<'_, Assistant>) -> Result<(), String> {
     let Some(_claim) = Busy::claim(&assistant) else {
         return Err("le Gardien est en train de répondre".to_owned());
