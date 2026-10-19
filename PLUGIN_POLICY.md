@@ -131,8 +131,10 @@ Three layers, in order of strength:
 
    - the ranked check and its source are recorded in the pull request;
    - a second maintainer, a different person from the reviewer who applies it,
-     acknowledges it in the pull request before the merge (with a single active
-     maintainer there is no valid override and the pull request stays open);
+     acknowledges it in the pull request before the merge (a maintainer is anyone with
+     merge rights on the registry repository; with a single one, holding the
+     submission until #112 lands is the default and the pull request stays
+     open);
    - the merge comment names it ("advisory override, ranked check: <source>").
 
    Each update pull request needs its own override; an earlier one does not carry
