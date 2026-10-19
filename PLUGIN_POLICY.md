@@ -128,7 +128,8 @@ Three layers, in order of strength:
 
    - the ranked check and its source are recorded in the pull request;
    - a second maintainer, a different person from the reviewer who applies it,
-     acknowledges it in the pull request before the merge;
+     acknowledges it in the pull request before the merge (with a single active
+     maintainer there is no valid override and the pull request stays open);
    - the merge comment names it ("advisory override, ranked check: <source>").
 
    #112 is to add an `advisory-override` label so overrides can be listed; it

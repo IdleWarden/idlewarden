@@ -25,6 +25,8 @@ Planned modes (the mode switch is not built yet, see ADR-0023):
 | **Advise** | The Gardien talks and answers. It presses nothing and has no tool that could. Every session will start here. |
 | **Assist** | The agent acts for you through the Governor. Something you switch on, never implied. |
 
+Today every session runs as Assist; the mode switch is not built yet.
+
 See [ADR-0022](docs/adr/0022-assistant.md) and
 [ADR-0023](docs/adr/0023-companion-first.md).
 
