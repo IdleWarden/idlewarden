@@ -178,7 +178,7 @@ pub fn parse_stream_line(line: &str) -> Option<StreamLine> {
     }
 }
 
-pub fn build_args(system_prompt: &str, session_id: Option<&str>) -> Vec<String> {
+pub fn build_args(system_prompt_file: &Path, session_id: Option<&str>) -> Vec<String> {
     let mut args = vec![
         "-p".to_owned(),
         "--output-format".to_owned(),
@@ -190,8 +190,8 @@ pub fn build_args(system_prompt: &str, session_id: Option<&str>) -> Vec<String> 
         "--disable-slash-commands".to_owned(),
         "--setting-sources".to_owned(),
         "user".to_owned(),
-        "--append-system-prompt".to_owned(),
-        system_prompt.to_owned(),
+        "--append-system-prompt-file".to_owned(),
+        system_prompt_file.display().to_string(),
     ];
     if let Some(id) = session_id {
         args.push("--resume".to_owned());
@@ -514,7 +514,7 @@ impl Drop for ScratchDir {
 fn ask(
     app: &AppHandle,
     turn: u64,
-    args: Vec<String>,
+    system: &str,
     prompt: &str,
     generation: u64,
 ) -> Result<Reply, String> {
@@ -533,6 +533,9 @@ fn ask(
         }
     };
     let scratch = assistant.scratch_path()?;
+    let system_file = scratch.join("system.md");
+    fs::write(&system_file, system).map_err(|error| error.to_string())?;
+    let args = build_args(&system_file, assistant.resume_id().as_deref());
 
     let mut pending_session = None;
     let mut shown = String::new();
@@ -651,13 +654,12 @@ pub fn assistant_ask(
 
     let system = system_prompt(&session.plugin_root(), plugin.as_deref());
     let generation = assistant.generation();
-    let args = build_args(&system, assistant.resume_id().as_deref());
     let prompt = build_prompt(&context, &text);
 
     std::thread::spawn(move || {
         let _busy = busy;
         let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            ask(&app, turn, args, &prompt, generation)
+            ask(&app, turn, &system, &prompt, generation)
         }));
         let reply = match outcome {
             Ok(Ok(reply)) => reply,
@@ -739,15 +741,15 @@ mod tests {
 
     #[test]
     fn the_session_is_resumed_only_when_there_is_one() {
-        let first = build_args("system", None);
+        let first = build_args(Path::new("system.md"), None);
         assert!(!first.contains(&"--resume".to_owned()));
-        let next = build_args("system", Some("abc"));
+        let next = build_args(Path::new("system.md"), Some("abc"));
         assert_eq!(&next[next.len() - 2..], ["--resume", "abc"]);
     }
 
     #[test]
     fn the_assistant_has_no_tools_no_mcp_servers_and_no_project_settings() {
-        let args = build_args("system", None);
+        let args = build_args(Path::new("system.md"), None);
         let at = args
             .iter()
             .position(|arg| arg == "--tools")
