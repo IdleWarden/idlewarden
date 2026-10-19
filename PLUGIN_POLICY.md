@@ -22,12 +22,8 @@ cannot press anything. It is accepted when all of these hold:
   observed and talked about. `Capture`, `FsRead`, `Net` and `Bridge` are not
   input capabilities and stay subject to their own rules. There is no
   manifest field for this. The reviewer checks it first, in `plugin.json`.
-* The game has no competitive or ranked mode. Cooperative and single-player
-  games qualify for an advisory plugin, a game with ranked play does not,
-  whatever the plugin does. The reviewer checks this against the game's store
-  page and documentation. A game with online leaderboards is held until a
-  discussion thread decides it (see Grey areas). A cooperative game with an
-  automating plugin is not covered here and also goes to Grey areas.
+* The game has no competitive or ranked mode, checked as the Review layer under
+  Enforcement describes.
 * The publisher's terms or modding policy allow mods and overlays, and the pull
   request cites them. IdleWarden cannot grant that permission, and the
   citation in the pull request is a claim a reviewer checks, not a guarantee.
@@ -53,8 +49,9 @@ capabilities, the list of exposed signals or, for a bridge, the accepted command
 set. The update pull request re-states the signal list and the command set, and
 the reviewer compares them with the previous ones and re-verifies the commands
 against the source. The ranked or competitive check is repeated on any update
-that touches `multiplayer` or the game ID, and existing entries are rechecked
-when a game's ranked status changes. Until #112 lands, the reviewer who merges
+that touches `multiplayer` or the game ID, and the registry maintainers recheck
+existing entries when a game's ranked status changes, on a report or a plugin
+request issue that says so. Until #112 lands, the reviewer who merges
 an update pull request owns these checks and does not merge it otherwise.
 
 An advisory plugin that requests `Net` needs the same justification as any
@@ -98,8 +95,9 @@ Three layers, in order of strength:
 
 1. **Review.** Every registry submission is a pull request. The reviewer
    checks whether the game has a ranked or competitive mode on every
-   submission; `multiplayer: true` in the manifest is an additional trigger,
-   not the only one. A game with such a mode is refused, for every plugin. A
+   submission, against the game's store page and documentation;
+   `multiplayer: true` in the manifest is an additional trigger, not the only
+   one. A game with such a mode is refused, for every plugin. A
    cooperative-only game is held for a discussion thread if the plugin declares
    intents. A single-player game with online leaderboards is held for a
    discussion thread for every plugin, advisory or not. An advisory plugin for a
