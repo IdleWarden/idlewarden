@@ -62,7 +62,12 @@ window is a normal window and takes focus like any other.
 * One session id is kept per app run, so a conversation continues until the user
   resets it.
 * Resuming a session means Claude Code keeps the conversation, game signals
-  included, in its own transcript store under the user's home folder.
+  included, in its own transcript store under the user's home folder, in one
+  project entry per conversation because each runs in its own temporary
+  directory. The chat hint says so.
+* Because `--setting-sources user` stays, the user's own settings and memory
+  (`CLAUDE.md`, `env`, permission rules) apply to the Gardien as they would to
+  any Claude Code run.
 * The observation is sent as it is, truncated to a fixed size. A plugin that
   puts something private in a signal puts it in the prompt.
 * An assistant that edits a mod and rebuilds it is a different feature with a

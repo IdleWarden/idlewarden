@@ -626,11 +626,23 @@ fn ask(
         assistant.forget(generation);
     }
     let note = note.unwrap_or_default();
+    if !detail.is_empty() {
+        tracing::warn!("assistant: claude stderr: {detail}");
+    }
     Err(if detail.is_empty() {
         "Claude s'est arrêté sans répondre. Vérifie que tu es connecté.".to_owned()
     } else {
-        format!("{detail}{note}")
+        format!("{}{note}", shorten(detail))
     })
+}
+
+fn shorten(detail: &str) -> String {
+    const LIMIT: usize = 300;
+    let mut short: String = detail.chars().take(LIMIT).collect();
+    if detail.chars().nth(LIMIT).is_some() {
+        short.push('…');
+    }
+    short
 }
 
 fn is_resume_failure(detail: &str) -> bool {
@@ -956,6 +968,15 @@ mod tests {
             .position(|arg| arg == "--settings")
             .expect("a --settings flag");
         assert_eq!(args[at + 1], "settings.json");
+    }
+
+    #[test]
+    fn a_long_stderr_is_cut_for_the_chat() {
+        let long = "e".repeat(1000);
+        let short = shorten(&long);
+        assert_eq!(short.chars().count(), 301);
+        assert!(short.ends_with('…'));
+        assert_eq!(shorten("court"), "court");
     }
 
     #[test]
