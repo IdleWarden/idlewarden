@@ -287,6 +287,9 @@ fn find_claude() -> Option<PathBuf> {
 
 pub fn plugin_prompt(plugin_root: &Path, plugin_id: &str) -> Option<String> {
     for entry in fs::read_dir(plugin_root).ok()?.flatten() {
+        if !entry.file_type().is_ok_and(|kind| kind.is_dir()) {
+            continue;
+        }
         let manifest =
             read_plain_file(&entry.path().join("plugin.json"), MAX_PLUGIN_MANIFEST_BYTES);
         let id = manifest
@@ -445,63 +448,72 @@ impl Drop for ScratchDir {
 
 fn ask(app: &AppHandle, args: Vec<String>, prompt: &str, generation: u64) -> Result<(), String> {
     let assistant = app.state::<Assistant>();
-    let executable = locate_claude(&assistant).ok_or_else(|| {
+    let not_found = || {
         "Claude Code introuvable (seule l'installation avec claude.exe est prise en charge). Installe-le et connecte-toi avec `claude` dans un terminal."
             .to_owned()
-    })?;
-
-    let mut command = Command::new(executable);
-    command.args(args).current_dir(assistant.scratch_path()?);
+    };
+    let resumed = assistant.resume_id().is_some();
+    let lost = if resumed {
+        " La conversation repart de zéro."
+    } else {
+        ""
+    };
+    let scratch = assistant.scratch_path()?;
 
     let mut pending_session = None;
     let mut shown = String::new();
     let mut verdict: Option<Reply> = None;
-    let result = run_child(
-        command,
-        prompt,
-        ANSWER_TIMEOUT,
-        |line| match parse_stream_line(line) {
-            Some(StreamLine::Session(id)) => pending_session = Some(id),
-            Some(StreamLine::Text(text)) => {
-                if !shown.is_empty() {
-                    shown.push_str("\n\n");
-                }
-                shown.push_str(&text);
-                emit(
-                    app,
-                    Reply::Partial {
-                        text: shown.clone(),
-                    },
-                );
+    let mut on_line = |line: &str| match parse_stream_line(line) {
+        Some(StreamLine::Session(id)) => pending_session = Some(id),
+        Some(StreamLine::Text(text)) => {
+            if !shown.is_empty() {
+                shown.push_str("\n\n");
             }
-            Some(StreamLine::Result { ok: true, text }) => {
-                if let Some(id) = pending_session.take() {
-                    assistant.remember(generation, id);
-                }
-                let text = if shown.trim().is_empty() {
-                    text
-                } else {
-                    shown.clone()
-                };
-                verdict = Some(Reply::Done { text });
+            shown.push_str(&text);
+            emit(
+                app,
+                Reply::Partial {
+                    text: shown.clone(),
+                },
+            );
+        }
+        Some(StreamLine::Result { ok: true, text }) => {
+            if let Some(id) = pending_session.take() {
+                assistant.remember(generation, id);
             }
-            Some(StreamLine::Result { ok: false, text }) => {
-                assistant.forget(generation);
-                let message = if text.trim().is_empty() {
-                    "Claude a répondu par une erreur sans détail.".to_owned()
-                } else {
-                    text
-                };
-                verdict = Some(Reply::Failed { message });
-            }
-            None => {}
-        },
-    );
-    let exit = match result {
+            let text = if shown.trim().is_empty() {
+                text
+            } else {
+                shown.clone()
+            };
+            verdict = Some(Reply::Done { text });
+        }
+        Some(StreamLine::Result { ok: false, text }) => {
+            assistant.forget(generation);
+            let message = if text.trim().is_empty() {
+                "Claude a répondu par une erreur sans détail.".to_owned()
+            } else {
+                text
+            };
+            verdict = Some(Reply::Failed {
+                message: format!("{message}{lost}"),
+            });
+        }
+        None => {}
+    };
+
+    let mut launch = |executable: PathBuf| {
+        let mut command = Command::new(executable);
+        command.args(&args).current_dir(&scratch);
+        run_child(command, prompt, ANSWER_TIMEOUT, &mut on_line)
+    };
+    let executable = locate_claude(&assistant).ok_or_else(not_found)?;
+    let exit = match launch(executable) {
         Ok(exit) => exit,
-        Err(error) => {
+        Err(_) => {
             forget_executable(&assistant);
-            return Err(error);
+            let executable = locate_claude(&assistant).ok_or_else(not_found)?;
+            launch(executable).inspect_err(|_| forget_executable(&assistant))?
         }
     };
 
@@ -512,14 +524,14 @@ fn ask(app: &AppHandle, args: Vec<String>, prompt: &str, generation: u64) -> Res
     assistant.forget(generation);
     if exit.timed_out {
         return Err(format!(
-            "Claude n'a pas répondu en {} secondes.",
+            "Claude n'a pas répondu en {} secondes.{lost}",
             ANSWER_TIMEOUT.as_secs()
         ));
     }
     Err(if exit.stderr.trim().is_empty() {
-        "Claude s'est arrêté sans répondre. Vérifie que tu es connecté.".to_owned()
+        format!("Claude s'est arrêté sans répondre. Vérifie que tu es connecté.{lost}")
     } else {
-        exit.stderr.trim().to_owned()
+        format!("{}{lost}", exit.stderr.trim())
     })
 }
 
