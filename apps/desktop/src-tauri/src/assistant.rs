@@ -466,6 +466,15 @@ impl RunError {
     }
 }
 
+impl Drop for Handle {
+    fn drop(&mut self) {
+        if let Some(mut child) = self.finish() {
+            kill_tree(&mut child);
+            let _ = child.wait();
+        }
+    }
+}
+
 fn run_child(
     command: Command,
     prompt: &str,
