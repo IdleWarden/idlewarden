@@ -24,13 +24,13 @@ anything. It is accepted when all of these hold:
 * The publisher's terms or modding policy allow mods and overlays, and the pull
   request cites them. IdleWarden cannot grant that permission, and the manifest
   line is a claim a reviewer checks, not a guarantee.
-* It surfaces nothing the player's own client would not already show them, and
-  nothing that gives an advantage over other human players.
+* It surfaces nothing the player's own client would not already show them.
 
-Registry CI rejects an advisory-labelled plugin that declares an intent or an
-input capability, and any update that changes `intents` or capabilities needs a
-new review. Everything else in this policy still applies to it. A bridge is still a mod the
-user installs by hand, and the registry still does not carry the binary.
+Registry CI will reject an advisory-labelled plugin that declares an intent or
+an input capability, and reviewers reject it until that check exists. Any update
+that changes `intents` or capabilities needs a new review. Everything else in
+this policy still applies to it. A bridge is still a mod the user installs by
+hand, and the registry still does not carry the binary.
 
 ## Refused
 
@@ -55,9 +55,9 @@ Three layers, in order of strength:
 
 1. **Review.** Every registry submission is a pull request. `multiplayer: true`
    in the manifest is an automatic refusal for a plugin that automates, and
-   reviewers check the claim. For an advisory plugin it is not a refusal by
-   itself: co-op games set it too, so it triggers the ranked and competitive
-   check in the review above instead.
+   reviewers check the claim. For an advisory plugin it is not an approval
+   either: co-op games set it too, so it triggers a check of whether the game
+   has a ranked or competitive mode, and the plugin is refused if it does.
 2. **Capabilities.** A plugin declares what it needs. `Unverified` plugins get
    nothing granted silently; network access is never granted silently below
    `Official`.

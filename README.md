@@ -18,8 +18,8 @@ particular game.
 
 | Mode | What it does |
 |------|--------------|
-| **Watch** | Reads and says nothing. Where a session starts. |
-| **Advise** | The Gardien talks and answers. It presses nothing and has no tool that could. The default. |
+| **Watch** | Reads and says nothing. A switch to silence the Gardien. |
+| **Advise** | The Gardien talks and answers. It presses nothing and has no tool that could. Every session starts here. |
 | **Assist** | The agent acts for you through the Governor. Something you switch on, never implied. |
 
 See [ADR-0022](docs/adr/0022-assistant.md) and

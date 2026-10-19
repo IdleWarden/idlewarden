@@ -22,14 +22,14 @@ the program is for.
 **IdleWarden is a companion that stays with the player while they play. Helping
 by acting is something the player turns on.** The session has three modes:
 
-* **Watch.** It reads and says nothing. This is where a session starts.
+* **Watch.** It reads and says nothing. The user switches to it to silence the Gardien.
 * **Advise.** The Gardien talks: answers questions, and speaks up on events a
   plugin declares. It presses nothing and has no tool that could.
 * **Assist.** The existing agent acts through the Governor, exactly as before
   ([ADR-0008](0008-agent.md), [ADR-0009](0009-governor.md)). Nothing about the
   agent, the Governor or the kill switch changes.
 
-**Advise is the default a new user meets.** Assist is never implied by
+**Every session starts in Advise.** Assist is never implied by
 installing a plugin: it is a switch the user flips for a session.
 
 **A plugin that cannot act can be advisory.** A plugin whose `intents` list is
@@ -61,7 +61,7 @@ worth anything in that mode is an advantage over other players.
 
 * The same signals serve both uses, so a companion costs one screen and a prompt,
   not a second engine.
-* Starting in Watch and defaulting to Advise means the first thing a user sees is
+* Starting every session in Advise means the first thing a user sees is
   help, not a program that moves their mouse.
 * An assistant that cannot act is an easier thing to put in front of a game's
   rules than a bot is, and the policy can say so honestly instead of treating
