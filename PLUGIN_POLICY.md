@@ -14,11 +14,6 @@ curate is what we ship.
 
 ## Advisory plugins
 
-This section and the advisory wording under Refused, the Review layer and Grey
-areas apply from the merge into the default branch that introduces them (this
-change stacks on the assistant change and merges after it), which is also what
-accepts
-[ADR-0023](docs/adr/0023-companion-first.md).
 An advisory plugin is judged separately from one that automates, because it
 cannot press anything. It is accepted when all of these hold:
 

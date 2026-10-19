@@ -7,7 +7,8 @@
 </p>
 
 **A companion that plays beside you, and helps when you ask. It reads your game,
-talks about it, and can play for you if you turn that on.**
+talks about it, and, once the mode switch lands, plays for you only if you turn
+that on.**
 
 IdleWarden watches a game, builds an abstract picture of what is happening, and
 is meant to tell you what is worth doing: the Gardien, a small pixel owl, answers your
