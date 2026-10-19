@@ -83,6 +83,8 @@ template, so the check does not depend on reviewer memory.
 
 ## Refused
 
+Cooperative-only multiplayer games are not listed here; see Grey areas.
+
 * Any game with a competitive or ranked multiplayer mode, whether or not the
   plugin targets that mode, advisory or not, because advice is an advantage over
   other players too. We do not adjudicate "but I only
@@ -107,22 +109,27 @@ Three layers, in order of strength:
    checks whether the game has a ranked or competitive mode on every
    submission, against the game's store page and documentation;
    `multiplayer: true` in the manifest is an additional trigger, not the only
-   one. A game with such a mode is refused, for every plugin. A
-   cooperative-only game is held for a discussion thread if the plugin is automating. A single-player game with online leaderboards is held for a
-   discussion thread for every plugin, advisory or not. An advisory plugin for a
-   cooperative-only game goes through the advisory conditions instead. Reviewers
-   check the claim. Until the registry's own copy of this policy is updated
-   (tracked in #112), its checks may still refuse `multiplayer: true`
-   mechanically. For an advisory plugin that meets the conditions, the reviewer
-   overrides that refusal, but only once the ranked check and its source are
-   recorded in the pull request, and names the override in the merge comment
-   ("advisory override, ranked check: <source>") so it can be found later, and a second maintainer
-   acknowledges it in the pull request. #112 is to add an `advisory-override` label (it does not exist yet; until then
-   the merge comment is the only trace) so
-   overrides can be listed. The author does not need to ask. A cooperative-only game with an
-   automating plugin is never overridden: that pull request stays open until the
-   discussion thread decides it, so the registry's mechanical refusal keeps
-   applying to it until then, as intended.
+   one. A game with such a mode is refused, for every plugin. A cooperative-only
+   game is held for a discussion thread if the plugin is automating. A
+   single-player game with online leaderboards is held for a discussion thread
+   for every plugin, advisory or not. An advisory plugin for a cooperative-only
+   game goes through the advisory conditions instead. Reviewers check the claim.
+
+   Until the registry's own copy of this policy is updated (tracked in #112), its
+   checks may still refuse `multiplayer: true` mechanically. For an advisory
+   plugin that meets the conditions, the reviewer applies an override; the plugin
+   author does not request it. The override is valid only when:
+
+   - the ranked check and its source are recorded in the pull request;
+   - a second maintainer, a different person from the reviewer who applies it,
+     acknowledges it in the pull request before the merge;
+   - the merge comment names it ("advisory override, ranked check: <source>").
+
+   #112 is to add an `advisory-override` label so overrides can be listed; it
+   does not exist yet, and until then the merge comment is the only trace. A
+   cooperative-only game with an automating plugin is never overridden: that
+   pull request stays open until the discussion thread decides it, so the
+   registry's mechanical refusal keeps applying to it until then, as intended.
 2. **Capabilities.** A plugin declares what it needs. `Unverified` plugins get
    nothing granted silently; network access is never granted silently below
    `Official`.
