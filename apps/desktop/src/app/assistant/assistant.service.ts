@@ -65,6 +65,9 @@ export class AssistantService {
   }
 
   private receive(reply: AssistantReply): void {
+    if (!this.pending()) {
+      return;
+    }
     this.log.update((all) => {
       const last = all.length - 1;
       if (last < 0 || all[last].from !== "warden") {

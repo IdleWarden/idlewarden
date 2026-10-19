@@ -30,6 +30,7 @@ pub struct Assistant {
     generation: AtomicU64,
     busy: Arc<AtomicBool>,
     executable: Mutex<Option<PathBuf>>,
+    scratch: Mutex<Option<ScratchDir>>,
 }
 
 impl Assistant {
@@ -64,7 +65,24 @@ impl Assistant {
         }
     }
 
+    fn scratch_path(&self) -> Result<PathBuf, String> {
+        let mut slot = self
+            .scratch
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if slot.is_none() {
+            *slot = Some(ScratchDir::create()?);
+        }
+        slot.as_ref()
+            .map(|dir| dir.path().to_path_buf())
+            .ok_or_else(|| "scratch directory unavailable".to_owned())
+    }
+
     fn reset(&self) {
+        *self
+            .scratch
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
         let mut slot = self
             .session_id
             .lock()
@@ -427,8 +445,7 @@ fn ask(app: &AppHandle, args: Vec<String>, prompt: &str, generation: u64) -> Res
     })?;
 
     let mut command = Command::new(executable);
-    let scratch = ScratchDir::create()?;
-    command.args(args).current_dir(scratch.path());
+    command.args(args).current_dir(assistant.scratch_path()?);
 
     let mut pending_session = None;
     let mut shown = String::new();
@@ -756,6 +773,20 @@ mod tests {
         .expect("run");
         assert_eq!(seen.len(), 3);
         assert_eq!(seen[2], "b");
+    }
+
+    #[test]
+    fn the_working_directory_is_stable_across_turns_and_new_after_a_reset() {
+        let assistant = Assistant::default();
+        let first = assistant.scratch_path().expect("first");
+        assert_eq!(assistant.scratch_path().expect("second"), first);
+        assert!(first.is_dir());
+
+        assistant.reset();
+        assert!(!first.exists());
+        let next = assistant.scratch_path().expect("next");
+        assert_ne!(next, first);
+        assistant.reset();
     }
 
     #[test]
