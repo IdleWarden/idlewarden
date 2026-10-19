@@ -52,11 +52,13 @@ never a replacement.
 
 Registry CI will classify a plugin as advisory when its manifest has empty
 `intents` and no input capability, and apply the conditions above to it (tracked
-in #112). Nothing is declared by the author. Until that check exists, the
+in #112). Nothing is declared by the author (apart from `multiplayer`, which only triggers the
+ranked check). Until that check exists, the
 registry does not classify anything: the reviewer applies the conditions by
 hand, and a plugin that meets them is merged with no automated guarantee.
 Any update that changes `intents` or capabilities needs a new review, and until
-#112 lands the reviewer diffs both on every update pull request.
+#112 lands the reviewer who merges an update pull request owns the diff of both, and
+that pull request is not merged without it.
 Everything else in this policy still applies to it. A bridge is still a mod the
 user installs by hand, and the registry still does not carry the binary. The Core
 sends a bridge only the `Intent`s built from the plugin's declared intents
