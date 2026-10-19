@@ -15,7 +15,8 @@ curate is what we ship.
 ## Advisory plugins
 
 An advisory plugin is judged separately from one that automates, because it
-cannot press anything. It is accepted when all of these hold:
+cannot press anything. In this policy a plugin that is not advisory, because it
+declares intents or requests an input capability, is called automating. It is accepted when all of these hold:
 
 * It is advisory: its `intents` list is empty and it requests no input
   capability (`InputMouse`, `InputKeyboard` or `InputGamepad`), so it can only be
@@ -98,8 +99,7 @@ Three layers, in order of strength:
    submission, against the game's store page and documentation;
    `multiplayer: true` in the manifest is an additional trigger, not the only
    one. A game with such a mode is refused, for every plugin. A
-   cooperative-only game is held for a discussion thread if the plugin declares
-   intents. A single-player game with online leaderboards is held for a
+   cooperative-only game is held for a discussion thread if the plugin is automating. A single-player game with online leaderboards is held for a
    discussion thread for every plugin, advisory or not. An advisory plugin for a
    cooperative-only game goes through the advisory conditions instead. Reviewers
    check the claim. Until the registry's own copy of this policy is updated
@@ -121,7 +121,8 @@ Three layers, in order of strength:
 ## Grey areas
 
 Bring them to a discussion thread before writing the plugin. Three cases are
-open: a cooperative-only multiplayer game that wants an automating plugin, a
+open: a cooperative-only multiplayer game that wants an automating plugin (see
+Advisory plugins for the term), a
 single-player game with online leaderboards (undecided for advisory plugins
 too), and a game whose terms are silent rather than permissive. They are real
 cases and they get decided individually, in public, and recorded here.
