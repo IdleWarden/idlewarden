@@ -28,7 +28,9 @@ cannot press anything. It is accepted when all of these hold:
   input capabilities and stay subject to their own rules. There is no
   manifest field for this. The reviewer checks it first, in `plugin.json`.
 * The game has no competitive or ranked mode. Cooperative and single-player games
-  qualify, a game with ranked play does not, whatever the plugin does. The
+  qualify for an advisory plugin, a game with ranked play does not, whatever the
+  plugin does. A cooperative game with an automating plugin is not covered by
+  this and goes to Grey areas. The
   reviewer checks this against the game's store page and documentation. A game
   with online leaderboards is held until a discussion thread decides it (see
   Grey areas).
@@ -101,8 +103,11 @@ Three layers, in order of strength:
    not the only one. A game with such a mode is refused, for every plugin. A
    cooperative-only game is held for a discussion thread if the plugin declares
    intents. A single-player game with online leaderboards is held for a
-   discussion thread for every plugin, advisory or not. An advisory plugin for a cooperative-only game goes through the advisory
-   conditions instead. Reviewers check the claim.
+   discussion thread for every plugin, advisory or not. An advisory plugin for a
+   cooperative-only game goes through the advisory conditions instead. Reviewers
+   check the claim. Until the registry's own copy of this policy is updated
+   (tracked in #112), its checks may still refuse `multiplayer: true`
+   mechanically; an affected author opens a discussion thread.
 2. **Capabilities.** A plugin declares what it needs. `Unverified` plugins get
    nothing granted silently; network access is never granted silently below
    `Official`.
