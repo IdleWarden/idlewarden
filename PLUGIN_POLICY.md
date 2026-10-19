@@ -32,12 +32,12 @@ anything. It is accepted when all of these hold:
   that each one is visible in the game's own interface.
 
 Registry CI will reject an advisory-labelled plugin that declares an intent or
-an input capability (tracked in #112). Until that check exists, the registry
-does not honour the advisory label: such a plugin is reviewed by hand as an
-ordinary plugin and must meet the criteria above. Any update that changes
-`intents` or capabilities needs a new review. Everything else in this policy still applies to it. A bridge is still a
-mod the user installs by hand, and the registry still does not carry the
-binary. A bridge only executes the `Intent`s the plugin declares
+an input capability (tracked in #112). Until that check exists, advisory
+plugins are accepted by hand review alone and carry no automated guarantee.
+Any update that changes `intents` or capabilities needs a new review.
+Everything else in this policy still applies to it. A bridge is still a mod the
+user installs by hand, and the registry still does not carry the binary. A
+bridge only executes the `Intent`s the plugin declares
 ([ADR-0014](docs/adr/0014-bridge.md)), so an empty `intents` list leaves it
 nothing to execute.
 
