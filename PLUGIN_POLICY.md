@@ -21,7 +21,9 @@ anything. It is accepted when all of these hold:
 
 * The game has no competitive or ranked mode. Cooperative and single-player games
   qualify, a game with ranked play does not, whatever the plugin does. The
-  reviewer checks this against the game's store page and documentation.
+  reviewer checks this against the game's store page and documentation. A game
+  with online leaderboards is held until a discussion thread decides it (see
+  Grey areas).
 * The publisher's terms or modding policy allow mods and overlays, and the pull
   request cites them. IdleWarden cannot grant that permission, and the manifest
   line is a claim a reviewer checks, not a guarantee.
@@ -30,8 +32,8 @@ anything. It is accepted when all of these hold:
   that each one is visible in the game's own interface.
 
 Registry CI will reject an advisory-labelled plugin that declares an intent or
-an input capability (tracked in #112); until that check exists, reviewers
-check it by hand. Any update that changes `intents` or capabilities needs a new
+an input capability (tracked in #112). Until that check exists, the registry
+does not honour the advisory label, and reviewers check the plugin by hand. Any update that changes `intents` or capabilities needs a new
 review. Everything else in this policy still applies to it. A bridge is still a
 mod the user installs by hand, and the registry still does not carry the
 binary.
@@ -58,10 +60,12 @@ binary.
 Three layers, in order of strength:
 
 1. **Review.** Every registry submission is a pull request. `multiplayer: true`
-   in the manifest is a refusal for a plugin that automates unless the game is
-   cooperative-only (see Grey areas), and reviewers check the claim. For an advisory plugin it is not an approval
-   either: co-op games set it too, so it triggers a check of whether the game
-   has a ranked or competitive mode, and the plugin is refused if it does.
+   in the manifest is a refusal for a plugin that automates. A cooperative-only
+   game is not refused automatically but is held until a discussion thread
+   decides it (see Grey areas). For an advisory plugin the flag is not an
+   approval either: co-op games set it too, so it triggers a check of whether
+   the game has a ranked or competitive mode, and the plugin is refused if it
+   does.
 2. **Capabilities.** A plugin declares what it needs. `Unverified` plugins get
    nothing granted silently; network access is never granted silently below
    `Official`.
