@@ -26,10 +26,12 @@ declares intents or requests an input capability, is called automating. It is ac
   capabilities and stay subject to their own rules. There is no
   manifest field for this. The reviewer checks it first, in `plugin.json`.
 * The game has no competitive or ranked mode, checked as the Review layer under
-  Enforcement describes.
+  Enforcement describes. A single-player game with online leaderboards is held
+  for a discussion thread there, so it is not accepted on this list alone.
 * The publisher's terms or modding policy allow mods and overlays, and the pull
   request cites them. IdleWarden cannot grant that permission, and the
   citation in the pull request is a claim a reviewer checks, not a guarantee.
+  If the terms are silent, the plugin is not accepted: it goes to Grey areas.
 * It surfaces nothing the player's own client would not already show them. The
   pull request lists every signal the plugin exposes, and the reviewer checks
   that each one is visible in the game's own interface.
@@ -107,8 +109,8 @@ Three layers, in order of strength:
    check the claim. Until the registry's own copy of this policy is updated
    (tracked in #112), its checks may still refuse `multiplayer: true`
    mechanically. For an advisory plugin that meets the conditions, the reviewer
-   overrides that refusal and says so in the pull request, citing the source of
-   the ranked check; the author does not
+   overrides that refusal, but only once the ranked check and its source are
+   recorded in the pull request; the author does not
    need to ask.
 2. **Capabilities.** A plugin declares what it needs. `Unverified` plugins get
    nothing granted silently; network access is never granted silently below

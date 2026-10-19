@@ -77,6 +77,9 @@ worth anything in that mode is an advantage over other players.
 ## Consequences
 
 * The session state grows a mode, and the UI shows it.
+* The registry's refusal of multiplayer games is narrowed to games with a ranked
+  or competitive mode. A cooperative-only game with an automating plugin moves
+  from refused to a discussion thread, which loosens the previous rule.
 * Until [#112](https://github.com/IdleWarden/idlewarden/issues/112) lands, the
   advisory classification and the review of updates are manual, so that issue
   is the real enforcement point for the advisory rules.
