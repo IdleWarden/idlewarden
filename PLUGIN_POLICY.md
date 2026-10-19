@@ -28,7 +28,9 @@ declares intents or requests an input capability, is called automating. It is ac
   `Capture`, `FsRead`, `Net` and `Bridge` are not input capabilities and stay
   subject to their own rules; an `FsRead` path is reviewed against the last
   condition below, since a save file can hold data the game's interface never
-  shows. There is no manifest field for this. The reviewer checks it first, in `plugin.json`.
+  shows: the pull request lists the save fields the plugin reads, and the
+  reviewer checks each against what the game displays. There is no manifest
+  field for this. The reviewer checks it first, in `plugin.json`.
 * The game has no competitive or ranked mode, checked as the Review layer under
   Enforcement describes. A single-player game with online leaderboards is held
   for a discussion thread there, so it is not accepted on this list alone.
@@ -131,6 +133,9 @@ Three layers, in order of strength:
      acknowledges it in the pull request before the merge (with a single active
      maintainer there is no valid override and the pull request stays open);
    - the merge comment names it ("advisory override, ranked check: <source>").
+
+   An override missing any of these is invalid, and the maintainers revert the
+   merge.
 
    #112 is to add an `advisory-override` label so overrides can be listed; it
    does not exist yet, and until then the merge comment is the only trace.
