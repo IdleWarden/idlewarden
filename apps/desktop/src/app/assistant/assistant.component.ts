@@ -62,7 +62,11 @@ export class AssistantComponent {
     if (this.waiting()) {
       return;
     }
-    await invoke("assistant_reset");
+    try {
+      await invoke("assistant_reset");
+    } catch {
+      return;
+    }
     this.messages.set([]);
   }
 

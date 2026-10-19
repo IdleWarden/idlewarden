@@ -5,7 +5,7 @@ use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering as AtomicOrdering};
-use std::sync::{mpsc, Mutex};
+use std::sync::{mpsc, Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use serde::Serialize;
@@ -28,7 +28,7 @@ If the player sincerely asks what you are, say you are IdleWarden the Warden, po
 pub struct Assistant {
     session_id: Mutex<Option<String>>,
     generation: AtomicU64,
-    busy: AtomicBool,
+    busy: Arc<AtomicBool>,
 }
 
 impl Assistant {
@@ -63,17 +63,18 @@ impl Assistant {
     }
 }
 
-struct Busy<'a>(&'a Assistant);
+struct Busy(Arc<AtomicBool>);
 
-impl<'a> Busy<'a> {
-    fn claim(assistant: &'a Assistant) -> Option<Self> {
-        (!assistant.busy.swap(true, AtomicOrdering::SeqCst)).then_some(Busy(assistant))
+impl Busy {
+    fn claim(assistant: &Assistant) -> Option<Self> {
+        (!assistant.busy.swap(true, AtomicOrdering::SeqCst))
+            .then(|| Busy(Arc::clone(&assistant.busy)))
     }
 }
 
-impl Drop for Busy<'_> {
+impl Drop for Busy {
     fn drop(&mut self) {
-        self.0.busy.store(false, AtomicOrdering::SeqCst);
+        self.0.store(false, AtomicOrdering::SeqCst);
     }
 }
 
@@ -211,10 +212,11 @@ fn is_claude_code(executable: &Path) -> bool {
 }
 
 fn locate_claude() -> Option<PathBuf> {
-    let mut candidates = vec![PathBuf::from("claude")];
+    let mut candidates = Vec::new();
     if let Some(app_data) = std::env::var_os("APPDATA") {
         candidates.extend(bundled_candidates(Path::new(&app_data)));
     }
+    candidates.push(PathBuf::from("claude"));
     candidates
         .into_iter()
         .find(|candidate| is_claude_code(candidate))
@@ -390,9 +392,9 @@ pub fn assistant_ask(
     context: String,
     plugin: Option<String>,
 ) -> Result<(), String> {
-    if Busy::claim(&assistant).is_none() {
+    let Some(busy) = Busy::claim(&assistant) else {
         return Err("le Gardien est déjà en train de répondre".to_owned());
-    }
+    };
 
     let system = system_prompt(&session.plugin_root(), plugin.as_deref());
     let generation = assistant.generation();
@@ -400,8 +402,7 @@ pub fn assistant_ask(
     let prompt = build_prompt(&context, &text);
 
     std::thread::spawn(move || {
-        let assistant = app.state::<Assistant>();
-        let _busy = Busy(&assistant);
+        let _busy = busy;
         if let Err(message) = ask(&app, args, &prompt, generation) {
             emit(&app, Reply::Failed { message });
         }
@@ -410,8 +411,12 @@ pub fn assistant_ask(
 }
 
 #[tauri::command]
-pub fn assistant_reset(assistant: State<'_, Assistant>) {
+pub fn assistant_reset(assistant: State<'_, Assistant>) -> Result<(), String> {
+    if assistant.busy.load(AtomicOrdering::SeqCst) {
+        return Err("le Gardien est en train de répondre".to_owned());
+    }
     assistant.reset();
+    Ok(())
 }
 
 #[cfg(test)]
@@ -596,6 +601,22 @@ mod tests {
         assert!(Busy::claim(&assistant).is_none());
         drop(first);
         assert!(Busy::claim(&assistant).is_some());
+    }
+
+    #[test]
+    fn the_claim_survives_being_moved_into_the_worker_thread() {
+        let assistant = Assistant::default();
+        let claim = Busy::claim(&assistant).expect("the first claim");
+        let worker = std::thread::spawn(move || {
+            let _held = claim;
+        });
+        worker.join().expect("worker");
+        assert!(Busy::claim(&assistant).is_some());
+
+        let held = Busy::claim(&assistant).expect("claim");
+        let still_held = std::thread::spawn(move || held).join().expect("worker");
+        assert!(Busy::claim(&assistant).is_none());
+        drop(still_held);
     }
 
     #[test]
