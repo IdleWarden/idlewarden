@@ -12,11 +12,29 @@ curate is what we ship.
 * Games whose terms of service explicitly permit automation, macros or bots.
 * Games with an official, documented automation or modding interface.
 
+## Advisory plugins
+
+A plugin whose `intents` list is empty and which requests no input capability
+can only be observed and talked about ([ADR-0023](docs/adr/0023-companion-first.md)).
+It is judged separately from a plugin that automates, because it cannot press
+anything. It is accepted when all of these hold:
+
+* The game has no competitive or ranked mode. Cooperative and single-player games
+  qualify, a game with ranked play does not, whatever the plugin does.
+* The publisher's terms or modding policy allow mods and overlays, and the pull
+  request cites them. IdleWarden cannot grant that permission, and the manifest
+  line is a claim a reviewer checks, not a guarantee.
+* It surfaces nothing the player's own client would not already show them, and
+  nothing that gives an advantage over other human players.
+
+Everything else in this policy still applies to it. A bridge is still a mod the
+user installs by hand, and the registry still does not carry the binary.
+
 ## Refused
 
 * Any game with a competitive or ranked multiplayer mode, whether or not the
-  plugin targets that mode. We do not adjudicate "but I only use it in
-  single-player": the answer is no.
+  plugin targets that mode, advisory or not. We do not adjudicate "but I only
+  use it in single-player": the answer is no.
 * Anything that circumvents, disables, probes or works around an anti-cheat
   system or any other protection mechanism.
 * Plugins relying on memory reading, DLL injection, code hooking or driver
@@ -34,7 +52,9 @@ curate is what we ship.
 Three layers, in order of strength:
 
 1. **Review.** Every registry submission is a pull request. `multiplayer: true`
-   in the manifest is an automatic refusal, and reviewers check the claim.
+   in the manifest is an automatic refusal for a plugin that automates, and
+   reviewers check the claim. For an advisory plugin it opens the review above
+   instead.
 2. **Capabilities.** A plugin declares what it needs. `Unverified` plugins get
    nothing granted silently; network access is never granted silently below
    `Official`.
@@ -49,7 +69,7 @@ Three layers, in order of strength:
 ## Grey areas
 
 Bring them to a discussion thread before writing the plugin. A game with a
-cooperative-only multiplayer mode, a single-player game with online
+cooperative-only multiplayer mode that wants an automating plugin, a single-player game with online
 leaderboards, a game whose terms are silent rather than permissive, these are
 real cases and they get decided individually, in public, and recorded here.
 

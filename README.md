@@ -6,13 +6,24 @@
   <img src="docs/wordmark.png" alt="IdleWarden" width="330">
 </p>
 
-**An extensible automation platform for single-player idle, incremental and
-management games on Windows.**
+**A companion that plays beside you, and helps when you ask. It reads your game,
+talks about it, and can play for you if you turn that on.**
 
-IdleWarden watches a game window, builds an abstract picture of what is on
-screen, decides what to do, and does it: mouse, keyboard, nothing exotic. New
-games are added as plugins; the engine itself never learns about any particular
-game.
+IdleWarden watches a game, builds an abstract picture of what is happening, and
+tells you what is worth doing: the Gardien, a small pixel owl, answers your
+questions from the game's live signals. If you want more than advice, the same
+picture feeds an agent that decides and acts: mouse, keyboard, nothing exotic.
+New games are added as plugins; the engine itself never learns about any
+particular game.
+
+| Mode | What it does |
+|------|--------------|
+| **Watch** | Reads and says nothing. Where a session starts. |
+| **Advise** | The Gardien talks and answers. It presses nothing and has no tool that could. The default. |
+| **Assist** | The agent acts for you through the Governor. Something you switch on, never implied. |
+
+See [ADR-0022](docs/adr/0022-assistant.md) and
+[ADR-0023](docs/adr/0023-companion-first.md).
 
 > **Status: pre-alpha.** On Windows the whole loop runs: the desktop app
 > captures the game window, reads it, and clicks through the Governor, with a
@@ -27,9 +38,10 @@ game.
 
 ## The red line
 
-This project is built for games where automation is *legitimate*: single-player,
-offline, idle and incremental titles, the genre where automating the grind is
-arguably the point, and games whose terms explicitly allow it.
+Automation is built for games where it is *legitimate*: single-player, offline,
+idle and incremental titles, the genre where automating the grind is arguably
+the point, and games whose terms explicitly allow it. Advice is a separate case:
+an advisory plugin presses nothing, and the policy treats it on its own terms.
 
 IdleWarden is **not** designed around defeating anti-cheat systems, and the
 official plugin registry refuses plugins targeting competitive or multiplayer
