@@ -68,7 +68,8 @@ check. A `Bridge` with empty `intents` is the weakest link of the advisory path,
 because only a human reading the mod's source stands between it and commands
 outside the Intent protocol. The pull request therefore states the full set of
 commands the bridge accepts, and the reviewer verifies that set against the
-source.
+source. #112 makes that statement a required field of the registry pull request
+template, so the check does not depend on reviewer memory.
 
 ## Refused
 
