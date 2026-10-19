@@ -36,9 +36,9 @@ cannot press anything. It is accepted when all of these hold:
   pull request lists every signal the plugin exposes, and the reviewer checks
   that each one is visible in the game's own interface.
 
-These conditions apply whatever the `multiplayer` field says: the author
-declares it, so the reviewer checks the ranked or competitive mode against the
-game itself and records the answer, with its source, in the pull request.
+The ranked or competitive check does not depend on the `multiplayer` field; see
+the Review layer under Enforcement. The reviewer records the answer, with its
+source, in the pull request.
 
 Advisory status is derived from the manifest, never declared: there is no
 advisory flag, and `multiplayer` only triggers the ranked check. Registry CI
@@ -49,8 +49,9 @@ conditions by hand, and a plugin that meets them is merged with no automated
 guarantee. When #112 lands, every advisory plugin already in the registry is
 re-checked against it.
 
-An update to an advisory plugin needs a new review if it changes `intents` or
-capabilities. Until #112 lands, the reviewer who merges an update pull request
+An update to an advisory plugin needs a new review if it changes `intents`,
+capabilities or, for a bridge, the accepted command set, which the update pull
+request re-states and the reviewer re-verifies against the source. Until #112 lands, the reviewer who merges an update pull request
 owns checking that its diff leaves both unchanged or triggers that review, and
 does not merge it otherwise.
 
