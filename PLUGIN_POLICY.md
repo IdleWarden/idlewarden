@@ -33,8 +33,8 @@ cannot press anything. It is accepted when all of these hold:
   with online leaderboards is held until a discussion thread decides it (see
   Grey areas).
 * The publisher's terms or modding policy allow mods and overlays, and the pull
-  request cites them. IdleWarden cannot grant that permission, and the manifest
-  line is a claim a reviewer checks, not a guarantee.
+  request cites them. IdleWarden cannot grant that permission, and the
+  citation in the pull request is a claim a reviewer checks, not a guarantee.
 * It surfaces nothing the player's own client would not already show them. The
   pull request lists every signal the plugin exposes, and the reviewer checks
   that each one is visible in the game's own interface.
@@ -100,8 +100,8 @@ Three layers, in order of strength:
    submission; `multiplayer: true` in the manifest is an additional trigger,
    not the only one. A game with such a mode is refused, for every plugin. A
    cooperative-only game is held for a discussion thread if the plugin declares
-   intents, and so is a single-player game with online leaderboards. An
-   advisory plugin for a cooperative-only game goes through the advisory
+   intents. A single-player game with online leaderboards is held for a
+   discussion thread for every plugin, advisory or not. An advisory plugin for a cooperative-only game goes through the advisory
    conditions instead. Reviewers check the claim.
 2. **Capabilities.** A plugin declares what it needs. `Unverified` plugins get
    nothing granted silently; network access is never granted silently below
