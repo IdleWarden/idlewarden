@@ -408,12 +408,34 @@ fn kill_tree(child: &mut std::process::Child) {
     let _ = child.kill();
 }
 
+#[derive(Debug)]
+struct RunError {
+    spawn_failed: bool,
+    message: String,
+}
+
+impl RunError {
+    fn spawn(error: std::io::Error) -> Self {
+        Self {
+            spawn_failed: true,
+            message: error.to_string(),
+        }
+    }
+
+    fn other(message: impl ToString) -> Self {
+        Self {
+            spawn_failed: false,
+            message: message.to_string(),
+        }
+    }
+}
+
 fn run_child(
     mut command: Command,
     prompt: &str,
     timeout: Duration,
     mut on_line: impl FnMut(&str),
-) -> Result<Exit, String> {
+) -> Result<Exit, RunError> {
     command
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -425,7 +447,7 @@ fn run_child(
         command.creation_flags(NO_WINDOW);
     }
 
-    let mut child = command.spawn().map_err(|error| error.to_string())?;
+    let mut child = command.spawn().map_err(RunError::spawn)?;
     RUNNING_CHILD.store(child.id(), AtomicOrdering::SeqCst);
     if let Some(mut stdin) = child.stdin.take() {
         let prompt = prompt.to_owned();
@@ -434,7 +456,10 @@ fn run_child(
         });
     }
 
-    let stdout = child.stdout.take().ok_or("stdout unavailable")?;
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| RunError::other("stdout unavailable"))?;
     let (lines, incoming) = mpsc::channel::<String>();
     std::thread::spawn(move || {
         let mut reader = BufReader::new(stdout);
@@ -473,7 +498,7 @@ fn run_child(
     }
 
     while !timed_out {
-        match child.try_wait().map_err(|error| error.to_string())? {
+        match child.try_wait().map_err(RunError::other)? {
             Some(_) => break,
             None if Instant::now() >= deadline => {
                 timed_out = true;
@@ -484,7 +509,7 @@ fn run_child(
     }
     let waited = child.wait();
     RUNNING_CHILD.store(0, AtomicOrdering::SeqCst);
-    waited.map_err(|error| error.to_string())?;
+    waited.map_err(RunError::other)?;
     let stderr = if timed_out {
         String::new()
     } else {
@@ -575,11 +600,15 @@ fn ask(
     let executable = locate_claude(&assistant).ok_or_else(not_found)?;
     let exit = match launch(executable) {
         Ok(exit) => exit,
-        Err(_) => {
+        Err(error) if error.spawn_failed => {
             forget_executable(&assistant);
             let executable = locate_claude(&assistant).ok_or_else(not_found)?;
-            launch(executable).inspect_err(|_| forget_executable(&assistant))?
+            launch(executable).map_err(|error| {
+                forget_executable(&assistant);
+                error.message
+            })?
         }
+        Err(error) => return Err(error.message),
     };
 
     if let Some(reply) = turn_state.into_verdict() {
