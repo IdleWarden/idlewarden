@@ -14,9 +14,9 @@ curate is what we ship.
 
 ## Advisory plugins
 
-Everything this policy says about advisory plugins (this section, the wording
-under Refused, the Review layer and Grey areas) takes effect together once
-[ADR-0023](docs/adr/0023-companion-first.md) is accepted.
+This section and the advisory wording under Refused, the Review layer and Grey
+areas apply from the merge that introduces them, which is also what accepts
+[ADR-0023](docs/adr/0023-companion-first.md).
 An advisory plugin is judged separately from one that automates, because it
 cannot press anything. It is accepted when all of these hold:
 

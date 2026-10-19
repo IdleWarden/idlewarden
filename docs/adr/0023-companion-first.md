@@ -1,6 +1,6 @@
 # ADR-0023: IdleWarden is a companion first, and automation is opt-in
 
-**Status:** Proposed · **Date:** 2026-10-19
+**Status:** Accepted · **Date:** 2026-10-19
 
 ## Context
 

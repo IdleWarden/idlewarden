@@ -28,4 +28,4 @@ request against the ADR, not around it.
 | [0020](0020-overlay.md) | The overlay is a window above the game, never something drawn into it | Accepted |
 | [0021](0021-big-values.md) | Numbers past an `f64` travel as a `big` value, written as text | Accepted |
 | [0022](0022-assistant.md) | The assistant answers questions and never acts | Accepted |
-| [0023](0023-companion-first.md) | IdleWarden is a companion first, and automation is opt-in | Proposed |
+| [0023](0023-companion-first.md) | IdleWarden is a companion first, and automation is opt-in | Accepted |
