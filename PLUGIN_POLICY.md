@@ -22,8 +22,9 @@ declares intents or requests an input capability, is called automating. It is ac
   capability, meaning any capability that sends input (today `InputMouse`,
   `InputKeyboard` and `InputGamepad` in `crates/plugin-api/src/capability.rs`), so
   it can only be observed and talked about. A new capability that sends input is
-  non-advisory by default, and when #112 lands its classifier is an exhaustive
-  `match` over `Capability`, so a new variant cannot compile unclassified.
+  non-advisory by default, and #112 is meant to make its classifier an
+  exhaustive `match` over `Capability`, so that a new variant cannot compile
+  unclassified; nothing enforces that until it lands.
   `Capture`, `FsRead`, `Net` and `Bridge` are not input capabilities and stay
   subject to their own rules; an `FsRead` path is reviewed against the last
   condition below, since a save file can hold data the game's interface never
@@ -116,10 +117,12 @@ Three layers, in order of strength:
    overrides that refusal, but only once the ranked check and its source are
    recorded in the pull request, and names the override in the merge comment
    ("advisory override, ranked check: <source>") so it can be found later, and a second maintainer
-   acknowledges it in the pull request. #112 adds an `advisory-override` label so
+   acknowledges it in the pull request. #112 is to add an `advisory-override` label (it does not exist yet; until then
+   the merge comment is the only trace) so
    overrides can be listed. The author does not need to ask. A cooperative-only game with an
    automating plugin is never overridden: that pull request stays open until the
-   discussion thread decides it.
+   discussion thread decides it, so the registry's mechanical refusal keeps
+   applying to it until then, as intended.
 2. **Capabilities.** A plugin declares what it needs. `Unverified` plugins get
    nothing granted silently; network access is never granted silently below
    `Official`.
