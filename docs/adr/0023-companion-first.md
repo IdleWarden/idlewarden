@@ -29,11 +29,11 @@ by acting is something the player turns on.** The session has three modes:
   ([ADR-0008](0008-agent.md), [ADR-0009](0009-governor.md)). Nothing about the
   agent, the Governor or the kill switch changes.
 
-**Every session starts in Advise.** Assist is never implied by
+**Every session will start in Advise.** Assist is never implied by
 installing a plugin: it is a switch the user flips for a session.
 
-The mode switch is not implemented yet. Until it lands, a session behaves as
-Assist does today, and the Gardien chat of
+**Current state.** The mode switch is not implemented yet. Until it lands, a
+session behaves as Assist does today, and the Gardien chat of
 [ADR-0022](0022-assistant.md) is the only Advise behaviour.
 
 **A plugin that cannot act can be advisory.** A plugin whose `intents` list is
