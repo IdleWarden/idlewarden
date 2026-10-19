@@ -76,7 +76,10 @@ export class AssistantService {
           ? { from: "warden", text: reply.message, pending: false, failed: true }
           : {
               from: "warden",
-              text: reply.text,
+              text:
+                reply.text === "" && reply.kind === "done"
+                  ? "Le Gardien n'a rien à ajouter."
+                  : reply.text,
               pending: reply.kind === "partial",
               failed: false,
             };

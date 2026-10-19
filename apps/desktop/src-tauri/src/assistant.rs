@@ -161,12 +161,10 @@ pub fn build_args(system_prompt: &str, session_id: Option<&str>) -> Vec<String> 
 }
 
 pub fn build_prompt(context: &str, text: &str) -> String {
+    let truncated = context.chars().nth(MAX_CONTEXT_CHARS).is_some();
     let mut context: String = context.chars().take(MAX_CONTEXT_CHARS).collect();
-    if context.chars().count() == MAX_CONTEXT_CHARS {
-        context.push_str(
-            "
-[signals truncated]",
-        );
+    if truncated {
+        context.push_str("\n[signals truncated]");
     }
     let context = if context.trim().is_empty() {
         "no signals available, the game may not be running"
@@ -221,6 +219,9 @@ const PROBE_TIMEOUT: Duration = Duration::from_secs(5);
 fn is_claude_code(executable: &Path) -> bool {
     let mut command = Command::new(executable);
     command.arg("--version");
+    if let Ok(dir) = working_directory() {
+        command.current_dir(dir);
+    }
     let mut banner = String::new();
     let Ok(exit) = run_child(command, "", PROBE_TIMEOUT, |line| banner.push_str(line)) else {
         return false;
@@ -265,7 +266,7 @@ fn find_claude() -> Option<PathBuf> {
 
 pub fn plugin_prompt(plugin_root: &Path, plugin_id: &str) -> Option<String> {
     for entry in fs::read_dir(plugin_root).ok()?.flatten() {
-        let manifest = fs::read_to_string(entry.path().join("plugin.json")).ok();
+        let manifest = read_plain_file(&entry.path().join("plugin.json"));
         let id = manifest
             .and_then(|text| serde_json::from_str::<serde_json::Value>(&text).ok())
             .and_then(|value| {
@@ -327,13 +328,20 @@ fn run_child(
 
     let mut child = command.spawn().map_err(|error| error.to_string())?;
     if let Some(mut stdin) = child.stdin.take() {
-        let _ = stdin.write_all(prompt.as_bytes());
+        let prompt = prompt.to_owned();
+        std::thread::spawn(move || {
+            let _ = stdin.write_all(prompt.as_bytes());
+        });
     }
 
     let stdout = child.stdout.take().ok_or("stdout unavailable")?;
     let (lines, incoming) = mpsc::channel::<String>();
     std::thread::spawn(move || {
-        for line in BufReader::new(stdout).lines().map_while(Result::ok) {
+        let mut reader = BufReader::new(stdout);
+        let mut raw = Vec::new();
+        while matches!(reader.read_until(b'\n', &mut raw), Ok(read) if read > 0) {
+            let line = String::from_utf8_lossy(&raw).trim_end().to_owned();
+            raw.clear();
             if lines.send(line).is_err() {
                 break;
             }
@@ -691,6 +699,27 @@ mod tests {
         assert_eq!(assistant.resume_id().as_deref(), Some("new"));
         assistant.forget(assistant.generation());
         assert_eq!(assistant.resume_id(), None);
+    }
+
+    #[test]
+    fn a_context_of_exactly_the_cap_is_not_marked_as_truncated() {
+        let exact = "x".repeat(MAX_CONTEXT_CHARS);
+        assert!(!build_prompt(&exact, "q").contains("truncated"));
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn a_line_with_invalid_utf8_does_not_cut_the_stream() {
+        let mut seen = Vec::new();
+        run_child(
+            shell("printf 'a\\n\\377\\nb\\n'"),
+            "",
+            Duration::from_secs(20),
+            |line| seen.push(line.to_owned()),
+        )
+        .expect("run");
+        assert_eq!(seen.len(), 3);
+        assert_eq!(seen[2], "b");
     }
 
     #[test]
