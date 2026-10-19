@@ -43,7 +43,8 @@ See [ADR-0022](docs/adr/0022-assistant.md) and
 Automation is built for games where it is *legitimate*: single-player, offline,
 idle and incremental titles, the genre where automating the grind is arguably
 the point, and games whose terms explicitly allow it. Advice is a separate case:
-an advisory plugin presses nothing, and the policy treats it on its own terms.
+an advisory plugin presses nothing, and the policy treats it on its own terms, spelled out in its
+[Advisory plugins](PLUGIN_POLICY.md#advisory-plugins) section.
 
 IdleWarden is **not** designed around defeating anti-cheat systems, and the
 official plugin registry refuses any plugin at all, advisory or not, for a game

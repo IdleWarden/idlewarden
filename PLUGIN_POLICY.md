@@ -41,15 +41,18 @@ These conditions apply whatever the `multiplayer` field says: it is declared
 by the author, so the reviewer checks the ranked or competitive mode against the
 game itself and records the answer, with its source, in the pull request.
 
-An advisory plugin that requests `Bridge` or `Net` is reviewed as a bridge or
+An advisory plugin that requests `Net` needs the same justification as any
+other plugin that does, and the reviewer checks that it sends no game state
+off the machine beyond what that justification covers. One that requests
+`Bridge` or `Net` is reviewed as a bridge or
 network plugin as well: the advisory conditions are in addition to those rules,
 never a replacement.
 
-Registry CI will reject a plugin submitted as advisory that declares an intent or
-an input capability (tracked in #112). Until that check exists, the registry
-does not check this: a plugin is reviewed by hand against the
-conditions above, and if it meets them it is merged with no automated
-guarantee.
+Registry CI will classify a plugin as advisory when its manifest has empty
+`intents` and no input capability, and apply the conditions above to it (tracked
+in #112). Nothing is declared by the author. Until that check exists, the
+registry does not classify anything: the reviewer applies the conditions by
+hand, and a plugin that meets them is merged with no automated guarantee.
 Any update that changes `intents` or capabilities needs a new review, and until
 #112 lands the reviewer diffs both on every update pull request.
 Everything else in this policy still applies to it. A bridge is still a mod the
