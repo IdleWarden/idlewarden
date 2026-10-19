@@ -16,6 +16,9 @@ function fitSignals(signals: readonly unknown[]): string {
   ) {
     kept -= 1;
   }
+  if (kept === 0 && signals.length > 0) {
+    return JSON.stringify(signals).slice(0, MAX_CONTEXT_CHARS + 1);
+  }
   return JSON.stringify(signals.slice(0, kept));
 }
 

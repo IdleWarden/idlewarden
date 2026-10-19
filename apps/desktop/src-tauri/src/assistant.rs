@@ -933,6 +933,45 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "needs a local Claude Code install"]
+    fn the_real_cli_receives_the_empty_tools_argument_and_reports_none() {
+        let _serial = SUBPROCESS
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let executable = find_claude().expect("a local Claude Code install");
+        let scratch = ScratchDir::create().expect("scratch");
+        let system_file = scratch.path().join("system.md");
+        let settings_file = scratch.path().join("settings.json");
+        fs::write(&system_file, PERSONA).expect("system");
+        fs::write(&settings_file, SETTINGS).expect("settings");
+        let mut command = Command::new(executable);
+        command
+            .args(build_args(&system_file, &settings_file, None))
+            .current_dir(scratch.path());
+        let mut turn = Turn::new(false);
+        let mut kills = 0;
+        let mut saw_empty_tools = false;
+        run_child(command, "bonjour", Duration::from_secs(90), |line| {
+            saw_empty_tools |= init_tools(line) == InitTools::Reported(Vec::new());
+            if turn.feed(line).kill {
+                kills += 1;
+                stop_running_child();
+            }
+        })
+        .expect("run");
+        assert_eq!(
+            kills,
+            0,
+            "the CLI reported tools: {:?}",
+            turn.into_verdict()
+        );
+        assert!(
+            saw_empty_tools,
+            "no init line with an empty tool list was seen"
+        );
+    }
+
+    #[test]
     fn the_working_directory_is_one_stable_app_owned_folder() {
         let base = scratch("workdir");
         let first = working_dir(&base).expect("first");
