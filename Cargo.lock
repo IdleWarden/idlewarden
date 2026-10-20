@@ -1708,7 +1708,7 @@ dependencies = [
 
 [[package]]
 name = "idlewarden-desktop"
-version = "26.10.9"
+version = "26.10.10"
 dependencies = [
  "idlewarden-bridge",
  "idlewarden-capture",
