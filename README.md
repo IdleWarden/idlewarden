@@ -6,13 +6,29 @@
   <img src="docs/wordmark.png" alt="IdleWarden" width="330">
 </p>
 
-**An extensible automation platform for single-player idle, incremental and
-management games on Windows.**
+**A companion that plays beside you, and helps when you ask. It reads your game,
+talks about it, and will play for you only if you turn that on, once the mode
+switch lands.**
 
-IdleWarden watches a game window, builds an abstract picture of what is on
-screen, decides what to do, and does it: mouse, keyboard, nothing exotic. New
-games are added as plugins; the engine itself never learns about any particular
-game.
+IdleWarden watches a game, builds an abstract picture of what is happening, and
+is meant to tell you what is worth doing: the Gardien (French for guardian), the app's small pixel owl, answers your
+questions from the game's live signals. If you want more than advice, the same
+picture feeds an agent that decides and acts: mouse, keyboard, nothing exotic.
+New games are added as plugins; the engine itself never learns about any
+particular game.
+
+Planned modes (the mode switch is not built yet, see ADR-0023):
+
+| Mode | What it does |
+|------|--------------|
+| **Watch** | Reads and says nothing. A switch to silence the Gardien. |
+| **Advise** | The Gardien talks and answers. It presses nothing and has no tool that could. Every session will start here. |
+| **Assist** | The agent acts for you through the Governor. Something you switch on, never implied. |
+
+Today every session runs as Assist; the mode switch is not built yet.
+
+See [ADR-0022](docs/adr/0022-assistant.md) and
+[ADR-0023](docs/adr/0023-companion-first.md).
 
 > **Status: pre-alpha.** On Windows the whole loop runs: the desktop app
 > captures the game window, reads it, and clicks through the Governor, with a
@@ -27,13 +43,16 @@ game.
 
 ## The red line
 
-This project is built for games where automation is *legitimate*: single-player,
-offline, idle and incremental titles, the genre where automating the grind is
-arguably the point, and games whose terms explicitly allow it.
+Automation is built for games where it is *legitimate*: single-player, offline,
+idle and incremental titles, the genre where automating the grind is arguably
+the point, and games whose terms explicitly allow it. Advice is a separate case:
+an advisory plugin presses nothing, and the policy treats it on its own terms, spelled out in its
+[Advisory plugins](PLUGIN_POLICY.md#advisory-plugins) section.
 
 IdleWarden is **not** designed around defeating anti-cheat systems, and the
-official plugin registry refuses plugins targeting competitive or multiplayer
-titles. That boundary is editorial, not technical: the engine is generic and
+official plugin registry refuses any plugin at all, advisory or not, for a game
+with a ranked or competitive mode. Cooperative-only games that want automation
+are decided case by case. That boundary is editorial, not technical: the engine is generic and
 cannot police what people do with it, but what we distribute, we curate. See
 [`PLUGIN_POLICY.md`](PLUGIN_POLICY.md).
 

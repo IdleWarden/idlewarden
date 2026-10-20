@@ -12,11 +12,92 @@ curate is what we ship.
 * Games whose terms of service explicitly permit automation, macros or bots.
 * Games with an official, documented automation or modding interface.
 
+## Advisory plugins
+
+An advisory plugin is judged separately from one that automates, because it
+cannot press anything. In this policy a plugin that is not advisory, because it
+declares intents or requests an input capability, is called automating. It is accepted when all of these hold:
+
+* It is advisory: its `intents` list is empty and it requests no input
+  capability, meaning any capability that sends input (today `InputMouse`,
+  `InputKeyboard` and `InputGamepad` in `crates/plugin-api/src/capability.rs`), so
+  it can only be observed and talked about. A new capability that sends input is
+  non-advisory by default, and #112 is meant to make its classifier an
+  exhaustive `match` over `Capability`, so that a new variant cannot compile
+  unclassified; nothing enforces that until it lands.
+  `Capture`, `FsRead`, `Net` and `Bridge` are not input capabilities and stay
+  subject to their own rules; an `FsRead` path is reviewed against the last
+  condition below, since a save file can hold data the game's interface never
+  shows: the pull request lists the save fields the plugin reads, and the
+  reviewer checks each against what the game displays. There is no manifest
+  field for this. The reviewer checks it first, in `plugin.json`.
+* The game has no competitive or ranked mode, checked as the Review layer under
+  Enforcement describes. A single-player game with online leaderboards is held
+  for a discussion thread there, so it is not accepted on this list alone.
+* The publisher's terms or modding policy allow mods and overlays, and the pull
+  request cites them. IdleWarden cannot grant that permission, and the
+  citation in the pull request is a claim a reviewer checks, not a guarantee.
+  If the terms are silent, the plugin is not accepted: it goes to Grey areas.
+* It surfaces nothing the player's own client would not already show them. The
+  pull request lists every signal the plugin exposes, and the reviewer checks
+  that each one is visible in the game's own interface. If the plugin ships an
+  `assistant.md`, the reviewer reads it too: it is appended to the model's
+  prompt and needs no capability, so it can steer the advice, and it must not
+  push toward behaviour the publisher's terms disallow.
+
+The ranked or competitive check does not depend on the `multiplayer` field; see
+the Review layer under Enforcement. The reviewer records the answer, with its
+source, in the pull request.
+
+Advisory status is derived from the manifest, never declared: there is no
+advisory flag, and `multiplayer` only triggers the ranked check. Registry CI
+will classify a plugin as advisory when its manifest has empty `intents` and no
+input capability, and apply the conditions above to it (tracked in #112). Until
+that check exists, the registry classifies nothing: the reviewer applies the
+conditions by hand, and a plugin that meets them is merged with no automated
+guarantee. When #112 lands, every advisory plugin already in the registry is
+re-checked against it.
+
+An update to an advisory plugin needs a new review if it changes `intents`,
+capabilities, the list of exposed signals, the `assistant.md` text or, for a bridge, the accepted command
+set. The update pull request re-states the signal list and the command set, and
+the reviewer compares them with the previous ones and re-verifies the commands
+against the source. The ranked or competitive check is repeated on any update
+that touches `multiplayer` or the game ID, and the registry maintainers recheck
+existing entries when a game's ranked status changes, on a report or a plugin
+request issue that says so. Until #112 lands, the reviewer who merges
+an update pull request owns these checks and does not merge it otherwise.
+
+An advisory plugin that requests `Net` needs the same justification as any
+other plugin that does, and the reviewer checks that it sends no game state off
+the machine beyond what that justification covers. The "surfaces nothing the
+client would not show" condition also covers what ends up in the assistant
+prompt: the observation reaches the user's own Claude Code on every question
+([ADR-0022](docs/adr/0022-assistant.md)), with no capability involved.
+
+An advisory plugin that uses a `Bridge` is reviewed as a bridge plugin as well:
+the advisory conditions are in addition to those rules, never a replacement. A
+bridge is still a mod the user installs by hand, and the registry still does not
+carry the binary. The Core sends a bridge only the `Intent`s built from the
+plugin's declared intents ([ADR-0014](docs/adr/0014-bridge.md)), so with an
+empty list it sends nothing. That is how the Core is built, not a registry
+check. A `Bridge` with empty `intents` is the weakest link of the advisory path,
+because only a human reading the mod's source stands between it and commands
+outside the Intent protocol. The pull request therefore states the full set of
+commands the bridge accepts, and the reviewer verifies that set against the
+source; a second maintainer reads it too, because one reader is a single point of
+failure. #112 makes that statement a required field of the registry pull request
+template, so the check does not depend on reviewer memory.
+
 ## Refused
 
+Cooperative-only multiplayer games are not listed here: see Grey areas for
+automating plugins and Advisory plugins for advisory ones.
+
 * Any game with a competitive or ranked multiplayer mode, whether or not the
-  plugin targets that mode. We do not adjudicate "but I only use it in
-  single-player": the answer is no.
+  plugin targets that mode, advisory or not, because advice is an advantage over
+  other players too. We do not adjudicate "but I only
+  use it in single-player": the answer is no.
 * Anything that circumvents, disables, probes or works around an anti-cheat
   system or any other protection mechanism.
 * Plugins relying on memory reading, DLL injection, code hooking or driver
@@ -33,8 +114,40 @@ curate is what we ship.
 
 Three layers, in order of strength:
 
-1. **Review.** Every registry submission is a pull request. `multiplayer: true`
-   in the manifest is an automatic refusal, and reviewers check the claim.
+1. **Review.** Every registry submission is a pull request. The reviewer
+   checks whether the game has a ranked or competitive mode on every
+   submission, against the game's store page and documentation;
+   `multiplayer: true` in the manifest is an additional trigger, not the only
+   one. A game with such a mode is refused, for every plugin. A cooperative-only
+   game is held for a discussion thread if the plugin is automating. A
+   single-player game with online leaderboards is held for a discussion thread
+   for every plugin, advisory or not. An advisory plugin for a cooperative-only
+   game goes through the advisory conditions instead. Reviewers check the claim.
+
+   Until the registry's own copy of this policy is updated (tracked in #112), its
+   checks may still refuse `multiplayer: true` mechanically. For an advisory
+   plugin that meets the conditions, the reviewer applies an override; the plugin
+   author does not request it. The override is valid only when:
+
+   - the ranked check and its source are recorded in the pull request;
+   - a second maintainer, a different person from the reviewer who applies it,
+     acknowledges it in the pull request before the merge (a maintainer is anyone with
+     merge rights on the registry repository; with a single one, holding the
+     submission until #112 lands is the default and the pull request stays
+     open);
+   - the merge comment names it ("advisory override, ranked check: <source>").
+
+   Each update pull request needs its own override; an earlier one does not carry
+   over. An override missing any of these is invalid, and the maintainers revert the
+   merge.
+
+   #112 is to add an `advisory-override` label so overrides can be listed; it
+   does not exist yet, and until then the merge comment is the only trace.
+   Maintainers may instead hold such a submission until #112 lands; the override
+   is a permission, not an obligation. A
+   cooperative-only game with an automating plugin is never overridden: that
+   pull request stays open until the discussion thread decides it, so the
+   registry's mechanical refusal keeps applying to it until then, as intended.
 2. **Capabilities.** A plugin declares what it needs. `Unverified` plugins get
    nothing granted silently; network access is never granted silently below
    `Official`.
@@ -48,10 +161,12 @@ Three layers, in order of strength:
 
 ## Grey areas
 
-Bring them to a discussion thread before writing the plugin. A game with a
-cooperative-only multiplayer mode, a single-player game with online
-leaderboards, a game whose terms are silent rather than permissive, these are
-real cases and they get decided individually, in public, and recorded here.
+Bring them to a discussion thread before writing the plugin. Three cases are
+open: a cooperative-only multiplayer game that wants an automating plugin (see
+Advisory plugins for the term), a
+single-player game with online leaderboards (undecided for advisory plugins
+too), and a game whose terms are silent rather than permissive. They are real
+cases and they get decided individually, in public, and recorded here.
 
 ## If you disagree with a refusal
 
