@@ -1,6 +1,7 @@
 import { Routes } from "@angular/router";
 
 import { ActivityComponent } from "./activity/activity.component";
+import { AssistantComponent } from "./assistant/assistant.component";
 import { CatalogueComponent } from "./catalogue/catalogue.component";
 import { DetectComponent } from "./detect/detect.component";
 import { EditorComponent } from "./editor/editor.component";
@@ -18,4 +19,5 @@ export const routes: Routes = [
   { path: "catalogue", component: CatalogueComponent },
   { path: "editeur", component: EditorComponent },
   { path: "en-jeu", component: InGameComponent },
+  { path: "gardien", component: AssistantComponent },
 ];
