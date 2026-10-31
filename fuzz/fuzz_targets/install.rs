@@ -27,15 +27,15 @@ fn names(dir: &Path) -> Vec<String> {
 
 fuzz_target!(|archive: &[u8]| {
     let root = scratch();
-    let _ = fs::remove_dir_all(&root);
     let game = root.join("game");
-    fs::create_dir_all(&game).expect("scratch dir");
 
     let sha = sha256_hex(archive);
     let shared = Destination::Shared(game.join("mods"));
     let own = Destination::Own(game.join("own"));
 
     for destination in [shared, own] {
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&game).expect("scratch dir");
         let _ = install(archive, &sha, "fuzzed-mod", &destination);
         assert_eq!(names(&root), ["game"]);
         for name in names(&game) {

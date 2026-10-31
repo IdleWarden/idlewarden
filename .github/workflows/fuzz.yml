@@ -43,7 +43,10 @@ jobs:
         env:
           FUZZ_SECONDS: ${{ inputs.seconds || '300' }}
         run: |
-          cargo fuzz run "${{ matrix.target }}" -- \
+          corpus="fuzz/corpus/${{ matrix.target }}"
+          seeds="fuzz/seeds/${{ matrix.target }}"
+          mkdir -p "$corpus" "$seeds"
+          cargo fuzz run "${{ matrix.target }}" "$corpus" "$seeds" -- \
             -max_total_time="$(( FUZZ_SECONDS < 1200 ? FUZZ_SECONDS : 1200 ))" \
             -timeout=30 \
             -rss_limit_mb=4096
