@@ -32,17 +32,23 @@ jobs:
           toolchain: nightly
       - name: Install cargo-fuzz
         run: cargo install cargo-fuzz --locked
+      - name: Corpus
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: fuzz/corpus/${{ matrix.target }}
+          key: fuzz-corpus-${{ matrix.target }}-${{ github.run_id }}
+          restore-keys: fuzz-corpus-${{ matrix.target }}-
       - name: Fuzz
         env:
-          SECONDS: ${{ inputs.seconds || '300' }}
+          FUZZ_SECONDS: ${{ inputs.seconds || '300' }}
         run: |
           cargo fuzz run "${{ matrix.target }}" -- \
-            -max_total_time="$SECONDS" \
+            -max_total_time="$(( FUZZ_SECONDS < 1200 ? FUZZ_SECONDS : 1200 ))" \
             -timeout=30 \
             -rss_limit_mb=4096
       - name: Keep the crashing input
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: fuzz-artifacts-${{ matrix.target }}
           path: fuzz/artifacts/
