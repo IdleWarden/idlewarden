@@ -153,6 +153,7 @@ The plugin registry lives in a separate repository:
 rustup toolchain install stable
 cargo check --workspace
 cargo test  --workspace
+cargo +nightly fuzz run <big|manifest|rules|bridge|install>   # from fuzz/
 
 cd apps/desktop && pnpm install && pnpm tauri dev
 ```

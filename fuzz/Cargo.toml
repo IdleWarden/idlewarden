@@ -1,0 +1,53 @@
+[package]
+name = "idlewarden-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+idlewarden-plugin-api = { path = "../crates/plugin-api" }
+idlewarden-bridge = { path = "../crates/bridge" }
+idlewarden-core = { path = "../crates/core" }
+idlewarden-mod-install = { path = "../crates/mod-install" }
+serde_json = "1"
+
+[workspace]
+
+[[bin]]
+name = "big"
+path = "fuzz_targets/big.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "manifest"
+path = "fuzz_targets/manifest.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "rules"
+path = "fuzz_targets/rules.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "bridge"
+path = "fuzz_targets/bridge.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "install"
+path = "fuzz_targets/install.rs"
+test = false
+doc = false
+bench = false
